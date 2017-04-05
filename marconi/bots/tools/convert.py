@@ -2,7 +2,7 @@
 from time import time, gmtime, strftime, strptime, localtime, mktime
 from calendar import timegm
 # local
-from __init__ import logger
+from . import logger
 
 
 def epoch2UTCstr(timestamp=False, fmat="%Y-%m-%d %H:%M:%S"):

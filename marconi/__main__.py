@@ -14,12 +14,12 @@ class Marconid(Daemon):
 
     def __init__(self, *args, **kwargs):
         super(Daemon, self).__init__(*args, **kwargs)
-        self.api = Poloniex(coach=COACH, jsonNums=Decimal)
+        self.api = Poloniex(coach=True, jsonNums=float)
         self.bots = {}
         self.bots['loaner'] = loaner.Loaner(self.api)
         self.bots['lurker'] = lurker.Lurker(self.api)
         self.bots['ticker'] = ticker.Ticker(self.api)
-        self.bots['911'] = bots.liquidator.Liquidator(self.api)
+        self.bots['911'] = liquidator.Liquidator(self.api)
 
     def run(self):
         while True:

@@ -1,4 +1,4 @@
-from __init__ import logger, PHI
+from . import logger, PHI
 
 
 def trend(seq):
