@@ -1,7 +1,7 @@
 from tools.trading import (
     cancelAllLoanOffers, cancelAllOrders, closeAllMargins, autoRenewAll
 )
-from __init__ import logger, Thread
+from . import logger, Thread
 
 
 class Liquidator(object):

@@ -2,8 +2,8 @@
 from time import time, sleep
 from operator import itemgetter
 # local
-from __init__ import MongoClient, logger
-from trade_indica import roc, rsi, ma_env, bb
+from . import MongoClient, logger
+from . import indica
 
 
 class Chart(object):
@@ -54,14 +54,14 @@ class Chart(object):
                     "closes": [i['close'] for i in raw],
                     "quoteVolumes": [i['quoteVolume'] for i in raw],
                     "volumes": [i['volume'] for i in raw],
-                    "roc": roc(aves, self.midWin).tolist(),
-                    "rsi": rsi(aves, self.midWin).tolist(),
-                    "wma": ma_env(aves, self.midWin, 0.1, 3).tolist(),
-                    "sma": ma_env(aves, self.longWin, 0.1, 4).tolist(),
-                    "ema": ma_env(aves, self.shortWin, 0.1, 0).tolist(),
-                    "ema2": ma_env(aves, self.shortWin - 10, 0.1, 1).tolist(),
-                    "ema3": ma_env(aves, self.shortWin + 10, 0.1, 2).tolist(),
-                    "bbands": bb(aves, self.longWin).tolist()},
+                    "roc": indica.roc(aves, self.midWin).tolist(),
+                    "rsi": indica.rsi(aves, self.midWin).tolist(),
+                    "wma": indica.ma_env(aves, self.midWin, 0.1, 3).tolist(),
+                    "sma": indica.ma_env(aves, self.longWin, 0.1, 4).tolist(),
+                    "ema": indica.ma_env(aves, self.shortWin, 0.1, 0).tolist(),
+                    "ema2": indica.ma_env(aves, self.shortWin - 10, 0.1, 1).tolist(),
+                    "ema3": indica.ma_env(aves, self.shortWin + 10, 0.1, 2).tolist(),
+                    "bbands": indica.bb(aves, self.longWin).tolist()},
                  }, upsert=True)
             logger.info('%s chart db updated!', self.pair)
         return self.db.find_one({'_id': self.pair})
@@ -129,3 +129,10 @@ class Market(object):
     @property
     def volume24(self):
         return self.api.return24hVolume()[self.pair]
+
+
+if __name__ == '__main__':
+    # python -m bots.tools.data
+    from poloniex import Poloniex
+    market = Market(pair="usdt_btc", api=Poloniex(jsonNums=float))
+    print(market.chart())
