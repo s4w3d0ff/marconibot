@@ -1,9 +1,8 @@
 #!/usr/bin/python
 # local
-from ..tools import UTCstr2epoch, time, sleep
-from ..tools.trading import autoRenewAll
-from ..tools.minion import Minion
-from . import logger
+from tools import UTCstr2epoch, time, sleep
+from tools.trading import autoRenewAll
+from . import logger, Minion
 
 
 class Loaner(Minion):

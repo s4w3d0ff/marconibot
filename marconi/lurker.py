@@ -1,7 +1,7 @@
 from . import logging, inlineCallbacks, ApplicationRunner, ApplicationSession
 from .logging.handlers import RotatingFileHandler
-from ..tools import HTMLParser, MongoClient
-from ..tools import time, sleep, Process
+from tools import HTMLParser, MongoClient
+from tools import time, sleep, Process
 
 logger = logging.getLogger(__name__)
 # makes 1Gb log files, 5 files max
