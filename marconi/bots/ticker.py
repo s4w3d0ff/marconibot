@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # local
-from __init__ import (logger, Process, reactor,
-                      inlineCallbacks, ApplicationRunner, ApplicationSession)
-from tools import MongoClient
+from . import (logger, reactor, inlineCallbacks,
+               ApplicationRunner, ApplicationSession)
+from ..tools import MongoClient, Process
 
 
 class WAMPTicker(ApplicationSession):

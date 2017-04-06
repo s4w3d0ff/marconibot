@@ -1,8 +1,25 @@
-# core
-from time import time, gmtime, strftime, strptime, localtime, mktime
+import logging
+from operator import itemgetter
+from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
-# local
-from . import logger
+from multiprocessing import Process
+try:
+    from html.parser import HTMLParser
+except:
+    from HTMLParser import HTMLParser
+# 3rd party ----------------------------------------------------------------
+# - pip install pymongo
+from pymongo import MongoClient
+# - https://github.com/s4w3d0ff/trade_indica
+import trade_indica as indica
+
+# constants ----------------------------------------------------------------
+# tools.logger
+logger = logging.getLogger(__name__)
+
+PHI = (1 + 5 ** 0.5) / 2
+
+# convertions --------------------------------------------------------------
 
 
 def epoch2UTCstr(timestamp=False, fmat="%Y-%m-%d %H:%M:%S"):

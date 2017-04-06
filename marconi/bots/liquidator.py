@@ -1,26 +1,20 @@
-from tools.trading import (
+from ..tools.trading import (
     cancelAllLoanOffers, cancelAllOrders, closeAllMargins, autoRenewAll
 )
-from . import logger, Thread
+from . import logger
 
 
-class Liquidator(object):
+class Liquidator(Minion):
 
     def __init__(self, api, **kwargs):
+        super(Minion, self).__init__()
         self.api = api
         self.coin = kwargs.get('coin', 'BTC')
         self.address = kwargs.get('address', False)
-        self._running = False
 
-    def start(self):
-        self._thread = Thread(target=self.run)
-        self._thread.setDaemon(True)
-        self._running = True
-        self._thread.start()
-
-    def stop(self):
-        self._running = False
-        self._thread.join()
+    def run(self):
+        """ Main loop """
+        pass
 
     def liquidate(self, coin, address=False):
         """
