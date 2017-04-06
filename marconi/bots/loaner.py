@@ -1,13 +1,12 @@
 #!/usr/bin/python
-# core
-from time import time, sleep
 # local
-from tools.convert import UTCstr2epoch
-from tools.trading import autoRenewAll
-from __init__ import logger, Thread
+from ..tools import UTCstr2epoch, time, sleep
+from ..tools.trading import autoRenewAll
+from ..tools.minion import Minion
+from . import logger
 
 
-class Loaner(object):
+class Loaner(Minion):
     """ Loanbot class [API REQUIRES KEY AND SECRET!]"""
 
     def __init__(self,
@@ -16,6 +15,7 @@ class Loaner(object):
                  maxage=60 * 30,
                  offset=3,
                  delay=60):
+        super(Minion, self).__init__()
         self.api = api
         # delay between loops
         self.delay = delay
@@ -59,7 +59,7 @@ class Loaner(object):
         price = topRate + (self.offset * 0.000001)
         return self.api.createLoanOrder(coin, amount, price, autoRenew=0)
 
-    def _run(self):
+    def run(self):
         """ Main loop, cancels 'stale' loan offers, turns auto-renew off on
         active loans, and creates new loan offers at optimum price """
         while self._running:
@@ -81,15 +81,3 @@ class Loaner(object):
                     if not self._running:
                         break
                     sleep(1)
-
-    def start(self):
-        """ Start Loaner.thread"""
-        self._thread = Thread(target=self._run)
-        self._thread.daemon = True
-        self._running = True
-        self._thread.start()
-
-    def stop(self):
-        """ Stop Loaner.thread"""
-        self._running = False
-        self._thread.join()

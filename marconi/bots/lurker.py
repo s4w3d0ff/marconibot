@@ -1,14 +1,9 @@
-from time import time, sleep
-
-from __init__ import (Process, logging, inlineCallbacks,
-                      ApplicationRunner, ApplicationSession)
-from __init__.logging.handlers import RotatingFileHandler
-from tools import HTMLParser, MongoClient
-
+from . import logging, inlineCallbacks, ApplicationRunner, ApplicationSession
+from .logging.handlers import RotatingFileHandler
+from ..tools import HTMLParser, MongoClient
+from ..tools import time, sleep, Process
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(format='[%(asctime)s]%(message)s',
-                    datefmt="%H:%M:%0S", level=logging.INFO)
 # makes 1Gb log files, 5 files max
 logger.addHandler(RotatingFileHandler(
     'TrollBox.log', maxBytes=10**9, backupCount=5))
@@ -124,7 +119,8 @@ class Lurker(object):
         self._running = False
 
 if __name__ == "__main__":
-    from time import sleep
+    logging.basicConfig(format='[%(asctime)s]%(message)s',
+                        datefmt="%H:%M:%0S", level=logging.INFO)
     troll = Lurker()
     troll.start()
     sleep(60 * 3)
