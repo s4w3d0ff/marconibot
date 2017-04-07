@@ -1,15 +1,17 @@
-from . import itemgetter, logger
-from .chart import Chart
+from tools import itemgetter, logging
+from chart import Chart
+
+logger = logging.getLogger(__name__)
 
 
 class Market(object):
     """ Holds data for a market <pair> """
 
-    def __init__(self, pair, **kwargs):
+    def __init__(self, pair, api, **kwargs):
         self.pair = pair.upper()
         kwargs['pair'] = pair.upper()
-        self.api = kwargs.get('api')
-        self.chart = Chart(**kwargs)
+        self.api = api
+        self.chart = Chart(self.pair, self.api, **kwargs)
 
     @property
     def balances(self):
@@ -64,10 +66,3 @@ class Market(object):
     @property
     def volume24(self):
         return self.api.return24hVolume()[self.pair]
-
-
-if __name__ == '__main__':
-    # python -m bots.tools.data
-    from poloniex import Poloniex
-    market = Market(pair="usdt_btc", api=Poloniex(jsonNums=float))
-    print(market.chart())

@@ -1,4 +1,6 @@
-from . import time, MongoClient, indica, logger
+from tools import time, MongoClient, indica, logging
+
+logger = loggin.getLogger(__name__)
 
 
 class Chart(object):

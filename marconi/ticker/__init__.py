@@ -1,9 +1,12 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
+# 3rd party
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
+from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 # local
-from . import (logger, reactor, inlineCallbacks,
-               ApplicationRunner, ApplicationSession)
-from ..tools import MongoClient, Process
+from tools import MongoClient, Process, logging
+
+logger = logging.getLogger(__name__)
 
 
 class WAMPTicker(ApplicationSession):
@@ -80,13 +83,3 @@ class Ticker(object):
         except:
             pass
         self._running = False
-
-if __name__ == '__main__':
-    from time import sleep
-    ticker = Ticker()
-    ticker.start()
-    for i in range(5):
-        sleep(10)
-        print("USDT_BTC: lowestAsk= %s" % ticker()['lowestAsk'])
-    ticker.stop()
-    print("Done")

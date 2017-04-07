@@ -1,4 +1,6 @@
-from . import Process, logger
+from tools import Process, logging
+
+logger = logging.getLogger(__name__)
 
 
 class Minion(object):

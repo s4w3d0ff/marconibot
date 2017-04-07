@@ -1,7 +1,9 @@
-from . import logging, inlineCallbacks, ApplicationRunner, ApplicationSession
-from .logging.handlers import RotatingFileHandler
-from tools import HTMLParser, MongoClient
-from tools import time, sleep, Process
+# -*- coding: utf-8 -*-
+# 3rd party
+from twisted.internet.defer import inlineCallbacks
+from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
+# local
+from tools import HTMLParser, MongoClient, time, sleep, Process, logging
 
 logger = logging.getLogger(__name__)
 # makes 1Gb log files, 5 files max
@@ -117,12 +119,3 @@ class Lurker(object):
         except:
             pass
         self._running = False
-
-if __name__ == "__main__":
-    logging.basicConfig(format='[%(asctime)s]%(message)s',
-                        datefmt="%H:%M:%0S", level=logging.INFO)
-    troll = Lurker()
-    troll.start()
-    sleep(60 * 3)
-    troll.stop()
-    print(troll())

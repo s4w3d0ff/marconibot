@@ -1,7 +1,6 @@
-from tools.trading import (
-    cancelAllLoanOffers, cancelAllOrders, closeAllMargins, autoRenewAll
-)
-from . import logger, Minion
+from tools import (
+    cancelAllLoanOffers, cancelAllOrders, closeAllMargins, autoRenewAll)
+from minion import Minion
 
 
 class Liquidator(Minion):
