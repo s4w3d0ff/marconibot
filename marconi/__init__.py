@@ -1,3 +1,4 @@
+# core
 import logging
-# marconi.logger
-logger = loggin.getLogger(__name__)
+
+logger = logging.getLogger(__name__)

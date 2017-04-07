@@ -1,9 +1,9 @@
-#!/usr/bin/python
 # local
-from ..tools import UTCstr2epoch, time, sleep
-from ..tools.trading import autoRenewAll
-from ..tools.minion import Minion
-from . import logger
+from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging
+from minion import Minion
+
+
+logger = logging.getLogger(__name__)
 
 
 class Loaner(Minion):
@@ -11,7 +11,7 @@ class Loaner(Minion):
 
     def __init__(self,
                  api,
-                 coins={'BTC': 0.01, 'LTC': 0.1, 'ETH': 0.1},
+                 coins={'DASH': 0.1, 'DOGE': 100.0},
                  maxage=60 * 30,
                  offset=3,
                  delay=60):
@@ -51,7 +51,7 @@ class Loaner(Minion):
                     self.api.cancelLoanOffer(offer['id'])
 
     def createLoanOffer(self, coin):
-        orders = self.returnLoanOrders(coin)['offers']
+        orders = self.api.returnLoanOrders(coin)['offers']
         topRate = float(orders['offers'][0]['rate'])
         amount = self.accountBalances['lending'][coin]
         if float(amount) < self.coins[coin]:
@@ -73,7 +73,7 @@ class Loaner(Minion):
                     self.createLoanOffer(coin)
 
             except Exception as e:
-                logging.exception(e)
+                logger.exception(e)
 
             finally:
                 # sleep with one eye open...
