@@ -13,5 +13,5 @@ pip install autobahn[twisted]
 pip install pymongo
 pip install git+https://github.com/s4w3d0ff/python-poloniex.git
 pip install git+https://github.com/serverdensity/python-daemon.git
-pip install git+https://github.com/serverdensity/trade_indica.git
+pip install git+https://github.com/s4w3d0ff/trade_indica.git
 ````
