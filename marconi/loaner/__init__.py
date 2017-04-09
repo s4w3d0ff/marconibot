@@ -28,14 +28,17 @@ class Loaner(Minion):
 
     @property
     def accountBalances(self):
+        logger.info('Getting account balances')
         return self.api.returnAvailableAccountBalances()
 
     @property
     def activeLoans(self):
+        logger.info('Getting active loans')
         return self.api.returnActiveLoans()
 
     @property
     def openOffers(self):
+        logger.info('Getting open loan offers')
         return self.api.returnOpenLoanOffers()
 
     def getLoanOfferAge(self, order):
@@ -44,20 +47,25 @@ class Loaner(Minion):
     def cancelOldOffers(self):
         offers = self.openOffers
         for coin in self.coins:
+            logger.info('Checking for "stale" %s loans...', coin)
             if coin not in offers:
+                logger.info('No open offers found.')
                 continue
             for offer in offers[coin]:
                 if self.getLoanOfferAge(offer) > self.maxage:
-                    self.api.cancelLoanOffer(offer['id'])
+                    logger.info('Canceling offer %s', offer['id'])
+                    logger.info(self.api.cancelLoanOffer(offer['id']))
 
     def createLoanOffer(self, coin):
         orders = self.api.returnLoanOrders(coin)['offers']
-        topRate = float(orders['offers'][0]['rate'])
+        topRate = float(orders[0]['rate'])
         amount = self.accountBalances['lending'][coin]
-        if float(amount) < self.coins[coin]:
-            return "%s balance below minimum" % coin
-        price = topRate + (self.offset * 0.000001)
-        return self.api.createLoanOrder(coin, amount, price, autoRenew=0)
+        if float(amount) > self.coins[coin]:
+            price = topRate + (self.offset * 0.000001)
+            logger.info('Creating %s %s loan offer at %s',
+                        str(amount), coin, str(price))
+            logger.info(self.api.createLoanOffer(
+                coin, amount, price, autoRenew=0))
 
     def run(self):
         """ Main loop, cancels 'stale' loan offers, turns auto-renew off on

@@ -17,7 +17,7 @@ import trade_indica as indica
 # - https://github.com/s4w3d0ff/python-poloniex
 from poloniex import Poloniex, Coach
 # pip install daemon
-from daemon import Daemon
+#from daemon import Daemon
 
 # constants ----------------------------------------------------------------
 
@@ -116,7 +116,7 @@ def cancelAllOrders(api, market, arg=False):
         orders = nOrders
 
     # cancel just buy or sell
-    if arg in ('sell', 'buy')
+    if arg in ('sell', 'buy'):
         for o in orders:
             if o['type'] == arg:
                 logger.info(api.cancelOrder(o["orderNumber"]))
@@ -152,4 +152,5 @@ def autoRenewAll(api, toggle=True):
         toggle = 0
     for loan in api.returnActiveLoans()['provided']:
         if int(loan['autoRenew']) != toggle:
+            logging.info('Toggling autorenew for offer %s', loan['id'])
             api.toggleAutoRenew(loan['id'])
