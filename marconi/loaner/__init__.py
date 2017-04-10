@@ -11,7 +11,7 @@ class Loaner(Minion):
 
     def __init__(self,
                  api,
-                 coins={'DASH': 0.1, 'DOGE': 100.0},
+                 coins={'DASH': 0.1, 'DOGE': 100.0, 'BTC': 0.1},
                  maxage=60 * 30,
                  offset=3,
                  delay=60):
@@ -57,9 +57,14 @@ class Loaner(Minion):
                     logger.info(self.api.cancelLoanOffer(offer['id']))
 
     def createLoanOffers(self):
-        bals = self.accountBalances['lending']
-        for coin in bals:
-            amount = bals[coin]
+        bals = self.accountBalances
+        if not 'lending' in bals:
+            logger.info('No coins found in lending account')
+            return
+        for coin in self.coins:
+            if coin not in bals['lending']:
+                continue
+            amount = bals['lending'][coin]
             if float(amount) > self.coins[coin]:
                 orders = self.api.returnLoanOrders(coin)['offers']
                 topRate = float(orders[0]['rate'])
