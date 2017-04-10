@@ -50,19 +50,19 @@ class Chart(object):
             self.pair, self.period, time() - self.frame)
         aves = [i['weightedAverage'] for i in raw]
         for i, data in izip(range(len(raw)), indica.roc(aves, self.midWin).tolist()):
-            raw[i]['roc'] = data
+            raw[-i]['roc'] = data
         for i, data in izip(range(len(raw)), indica.rsi(aves, self.midWin).tolist()):
-            raw[i]['rsi'] = data
+            raw[-i]['rsi'] = data
         for i, data in izip(range(len(raw)), indica.ma_env(aves, self.midWin, 0.1, 3).tolist()):
-            raw[i]['wma'] = data
+            raw[-i]['wma'] = data
         for i, data in izip(range(len(raw)), indica.ma_env(aves, self.longWin, 0.1, 4).tolist()):
-            raw[i]['sma'] = data
+            raw[-i]['sma'] = data
         for i, data in izip(range(len(raw)), indica.ma_env(aves, self.shortWin, 0.1, 0).tolist()):
-            raw[i]['ema'] = data
+            raw[-i]['ema'] = data
         for i, data in izip(range(len(raw)), indica.ma_env(aves, self.shortWin - 10, 0.1, 1).tolist()):
-            raw[i]['ema2'] = data
+            raw[-i]['ema2'] = data
         for i, data in izip(range(len(raw)), indica.ma_env(aves, self.shortWin + 10, 0.1, 2).tolist()):
-            raw[i]['ema3'] = data
+            raw[-i]['ema3'] = data
         for i, data in izip(range(len(raw)), indica.bb(aves, self.longWin).tolist()):
-            raw[i]['bbands'] = data
+            raw[-i]['bbands'] = data
         return raw
