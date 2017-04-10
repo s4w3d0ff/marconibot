@@ -20,8 +20,8 @@ class Chart(object):
         self.db.drop()
         self.pair = pair
         self.api = api
-        self.frame = kwargs.get('frame', self.api.DAY * 7)
-        self.period = kwargs.get('period', self.api.MINUTE * 30)
+        self.frame = kwargs.get('frame', self.api.DAY)
+        self.period = kwargs.get('period', self.api.MINUTE * 5)
         self.shortWin = kwargs.get('shortWin', 30)
         self.midWin = kwargs.get('midWin', 60)
         self.longWin = kwargs.get('longWin', 120)
