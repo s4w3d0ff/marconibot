@@ -56,16 +56,18 @@ class Loaner(Minion):
                     logger.info('Canceling offer %s', offer['id'])
                     logger.info(self.api.cancelLoanOffer(offer['id']))
 
-    def createLoanOffer(self, coin):
-        orders = self.api.returnLoanOrders(coin)['offers']
-        topRate = float(orders[0]['rate'])
-        amount = self.accountBalances['lending'][coin]
-        if float(amount) > self.coins[coin]:
-            price = topRate + (self.offset * 0.000001)
-            logger.info('Creating %s %s loan offer at %s',
-                        str(amount), coin, str(price))
-            logger.info(self.api.createLoanOffer(
-                coin, amount, price, autoRenew=0))
+    def createLoanOffers(self):
+        bals = self.accountBalances['lending']
+        for coin in bals:
+            amount = bals[coin]
+            if float(amount) > self.coins[coin]:
+                orders = self.api.returnLoanOrders(coin)['offers']
+                topRate = float(orders[0]['rate'])
+                price = topRate + (self.offset * 0.000001)
+                logger.info('Creating %s %s loan offer at %s',
+                            str(amount), coin, str(price))
+                logger.info(self.api.createLoanOffer(
+                    coin, amount, price, autoRenew=0))
 
     def run(self):
         """ Main loop, cancels 'stale' loan offers, turns auto-renew off on
@@ -73,12 +75,11 @@ class Loaner(Minion):
         while self._running:
             try:
                 # Check auto renew is not enabled
-                autoRenewAll(self.api, False)
-                for coin in self.coins:
-                    # Check for old offers
-                    self.cancelOldOffers()
-                    # Create new offer (if can)
-                    self.createLoanOffer(coin)
+                #autoRenewAll(self.api, False)
+                # Check for old offers
+                self.cancelOldOffers()
+                # Create new offer (if can)
+                self.createLoanOffers()
 
             except Exception as e:
                 logger.exception(e)
