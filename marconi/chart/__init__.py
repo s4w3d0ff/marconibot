@@ -1,6 +1,6 @@
-from tools import time, MongoClient, indica, logging
+from tools import time, MongoClient, indica, logging, izip
 
-logger = loggin.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Chart(object):
@@ -17,6 +17,7 @@ class Chart(object):
         longWin = number of candles to use for sma, bbands (default: 120)
         """
         self.db = MongoClient().poloniex['charts']
+        self.db.drop()
         self.pair = pair
         self.api = api
         self.frame = kwargs.get('frame', self.api.DAY * 7)
@@ -29,9 +30,6 @@ class Chart(object):
     def __call__(self):
         if time() - self._lastUpdate > 60:
             logger.info('%s chart db updating...', self.pair)
-            raw = self.api.returnChartData(
-                self.pair, self.period, time() - self.frame)
-            aves = [i['weightedAverage'] for i in raw]
             self._lastUpdate = time()
             self.db.update_one(
                 {'_id': self.pair},
@@ -41,24 +39,30 @@ class Chart(object):
                     "shortWin": self.shortWin,
                     "midWin": self.midWin,
                     "longWin": self.longWin,
-                    "raw": raw,
+                    "candles": self.extendChart(),
                     "timestamp": self._lastUpdate,
-                    "weightedAvs": aves,
-                    "dates": [i['date'] for i in raw],
-                    "highs": [i['high'] for i in raw],
-                    "lows": [i['low'] for i in raw],
-                    "opens": [i['open'] for i in raw],
-                    "closes": [i['close'] for i in raw],
-                    "quoteVolumes": [i['quoteVolume'] for i in raw],
-                    "volumes": [i['volume'] for i in raw],
-                    "roc": indica.roc(aves, self.midWin).tolist(),
-                    "rsi": indica.rsi(aves, self.midWin).tolist(),
-                    "wma": indica.ma_env(aves, self.midWin, 0.1, 3).tolist(),
-                    "sma": indica.ma_env(aves, self.longWin, 0.1, 4).tolist(),
-                    "ema": indica.ma_env(aves, self.shortWin, 0.1, 0).tolist(),
-                    "ema2": indica.ma_env(aves, self.shortWin - 10, 0.1, 1).tolist(),
-                    "ema3": indica.ma_env(aves, self.shortWin + 10, 0.1, 2).tolist(),
-                    "bbands": indica.bb(aves, self.longWin).tolist()},
-                 }, upsert=True)
+                }}, upsert=True)
             logger.info('%s chart db updated!', self.pair)
         return self.db.find_one({'_id': self.pair})
+
+    def extendChart(self):
+        raw = self.api.returnChartData(
+            self.pair, self.period, time() - self.frame)
+        aves = [i['weightedAverage'] for i in raw]
+        for i, data in izip(range(len(raw)), indica.roc(aves, self.midWin).tolist()):
+            raw[-i]['roc'] = data
+        for i, data in izip(range(len(raw)), indica.rsi(aves, self.midWin).tolist()):
+            raw[-i]['rsi'] = data
+        for i, data in izip(range(len(raw)), indica.ma_env(aves, self.midWin, 0.1, 3).tolist()):
+            raw[-i]['wma'] = data
+        for i, data in izip(range(len(raw)), indica.ma_env(aves, self.longWin, 0.1, 4).tolist()):
+            raw[-i]['sma'] = data
+        for i, data in izip(range(len(raw)), indica.ma_env(aves, self.shortWin, 0.1, 0).tolist()):
+            raw[-i]['ema'] = data
+        for i, data in izip(range(len(raw)), indica.ma_env(aves, self.shortWin - 10, 0.1, 1).tolist()):
+            raw[-i]['ema2'] = data
+        for i, data in izip(range(len(raw)), indica.ma_env(aves, self.shortWin + 10, 0.1, 2).tolist()):
+            raw[-i]['ema3'] = data
+        for i, data in izip(range(len(raw)), indica.bb(aves, self.longWin).tolist()):
+            raw[-i]['bbands'] = data
+        return raw

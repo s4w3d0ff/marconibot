@@ -1,6 +1,7 @@
 # core ---------------------------------------------------------------------
 import logging
 from operator import itemgetter
+from itertools import izip
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
