@@ -11,7 +11,7 @@ class Loaner(Minion):
 
     def __init__(self,
                  api,
-                 coins={'DASH': 0.1, 'DOGE': 100.0, 'BTC': 0.1},
+                 coins={'DASH': 0.1, 'DOGE': 100.0, 'BTC': 0.1, 'LTC': 1},
                  maxage=60 * 30,
                  offset=3,
                  delay=60):
@@ -25,6 +25,8 @@ class Loaner(Minion):
         self.maxage = maxage
         # number of 'loan-toshis' to offset loan orders from the highest rate
         self.offset = offset
+        # Check auto renew is not enabled for current loans
+        autoRenewAll(self.api, toggle=False)
 
     @property
     def accountBalances(self):
@@ -79,8 +81,6 @@ class Loaner(Minion):
         active loans, and creates new loan offers at optimum price """
         while self._running:
             try:
-                # Check auto renew is not enabled
-                #autoRenewAll(self.api, False)
                 # Check for old offers
                 self.cancelOldOffers()
                 # Create new offer (if can)

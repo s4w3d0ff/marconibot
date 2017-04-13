@@ -12,10 +12,11 @@ class Minion(object):
 
     def start(self):
         """ Start Minion.run Process """
-        self._process = Process(target=self.run)
-        self._process.daemon = True
-        self._running = True
-        self._process.start()
+        if not self._running:
+            self._process = Process(target=self.run)
+            self._process.daemon = True
+            self._running = True
+            self._process.start()
 
     def stop(self):
         """ Force the Minion to stop """
@@ -32,4 +33,4 @@ class Minion(object):
     def run(self):
         """ Method ran in a child process. It should be over written when
         subclassed """
-        pass
+        self.stop()
