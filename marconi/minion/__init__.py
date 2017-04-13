@@ -6,27 +6,22 @@ logger = logging.getLogger(__name__)
 class Minion(object):
     """ Minions control child processes that do the Daemon's bidding. """
 
-    def __init__(self):
-        self._running = False
-        self._process = None
-
     def start(self):
         """ Start Minion.run Process """
-        if not self._running:
-            self._process = Process(target=self.run)
-            self._process.daemon = True
-            self._running = True
-            self._process.start()
+        self.__process = Process(target=self.run)
+        self.__process.daemon = True
+        self._running = True
+        self.__process.start()
 
     def stop(self):
         """ Force the Minion to stop """
         self._running = False
         try:
-            self._process.terminate()
+            self.__process.terminate()
         except Exception as e:
             logger.exception(e)
         try:
-            self._process.join()
+            self.__process.join()
         except Exception as e:
             logger.exception(e)
 

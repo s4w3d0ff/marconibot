@@ -1,22 +1,7 @@
-from tools import itemgetter, logging
+from tools import itemgetter, logging, MongoClient
 from chart import Chart
 
 logger = logging.getLogger(__name__)
-
-"""
-Markets Mongodb collection:
-db = MongoClient().poloniex['markets']
-{
-    '_id': self.pair,
-    'orderbook': self.api.returnOpenOrders(self.pair),
-    '24Volume': self.api.return24Volume()[self.pair],
-    'openOrders': self.api.returnOpenOrders(self.pair),
-    'myBalances': self.balances,
-
-
-
-}
-"""
 
 
 class Market(object):
@@ -24,9 +9,9 @@ class Market(object):
 
     def __init__(self, pair, api, **kwargs):
         self.pair = pair.upper()
-        kwargs['pair'] = pair.upper()
         self.api = api
         self.chart = Chart(self.pair, self.api, **kwargs)
+        self.db = MongoClient().poloniex['markets']
 
     @property
     def balances(self):
@@ -39,8 +24,41 @@ class Market(object):
         return self.api.returnOpenOrders(self.pair)
 
     @property
+    def volume24h(self):
+        try:  # look for old timestamp
+            timestamp = self.db.find_one({
+                '_id': self.pair})['volume24h']['timestamp']
+        except Exception as e:  # not found
+            logger.exception(e)
+            timestamp = 0
+
+        if time() - timestamp > 60 * 2:
+            timestamp = time()
+            vol = self.api.return24Volume()[self.pair]
+            vol['timestamp'] = timestamp
+            self.db.update_one(
+                {'_id': self.pair},
+                {'volume24h': vol},
+                upsert=True)
+
+    @property
     def orderBook(self):
-        return self.api.returnOrderBook(self.pair, 50)
+        try:  # look for old timestamp
+            timestamp = self.db.find_one({
+                '_id': self.pair})['orderbook']['timestamp']
+        except Exception as e:  # not found
+            logger.exception(e)
+            timestamp = 0
+
+        if time() - timestamp > 60 * 2:
+            timestamp = time()
+            book = self.api.returnOrderBook(self.pair, 50)
+            book['timestamp'] = timestamp
+            self.db.update_one(
+                {'_id': self.pair},
+                {'orderbook': book},
+                upsert=True)
+        return self.db.find_one({'_id': self.pair})['orderbook']
 
     @property
     def sellwalls(self):
