@@ -15,8 +15,7 @@ class WAMPTicker(ApplicationSession):
     @inlineCallbacks
     def onJoin(self, details):
         # open/create poloniex database, ticker collection/table
-        self.db = MongoClient().poloniex['ticker']
-        self.db.drop()
+        self.db = MongoClient().poloniex['markets']
         initTick = self.api.returnTicker()
         for market in initTick:
             initTick[market]['_id'] = market
@@ -34,8 +33,8 @@ class WAMPTicker(ApplicationSession):
                       'baseVolume': data[5],
                       'quoteVolume': data[6],
                       'isFrozen': data[7],
-                      'high24hr': data[8],
-                      'low24hr': data[9]
+                      '24hrHigh': data[8],
+                      '24hrLow': data[9]
                       }},
             upsert=True)
 

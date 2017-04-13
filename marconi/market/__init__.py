@@ -3,6 +3,21 @@ from chart import Chart
 
 logger = logging.getLogger(__name__)
 
+"""
+Markets Mongodb collection:
+db = MongoClient().poloniex['markets']
+{
+    '_id': self.pair,
+    'orderbook': self.api.returnOpenOrders(self.pair),
+    '24Volume': self.api.return24Volume()[self.pair],
+    'openOrders': self.api.returnOpenOrders(self.pair),
+    'myBalances': self.balances,
+
+
+
+}
+"""
+
 
 class Market(object):
     """ Holds data for a market <pair> """
@@ -38,31 +53,3 @@ class Market(object):
         book = self.orderBook['bids']
         book.sort(key=itemgetter(1), reverse=True)
         return book[:7]
-
-    @property
-    def lowestask(self):
-        return self.api.returnTicker()[self.pair]['lowestAsk']
-
-    @property
-    def highestbid(self):
-        return self.api.returnTicker()[self.pair]['highestBid']
-
-    @property
-    def last(self):
-        return self.api.returnTicker()[self.pair]['last']
-
-    @property
-    def percentChange(self):
-        return self.api.returnTicker()[self.pair]['percentChange']
-
-    @property
-    def baseVolume(self):
-        return self.api.returnTicker()[self.pair]['baseVolume']
-
-    @property
-    def quoteVolume(self):
-        return self.api.returnTicker()[self.pair]['quoteVolume']
-
-    @property
-    def volume24(self):
-        return self.api.return24hVolume()[self.pair]

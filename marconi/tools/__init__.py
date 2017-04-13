@@ -17,8 +17,6 @@ from pymongo import MongoClient
 import trade_indica as indica
 # - https://github.com/s4w3d0ff/python-poloniex
 from poloniex import Poloniex, Coach
-# pip install daemon
-#from daemon import Daemon
 
 # constants ----------------------------------------------------------------
 
