@@ -15,7 +15,6 @@ class Loaner(Minion):
                  maxage=60 * 30,
                  offset=3,
                  delay=60):
-        super(Minion, self).__init__()
         self.api = api
         # delay between loops
         self.delay = delay
@@ -65,16 +64,20 @@ class Loaner(Minion):
             return
         for coin in self.coins:
             if coin not in bals['lending']:
+                logger.info("No available %s in lending", coin)
                 continue
             amount = bals['lending'][coin]
-            if float(amount) > self.coins[coin]:
-                orders = self.api.returnLoanOrders(coin)['offers']
-                topRate = float(orders[0]['rate'])
-                price = topRate + (self.offset * 0.000001)
-                logger.info('Creating %s %s loan offer at %s',
-                            str(amount), coin, str(price))
-                logger.info(self.api.createLoanOffer(
-                    coin, amount, price, autoRenew=0))
+            if float(amount) < self.coins[coin]:
+                logger.info("Not enough %s:%s, below set minimum: %s",
+                            coin, str(amount), str(self.coins[coin]))
+                continue
+            orders = self.api.returnLoanOrders(coin)['offers']
+            topRate = float(orders[0]['rate'])
+            price = topRate + (self.offset * 0.000001)
+            logger.info('Creating %s %s loan offer at %s',
+                        str(amount), coin, str(price))
+            logger.info(self.api.createLoanOffer(
+                coin, amount, price, autoRenew=0))
 
     def run(self):
         """ Main loop, cancels 'stale' loan offers, turns auto-renew off on
