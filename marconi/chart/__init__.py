@@ -20,8 +20,6 @@ class Chart(object):
         self.frame = kwargs.get('frame', self.api.DAY)
         self.period = kwargs.get('period', self.api.MINUTE * 5)
         self.window = kwargs.get('window', 60)
-        # fill db on init
-        logger.debug(self.__call__())
 
     def __call__(self):
         try:  # look for old timestamp
@@ -29,13 +27,19 @@ class Chart(object):
                 '_id': self.pair})['chart']['timestamp']
         except Exception as e:  # not found
             logger.exception(e)
-            timestamp = time()
+            timestamp = 0
 
         if time() - timestamp > 60 * 2:
             logger.info('%s chart db updating...', self.pair)
             raw = self.api.returnChartData(
                 self.pair, self.period, time() - self.frame)
             aves = [i['weightedAverage'] for i in raw]
+            # bbands is the shortest list (why??)
+            # so slice the base data by bbands size (from rear)
+            bbands = indica.bb(aves, self.window * 2).tolist()
+            raw = raw[:len(bbands)]
+            for i, data in izip(range(len(raw)), bbands):
+                raw[i]['bbands'] = data
             for i, data in izip(
                     range(len(raw)), indica.roc(aves, self.window).tolist()):
                 raw[i]['roc'] = data
@@ -62,22 +66,17 @@ class Chart(object):
                     range(len(raw)),
                     indica.ma_env(aves, (self.window // 2) + 10, 0.1, 2).tolist()):
                 raw[i]['ema3'] = data
-            for i, data in izip(
-                    range(len(raw)),
-                    indica.bb(aves, self.window * 2).tolist()):
-                raw[i]['bbands'] = data
-            timestamp = time()
+
             self.db.update_one(
                 {'_id': self.pair},
                 {'$set': {
                     "chart": {
                         "frame": self.frame,
                         "period": self.period,
-                        "shortWin": self.shortWin,
-                        "midWin": self.midWin,
-                        "longWin": self.longWin,
+                        "window": self.window,
                         "candles": raw,
-                        "timestamp": timestamp}}},
+                        "timestamp": time()}}
+                 },
                 upsert=True)
             logger.info('%s chart db updated!', self.pair)
         return self.db.find_one({'_id': self.pair})['chart']
