@@ -1,4 +1,4 @@
-from tools import itemgetter, logging, MongoClient
+from tools import itemgetter, logging, MongoClient, time
 from chart import Chart
 
 logger = logging.getLogger(__name__)
@@ -10,14 +10,18 @@ class Market(object):
     def __init__(self, pair, api, **kwargs):
         self.pair = pair.upper()
         self.api = api
-        self.chart = Chart(self.pair, self.api, **kwargs)
+        self._chart = Chart(self.pair, self.api, **kwargs)
         self.db = MongoClient().poloniex['markets']
+
+    @property
+    def chart(self):
+        return self._chart()
 
     @property
     def balances(self):
         coins = self.pair.split('_')
         bals = self.api.returnCompleteBalances()
-        return [bals[coins[0]], bals[coins[1]]]
+        return {coins[0]: bals[coins[0]], coins[1]: bals[coins[1]]}
 
     @property
     def openOrders(self):
@@ -34,12 +38,13 @@ class Market(object):
 
         if time() - timestamp > 60 * 2:
             timestamp = time()
-            vol = self.api.return24Volume()[self.pair]
+            vol = self.api.return24hVolume()[self.pair]
             vol['timestamp'] = timestamp
             self.db.update_one(
                 {'_id': self.pair},
-                {'volume24h': vol},
+                {'$set': {'volume24h': vol}},
                 upsert=True)
+        return self.db.find_one({'_id': self.pair})['volume24h']
 
     @property
     def orderBook(self):
@@ -56,7 +61,7 @@ class Market(object):
             book['timestamp'] = timestamp
             self.db.update_one(
                 {'_id': self.pair},
-                {'orderbook': book},
+                {'$set': {'orderbook': book}},
                 upsert=True)
         return self.db.find_one({'_id': self.pair})['orderbook']
 

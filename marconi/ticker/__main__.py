@@ -6,8 +6,8 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBIG)
     ticker = Ticker(Poloniex())
     ticker.start()
-    for i in range(5):
-        sleep(10)
-        print("USDT_BTC: lowestAsk= %s" % ticker()['lowestAsk'])
-    ticker.stop()
-    print("Done")
+    while ticker._running:
+        try:
+            sleep(1)
+        except:
+            ticker.stop()

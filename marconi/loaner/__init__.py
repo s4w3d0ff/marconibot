@@ -11,42 +11,22 @@ class Loaner(Minion):
 
     def __init__(self,
                  api,
-                 coins={'DASH': 0.1, 'DOGE': 100.0, 'BTC': 0.1, 'LTC': 1},
+                 coins={'DASH': 0.1, 'DOGE': 100.0, 'BTC': 0.01, 'LTC': 1},
                  maxage=60 * 30,
                  offset=3,
                  delay=60):
-        self.api = api
-        # delay between loops
-        self.delay = delay
-        # coins to loan out and min amount per coin to create loan
-        self.coins = coins
-        # maximum age for loan offers before canceled
-        self.maxage = maxage
-        # number of 'loan-toshis' to offset loan orders from the highest rate
-        self.offset = offset
+        self.api, self.delay, self.coins, self.maxage, self.offset =\
+            api, delay, coins, maxage, offset
         # Check auto renew is not enabled for current loans
         autoRenewAll(self.api, toggle=False)
-
-    @property
-    def accountBalances(self):
-        logger.info('Getting account balances')
-        return self.api.returnAvailableAccountBalances()
-
-    @property
-    def activeLoans(self):
-        logger.info('Getting active loans')
-        return self.api.returnActiveLoans()
-
-    @property
-    def openOffers(self):
-        logger.info('Getting open loan offers')
-        return self.api.returnOpenLoanOffers()
 
     def getLoanOfferAge(self, order):
         return time() - UTCstr2epoch(order['date'])
 
+    @property
     def cancelOldOffers(self):
-        offers = self.openOffers
+        logger.info('Getting open loan offers')
+        offers = self.api.returnOpenLoanOffers()
         for coin in self.coins:
             logger.info('Checking for "stale" %s loans...', coin)
             if coin not in offers:
@@ -57,11 +37,12 @@ class Loaner(Minion):
                     logger.info('Canceling offer %s', offer['id'])
                     logger.info(self.api.cancelLoanOffer(offer['id']))
 
+    @property
     def createLoanOffers(self):
-        bals = self.accountBalances
+        logger.info('Getting account balances')
+        bals = self.api.returnAvailableAccountBalances()
         if not 'lending' in bals:
-            logger.info('No coins found in lending account')
-            return
+            return logger.info('No coins found in lending account')
         for coin in self.coins:
             if coin not in bals['lending']:
                 logger.info("No available %s in lending", coin)
@@ -85,9 +66,20 @@ class Loaner(Minion):
         while self._running:
             try:
                 # Check for old offers
-                self.cancelOldOffers()
+                self.cancelOldOffers
                 # Create new offer (if can)
-                self.createLoanOffers()
+                self.createLoanOffers
+                # show active
+                active = self.api.returnActiveLoans()['provided']
+                logger.info('Active Loans:----------------')
+                for i in active:
+                    logger.info('%s[rate:%s] %s:%s [fees:%s]',
+                                i['date'],
+                                str(float(i['rate']) * 100),
+                                i['currency'],
+                                i['amount'],
+                                i['fees']
+                                )
 
             except Exception as e:
                 logger.exception(e)
