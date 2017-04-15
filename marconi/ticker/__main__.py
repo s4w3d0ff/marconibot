@@ -3,7 +3,7 @@
 if __name__ == '__main__':
     from tools import sleep, logging, Poloniex
     from . import Ticker
-    logging.basicConfig(level=logging.DEBIG)
+    logging.basicConfig(level=logging.DEBUG)
     ticker = Ticker(Poloniex())
     ticker.start()
     while ticker._running:
