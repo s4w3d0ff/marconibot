@@ -14,7 +14,7 @@ class Loaner(Minion):
                  coins={'DASH': 0.1, 'DOGE': 100.0, 'BTC': 0.01, 'LTC': 1},
                  maxage=60 * 30,
                  offset=3,
-                 delay=60):
+                 delay=60 * 30):
         self.api, self.delay, self.coins, self.maxage, self.offset =\
             api, delay, coins, maxage, offset
         # Check auto renew is not enabled for current loans

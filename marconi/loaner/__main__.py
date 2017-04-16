@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 if __name__ == '__main__':
-    from . import Loaner, logging, sleep, Poloniex
+    from . import Loaner, logging, sleep
+    from tools import Poloniex
     from sys import argv
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('requests').setLevel(logging.ERROR)

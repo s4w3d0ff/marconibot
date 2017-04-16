@@ -13,27 +13,22 @@ class Market(object):
         self._chart = Chart(self.pair, self.api, **kwargs)
         self.db = MongoClient().poloniex['markets']
 
+    def __call__(self):
+        self.orderBook
+        self.volume24h
+        self.chart
+        return self.db.find_one({'_id': self.pair})
+
     @property
     def chart(self):
         return self._chart()
-
-    @property
-    def balances(self):
-        coins = self.pair.split('_')
-        bals = self.api.returnCompleteBalances()
-        return {coins[0]: bals[coins[0]], coins[1]: bals[coins[1]]}
-
-    @property
-    def openOrders(self):
-        return self.api.returnOpenOrders(self.pair)
 
     @property
     def volume24h(self):
         try:  # look for old timestamp
             timestamp = self.db.find_one({
                 '_id': self.pair})['volume24h']['timestamp']
-        except Exception as e:  # not found
-            logger.exception(e)
+        except:  # not found
             timestamp = 0
 
         if time() - timestamp > 60 * 2:
@@ -51,8 +46,7 @@ class Market(object):
         try:  # look for old timestamp
             timestamp = self.db.find_one({
                 '_id': self.pair})['orderbook']['timestamp']
-        except Exception as e:  # not found
-            logger.exception(e)
+        except:  # not found
             timestamp = 0
 
         if time() - timestamp > 60 * 2:
