@@ -1,5 +1,6 @@
-# marconibot
-Marco... Polo - Poloni.... Marconi... Poloniex Trade bot
+# marconi
+![marconi](images/marconi.jpeg)
+Poloniex Trading Bot
 
 ### Requirements:
 __system__:
