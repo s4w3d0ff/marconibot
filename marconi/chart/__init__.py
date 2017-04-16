@@ -25,8 +25,7 @@ class Chart(object):
         try:  # look for old timestamp
             timestamp = self.db.find_one({
                 '_id': self.pair})['chart']['timestamp']
-        except Exception as e:  # not found
-            logger.exception(e)
+        except:  # not found
             timestamp = 0
 
         if time() - timestamp > 60 * 2:
