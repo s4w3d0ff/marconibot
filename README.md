@@ -1,5 +1,5 @@
-# marconi
-![marconi](images/marconi.jpeg)
+# marconi  
+![marconi](images/marconi.jpeg)  
 Poloniex Trading Bot
 
 ### Requirements:
