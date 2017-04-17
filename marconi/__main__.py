@@ -1,11 +1,8 @@
-from tools import Poloniex, geoProgress, izip
-from minion import Minion
-from market import Market
-
+from tools import Poloniex, sleep
 from . import logger
+from ticker import Ticker
 
 if __name__ == '__main__':
-    from ticker import Ticker
     ticker.start()
     while True:
         try:

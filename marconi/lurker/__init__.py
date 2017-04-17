@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
-# 3rd party
-from twisted.internet.defer import inlineCallbacks
-from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 # local
-from tools import HTMLParser, MongoClient, time, sleep, Process, logging
+from tools import (inlineCallbacks, ApplicationSession, ApplicationRunner,
+                   HTMLParser, MongoClient, time, sleep, Process, logging)
 
 logger = logging.getLogger(__name__)
-# makes 1Gb log files, 5 files max
-logger.addHandler(RotatingFileHandler(
-    'TrollBox.log', maxBytes=10**9, backupCount=5))
 
 
 MODS = {"Xoblort": 1,
@@ -47,11 +42,10 @@ class WAMPTrollbox(ApplicationSession):
         global mods, name, html
         # load db
         self.db = MongoClient().poloniex['trollcard']
-        # empty db
-        self.db.drop()
         yield self.subscribe(self.onTroll, 'trollbox')
 
-    def checkMessage(coin, message):
+    def checkMessage(self, coin, message):
+        # TODO: use REGEX!!!!
         name = self.coins[coin]['name']
         if '%s ' % coin.lower() in message or '%s ' % coin in message:
             return True
@@ -70,7 +64,8 @@ class WAMPTrollbox(ApplicationSession):
             for coin in self.coins:
                 if int(self.coins[coin]['delisted']):
                     continue
-                if checkMessage(coin, ' ' + message + ' '):
+                if self.checkMessage(coin, ' ' + message + ' '):
+
                     self.db.update_one({"_id": coin},
                                        {"$setOnInsert": {"count": 0}},
                                        upsert=True)

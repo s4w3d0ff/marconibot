@@ -1,11 +1,16 @@
 #!/usr/bin/python
 
 if __name__ == "__main__":
-    from . import Lurker, logging, sleep
+    from . import Lurker, logging, sleep, logger
+    from tools import Poloniex
     logging.basicConfig(format='[%(asctime)s]%(message)s',
                         datefmt="%H:%M:%0S", level=logging.INFO)
-    troll = Lurker()
+    troll = Lurker(Poloniex())
     troll.start()
-    sleep(60 * 3)  # runs for 3 mins then prints scores for coins
-    troll.stop()
+    while 1:
+        try:
+            sleep(1)
+        except:
+            troll.stop()
+            break
     print(troll())
