@@ -27,8 +27,7 @@ class Chart(object):
                 '_id': self.pair})['chart']['timestamp']
         except:  # not found
             timestamp = 0
-
-        if time() - timestamp > 60 * 2:
+        if time() - timestamp > 60:
             logger.info('%s chart db updating...', self.pair)
             raw = self.api.returnChartData(
                 self.pair, self.period, time() - self.frame)

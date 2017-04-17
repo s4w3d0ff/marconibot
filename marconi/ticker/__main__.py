@@ -3,18 +3,15 @@
 if __name__ == '__main__':
     from tools import sleep, logging, Poloniex
     from . import Ticker
-    from pprint import PrettyPrinter
-    pp = PrettyPrinter(indent=4)
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger('requests').setLevel(logging.ERROR)
     ticker = Ticker(Poloniex(jsonNums=float))
     ticker.start()
-    sleep(5)
     while ticker._running:
         try:
-            pp.pprint(ticker('USDT_BTC'))
-            pp.pprint(ticker('USDT_LTC'))
-            pp.pprint(ticker('BTC_DOGE'))
+            logging.info('USDT_BTC last: %s' % ticker('USDT_BTC')['last'])
             sleep(10)
+            logging.info(ticker('BTC_DOGE')['volume24h'])
         except Exception as e:
-            print(e)
+            logging.exception(e)
             ticker.stop()
