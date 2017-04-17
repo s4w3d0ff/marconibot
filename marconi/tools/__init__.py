@@ -10,7 +10,10 @@ try:
 except:
     from HTMLParser import HTMLParser
 # 3rd party ----------------------------------------------------------------
-
+# pip install autobahn[twisted]
+from twisted.internet import reactor
+from twisted.internet.defer import inlineCallbacks
+from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 # - pip install pymongo
 from pymongo import MongoClient
 # - https://github.com/s4w3d0ff/trade_indica

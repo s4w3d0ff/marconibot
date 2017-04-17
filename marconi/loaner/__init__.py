@@ -1,6 +1,6 @@
 # local
 from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging
-from minion import Minion
+from tools.minion import Minion
 
 
 logger = logging.getLogger(__name__)

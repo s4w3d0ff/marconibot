@@ -11,7 +11,6 @@ if __name__ == '__main__':
         try:
             logging.info('USDT_BTC last: %s' % ticker('USDT_BTC')['last'])
             sleep(10)
-            logging.info(ticker('BTC_DOGE')['volume24h'])
         except Exception as e:
             logging.exception(e)
             ticker.stop()

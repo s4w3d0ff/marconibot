@@ -1,4 +1,4 @@
-from tools import Process, logging
+from . import Process, logging
 
 logger = logging.getLogger(__name__)
 

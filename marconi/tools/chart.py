@@ -1,4 +1,4 @@
-from tools import time, MongoClient, indica, logging, izip
+from . import time, MongoClient, indica, logging, izip
 
 logger = logging.getLogger(__name__)
 
@@ -78,3 +78,10 @@ class Chart(object):
                 upsert=True)
             logger.info('%s chart db updated!', self.pair)
         return self.db.find_one({'_id': self.pair})['chart']
+
+if __name__ == '__main__':
+    from pprint import PrettyPrinter
+    pp = PrettyPrinter(indent=4)
+    from . import Poloniex
+    chart = Chart(pair='USDT_BTC', api=Poloniex(jsonNums=float))
+    pp.pprint(chart())

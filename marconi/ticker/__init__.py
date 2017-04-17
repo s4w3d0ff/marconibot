@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-# 3rd party
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
-from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 # local
-from tools import MongoClient, Process, time, indica, logging, izip
+from tools import (inlineCallbacks, ApplicationSession, ApplicationRunner,
+                   reactor, MongoClient, Process, time, indica, logging, izip)
 
 logger = logging.getLogger(__name__)
 
