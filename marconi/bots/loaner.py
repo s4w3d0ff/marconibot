@@ -1,5 +1,6 @@
+#!/usr/bin/python
 # local
-from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging
+from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, loantoshi
 from tools.minion import Minion
 
 
@@ -13,7 +14,7 @@ class Loaner(Minion):
                  api,
                  coins={'DASH': 0.1, 'DOGE': 100.0, 'BTC': 0.01, 'LTC': 1},
                  maxage=60 * 30,
-                 offset=3,
+                 offset=6,
                  delay=60 * 30):
         self.api, self.delay, self.coins, self.maxage, self.offset =\
             api, delay, coins, maxage, offset
@@ -34,7 +35,7 @@ class Loaner(Minion):
                 continue
             for offer in offers[coin]:
                 if self.getLoanOfferAge(offer) > self.maxage:
-                    logger.info('Canceling offer %s', offer['id'])
+                    logger.info('Canceling %s offer %s', coin, offer['id'])
                     logger.info(self.api.cancelLoanOffer(offer['id']))
 
     @property
@@ -54,7 +55,7 @@ class Loaner(Minion):
                 continue
             orders = self.api.returnLoanOrders(coin)['offers']
             topRate = float(orders[0]['rate'])
-            price = topRate + (self.offset * 0.000001)
+            price = topRate + (self.offset * loantoshi)
             logger.info('Creating %s %s loan offer at %s',
                         str(amount), coin, str(price))
             logger.info(self.api.createLoanOffer(
@@ -90,3 +91,18 @@ class Loaner(Minion):
                     if not self._running:
                         break
                     sleep(1)
+
+if __name__ == '__main__':
+    from tools import Poloniex
+    from sys import argv
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger('requests').setLevel(logging.ERROR)
+    key, secret = argv[1:3]
+    loaner = Loaner(Poloniex(key, secret, jsonNums=float))
+    loaner.start()
+    while loaner._running:
+        try:
+            sleep(1)
+        except:
+            loaner.stop()
+            break

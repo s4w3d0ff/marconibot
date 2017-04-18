@@ -1,3 +1,4 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 # local
 from tools import (inlineCallbacks, ApplicationSession, ApplicationRunner,
@@ -60,7 +61,7 @@ class WAMPTrollbox(ApplicationSession):
             # type, messageNumber, username, message, reputation
             mType, mNum, name, message, rep = args
             message = html.unescape(message)
-            logging.info('%s(%s): %s', name, str(rep), message)
+            logger.info('%s(%s): %s', name, str(rep), message)
             for coin in self.coins:
                 if int(self.coins[coin]['delisted']):
                     continue
@@ -73,7 +74,7 @@ class WAMPTrollbox(ApplicationSession):
 
         except ValueError:  # Sometimes its a banhammer! (only 4)
             mType, mNum, name, message = args
-            logging.info('%s: %s', name, message)
+            logger.info('%s: %s', name, message)
 
 
 class Lurker(object):
@@ -114,3 +115,17 @@ class Lurker(object):
         except:
             pass
         self._running = False
+
+if __name__ == "__main__":
+    from tools import Poloniex
+    logging.basicConfig(format='[%(asctime)s]%(message)s',
+                        datefmt="%H:%M:%0S", level=logging.INFO)
+    troll = Lurker(Poloniex())
+    troll.start()
+    while 1:
+        try:
+            sleep(1)
+        except:
+            troll.stop()
+            break
+    print(troll())

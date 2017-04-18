@@ -26,9 +26,12 @@ from poloniex import Poloniex, Coach
 logger = logging.getLogger(__name__)
 
 PHI = (1 + 5 ** 0.5) / 2
-
+# smallest coin fraction
 satoshi = 0.00000001
-
+# smallest loan fraction
+loantoshi = 0.000001
+# minimum trade amount (btc and usdt)
+tradeMin = 0.0001
 # convertions --------------------------------------------------------------
 
 
@@ -87,7 +90,7 @@ def getTrend(seq):
     Basic trend calculation by splitting the <seq> data in half, find the
     mean of each half, then subtract the old half from the new half. A
     negitive number represents a down trend, positive number is an up trend.
-    >>> trend([1.563, 2.129, 3.213, 4.3425, 5.1986, 5.875644])
+    >>> getTrend([1.563, 2.129, 3.213, 4.3425, 5.1986, 5.875644])
     2.866122
     """
     half = len(seq) // 2
@@ -97,14 +100,22 @@ def getTrend(seq):
 def getAverage(seq):
     """
     Finds the average of <seq>
-    >>> average(['3', 9.4, '0.8888', 5, 1.344444, '3', '5', 6, '7'])
+    >>> getAverage(['3', 9.4, '0.8888', 5, 1.344444, '3', '5', 6, '7'])
     4.033320571428571
     """
     return sum(seq) / len(seq)
 
 
 def geoProgress(n, r=PHI, size=5):
-    """ Creates a Geometric Progression with the Geometric sum of <n> """
+    """ Creates a Geometric Progression with the Geometric sum of <n>
+    >>> geoProgress(42)
+    [2.5725461188664465, 4.162467057952537, 6.735013176818984, 10.897480234771521, 17.63249341159051]
+    >>> r = geoProgress(42)
+    >>> r
+    [2.5725461188664465, 4.162467057952537, 6.735013176818984, 10.897480234771521, 17.63249341159051]
+    >>> sum(r)
+    42.0
+    """
     return [(n * (1 - r) / (1 - r ** size)) * r ** i for i in range(size)]
 
 

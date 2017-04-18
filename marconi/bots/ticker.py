@@ -1,7 +1,8 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 # local
 from tools import (inlineCallbacks, ApplicationSession, ApplicationRunner,
-                   reactor, MongoClient, Process, time, indica, logging, izip)
+                   reactor, MongoClient, Process, time, logging)
 
 logger = logging.getLogger(__name__)
 
@@ -32,46 +33,6 @@ class WAMPTicker(ApplicationSession):
                       '24hrLow': data[9]
                       }},
             upsert=True)
-        self.update24hVol()
-        self.updateOrderBook()
-
-    def getTimestamp(self, name):
-        try:  # look for old timestamp
-            timestamp = self.db.find_one({'_id': 'timestamps'})[name]
-            logger.debug('%s last updated %f', name, timestamp)
-        except:  # not found
-            logger.debug('No timestamp found for %s', name)
-            timestamp = 0
-        return timestamp
-
-    def setTimestamp(self, name):
-        self.db.update_one(
-            {'_id': 'timestamps'},
-            {'$set': {name: time()}},
-            upsert=True)
-        logger.debug('%s timestamp updated', name)
-
-    def update24hVol(self):
-        if time() - self.getTimestamp('volume24h') > 60 * 2:  # 2 min
-            vols = self.api.return24hVolume()
-            for market in vols:
-                self.db.update_one(
-                    {'_id': market},
-                    {'$set': {'volume24h': vols[market]}},
-                    upsert=True)
-            self.setTimestamp('volume24h')
-            logger.info('Updated volume24h')
-
-    def updateOrderBook(self):
-        if time() - self.getTimestamp('orderbook') > 5:  # 5 sec
-            book = self.api.returnOrderBook(depth=30)
-            for market in book:
-                self.db.update_one(
-                    {'_id': market},
-                    {'$set': {'orderbook': book[market]}},
-                    upsert=True)
-            self.setTimestamp('orderbook')
-            logger.info('Updated orderbook')
 
     def onDisconnect(self):
         # stop reactor if disconnected
@@ -81,24 +42,13 @@ class WAMPTicker(ApplicationSession):
 
 class Ticker(object):
 
-    def __init__(self, api, **kwargs):
+    def __init__(self, api):
         self._running = False
         # open/create poloniex database, ticker collection/table
         self.db = MongoClient().poloniex['markets']
         self.api = api
-        # pass api to WAMP app
-        self.app = WAMPTicker
-        self.app.api = self.api
-        # clear db (for development)
-        self.db.drop()
         # populate db
-        initTick = self.api.returnTicker()
-        for market in initTick:
-            initTick[market]['_id'] = market
-            self.db.update_one(
-                {'_id': market},
-                {'$set': initTick[market]},
-                upsert=True)
+        self.populateTicker()
         # thread namespace
         self._appProcess = None
         self._appRunner = ApplicationRunner(
@@ -109,10 +59,20 @@ class Ticker(object):
         """ returns ticker from mongodb """
         return self.db.find_one({'_id': market})
 
+    def populateTicker(self):
+        initTick = self.api.returnTicker()
+        for market in initTick:
+            initTick[market]['_id'] = market
+            self.db.update_one(
+                {'_id': market},
+                {'$set': initTick[market]},
+                upsert=True)
+        logger.info('Populated markets database with ticker data')
+
     def start(self):
         """ Start WAMP application runner process """
         self._appProcess = Process(
-            target=self._appRunner.run, args=(self.app,)
+            target=self._appRunner.run, args=(WAMPTicker,)
         )
         self._appProcess.daemon = True
         self._appProcess.start()
@@ -129,3 +89,17 @@ class Ticker(object):
         except:
             pass
         self._running = False
+
+if __name__ == '__main__':
+    from tools import sleep, Poloniex
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger('requests').setLevel(logging.ERROR)
+    ticker = Ticker(Poloniex(jsonNums=float))
+    ticker.start()
+    while ticker._running:
+        try:
+            logging.info('USDT_BTC last: %s' % ticker('USDT_BTC')['last'])
+            sleep(10)
+        except Exception as e:
+            logging.exception(e)
+            ticker.stop()
