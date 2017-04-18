@@ -1,5 +1,5 @@
 # local
-from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging
+from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, loantoshi
 from tools.minion import Minion
 
 
@@ -13,7 +13,7 @@ class Loaner(Minion):
                  api,
                  coins={'DASH': 0.1, 'DOGE': 100.0, 'BTC': 0.01, 'LTC': 1},
                  maxage=60 * 30,
-                 offset=3,
+                 offset=6,
                  delay=60 * 30):
         self.api, self.delay, self.coins, self.maxage, self.offset =\
             api, delay, coins, maxage, offset
@@ -54,7 +54,7 @@ class Loaner(Minion):
                 continue
             orders = self.api.returnLoanOrders(coin)['offers']
             topRate = float(orders[0]['rate'])
-            price = topRate + (self.offset * 0.000001)
+            price = topRate + (self.offset * loantoshi)
             logger.info('Creating %s %s loan offer at %s',
                         str(amount), coin, str(price))
             logger.info(self.api.createLoanOffer(

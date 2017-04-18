@@ -26,9 +26,12 @@ from poloniex import Poloniex, Coach
 logger = logging.getLogger(__name__)
 
 PHI = (1 + 5 ** 0.5) / 2
-
+# smallest coin fraction
 satoshi = 0.00000001
-
+# smallest loan fraction
+loantoshi = 0.000001
+# minimum trade amount (btc and usdt)
+tradeMin = 0.0001
 # convertions --------------------------------------------------------------
 
 
