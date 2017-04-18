@@ -1,7 +1,8 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 # local
-from ..tools import (inlineCallbacks, ApplicationSession, ApplicationRunner,
-                     reactor, MongoClient, Process, time, logging)
+from tools import (inlineCallbacks, ApplicationSession, ApplicationRunner,
+                   reactor, MongoClient, Process, time, logging)
 
 logger = logging.getLogger(__name__)
 
@@ -88,3 +89,17 @@ class Ticker(object):
         except:
             pass
         self._running = False
+
+if __name__ == '__main__':
+    from tools import sleep, Poloniex
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger('requests').setLevel(logging.ERROR)
+    ticker = Ticker(Poloniex(jsonNums=float))
+    ticker.start()
+    while ticker._running:
+        try:
+            logging.info('USDT_BTC last: %s' % ticker('USDT_BTC')['last'])
+            sleep(10)
+        except Exception as e:
+            logging.exception(e)
+            ticker.stop()

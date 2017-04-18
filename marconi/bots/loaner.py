@@ -1,6 +1,7 @@
+#!/usr/bin/python
 # local
-from ..tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, loantoshi
-from ..tools.minion import Minion
+from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, loantoshi
+from tools.minion import Minion
 
 
 logger = logging.getLogger(__name__)
@@ -90,3 +91,18 @@ class Loaner(Minion):
                     if not self._running:
                         break
                     sleep(1)
+
+if __name__ == '__main__':
+    from tools import Poloniex
+    from sys import argv
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger('requests').setLevel(logging.ERROR)
+    key, secret = argv[1:3]
+    loaner = Loaner(Poloniex(key, secret, jsonNums=float))
+    loaner.start()
+    while loaner._running:
+        try:
+            sleep(1)
+        except:
+            loaner.stop()
+            break

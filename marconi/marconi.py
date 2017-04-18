@@ -1,8 +1,9 @@
-from tools import Poloniex, sleep, satoshi, tradeMin, logging, Process
-from tools.chart import Chart
-from ticker import Ticker
-from loaner import Loaner
-from lurker import Lurker
+from bots.tools import Poloniex, sleep, satoshi, tradeMin, logging, Process
+from bots.tools.chart import Chart
+
+from bots.ticker import Ticker
+from bots.loaner import Loaner
+from bots.lurker import Lurker
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class Marconi(object):
         """ Stop all running bots/minions and stop main process"""
         for bot in self.bots:
             logger.info('Stopping %s', bot)
-            self.bots[bot].start()
+            self.bots[bot].stop()
         self._running = False
         try:
             self._process.terminate()
@@ -59,3 +60,18 @@ class Marconi(object):
                 #       move fees to exchange account
                 #       sell fees for btc
             """
+
+if __name__ == '__main__':
+    from sys import argv
+    key, secret = argv[1:3]
+    marconi = Marconi(key, secret)
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger('requests').setLevel(logging.ERROR)
+    # logging.getLogger('marconi.bots.lurker').setLevel(logging.ERROR)
+    marconi.start()
+    while True:
+        try:
+            sleep(4)
+        except:
+            marconi.stop()
+            break
