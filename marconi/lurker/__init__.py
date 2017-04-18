@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # local
-from tools import (inlineCallbacks, ApplicationSession, ApplicationRunner,
-                   HTMLParser, MongoClient, time, sleep, Process, logging)
+from ..tools import (inlineCallbacks, ApplicationSession, ApplicationRunner,
+                     HTMLParser, MongoClient, time, sleep, Process, logging)
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class WAMPTrollbox(ApplicationSession):
             # type, messageNumber, username, message, reputation
             mType, mNum, name, message, rep = args
             message = html.unescape(message)
-            logging.info('%s(%s): %s', name, str(rep), message)
+            logger.info('%s(%s): %s', name, str(rep), message)
             for coin in self.coins:
                 if int(self.coins[coin]['delisted']):
                     continue
@@ -73,7 +73,7 @@ class WAMPTrollbox(ApplicationSession):
 
         except ValueError:  # Sometimes its a banhammer! (only 4)
             mType, mNum, name, message = args
-            logging.info('%s: %s', name, message)
+            logger.info('%s: %s', name, message)
 
 
 class Lurker(object):

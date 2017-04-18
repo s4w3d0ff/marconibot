@@ -14,3 +14,4 @@ if __name__ == '__main__':
             sleep(1)
         except:
             loaner.stop()
+            break

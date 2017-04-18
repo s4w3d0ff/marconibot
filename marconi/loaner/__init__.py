@@ -1,6 +1,6 @@
 # local
-from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, loantoshi
-from tools.minion import Minion
+from ..tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, loantoshi
+from ..tools.minion import Minion
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class Loaner(Minion):
                 continue
             for offer in offers[coin]:
                 if self.getLoanOfferAge(offer) > self.maxage:
-                    logger.info('Canceling offer %s', offer['id'])
+                    logger.info('Canceling %s offer %s', coin, offer['id'])
                     logger.info(self.api.cancelLoanOffer(offer['id']))
 
     @property
