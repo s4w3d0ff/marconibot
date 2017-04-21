@@ -1,4 +1,4 @@
-from . import Process, logging
+from . import Thread, logging
 
 logger = logging.getLogger(__name__)
 
@@ -8,7 +8,7 @@ class Minion(object):
 
     def start(self):
         """ Start Minion.run Process """
-        self.__process = Process(target=self.run)
+        self.__process = Thread(target=self.run)
         self.__process.daemon = True
         self._running = True
         self.__process.start()
@@ -16,10 +16,6 @@ class Minion(object):
     def stop(self):
         """ Force the Minion to stop """
         self._running = False
-        try:
-            self.__process.terminate()
-        except Exception as e:
-            logger.exception(e)
         try:
             self.__process.join()
         except Exception as e:

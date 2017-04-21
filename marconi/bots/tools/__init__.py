@@ -1,10 +1,13 @@
 # core ---------------------------------------------------------------------
 import logging
+from math import floor
+from decimal import Decimal
 from operator import itemgetter
 from itertools import izip
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
+from multiprocessing.dummy import Process as Thread
 try:
     from html.parser import HTMLParser
 except:
@@ -33,6 +36,15 @@ loantoshi = 0.000001
 # minimum trade amount (btc and usdt)
 tradeMin = 0.0001
 # convertions --------------------------------------------------------------
+
+
+def roundDown(n, d=8):
+    """
+    n :: float to be rounded
+    d :: int munber of decimals to round to
+    """
+    d = int('1' + ('0' * d))
+    return floor(n * d) / d
 
 
 def epoch2UTCstr(timestamp=False, fmat="%Y-%m-%d %H:%M:%S"):

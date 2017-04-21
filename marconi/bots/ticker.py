@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# local
+
 from tools import (inlineCallbacks, ApplicationSession, ApplicationRunner,
                    reactor, MongoClient, Process, time, logging)
 
