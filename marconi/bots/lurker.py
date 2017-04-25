@@ -40,10 +40,10 @@ class WAMPTrollbox(ApplicationSession):
 
     @inlineCallbacks
     def onJoin(self, details):
-        global mods, name, html
         # load db
-        self.db = MongoClient().poloniex['trollcard']
+        self.db = MongoClient().poloniex['trolls']
         yield self.subscribe(self.onTroll, 'trollbox')
+        logger.info('Subscribed to push trollbox')
 
     def checkMessage(self, coin, message):
         # TODO: use REGEX!!!!
