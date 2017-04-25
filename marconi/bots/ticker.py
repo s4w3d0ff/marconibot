@@ -16,7 +16,7 @@ class WAMPTicker(ApplicationSession):
         # open/create poloniex database, ticker collection/table
         self.db = MongoClient().poloniex['markets']
         yield self.subscribe(self.onTick, 'ticker')
-        logger.info('Subscribed to PushApi Ticker')
+        logger.info('Subscribed to push ticker')
 
     def onTick(self, *data):
         """ 'upserts' data into 'markets' collection"""
