@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 
 class Loaner(Minion):
-    """ Loanbot class [API REQUIRES KEY AND SECRET!]"""
 
     def __init__(self,
                  api,

@@ -1,7 +1,7 @@
 # core ---------------------------------------------------------------------
 import logging
 from math import floor, ceil
-#from decimal import Decimal
+from decimal import Decimal
 from operator import itemgetter
 from itertools import izip
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
@@ -13,6 +13,9 @@ try:
 except:
     from HTMLParser import HTMLParser
 # 3rd party ----------------------------------------------------------------
+# pip install pandas
+import pandas as pd
+import numpy as np
 # pip install autobahn[twisted]
 from twisted.internet import reactor
 from twisted.internet.defer import inlineCallbacks
@@ -39,10 +42,30 @@ tradeMin = 0.0001
 
 # convertions, misc ------------------------------------------------------
 
+def getMongoDb(coll):
+    return MongoClient().poloniex[coll]
+
 
 def wait(i=10):
+    """ wraps 'time.sleep()' with logger output"""
     logger.debug('Waiting %d sec...', i)
     sleep(i)
+
+
+def addPercent(n, p):
+    """ (n * p) + n
+    >>> addPercent(8, 0.5)
+    8.04
+    """
+    return (n * percent2float(p)) + n
+
+
+def float2percent(n):
+    return float(n) * 100
+
+
+def percent2float(n):
+    return float(n) / 100
 
 
 def roundDown(n, d=8):
@@ -102,13 +125,6 @@ def localstr2epoch(datestr=False, fmat="%Y-%m-%d %H:%M:%S"):
         datestr = epoch2localstr()
     return mktime(strptime(datestr, fmat))
 
-
-def float2roundPercent(floatN, decimalP=2):
-    """
-    - takes float
-    - returns percent(*100) rounded to the Nth decimal place as a string
-    """
-    return str(round(float(floatN) * 100, decimalP)) + "%"
 
 # trading ------------------------------------------------------------------
 
@@ -194,7 +210,7 @@ def autoRenewAll(api, toggle=True):
         toggle = 0
     for loan in api.returnActiveLoans()['provided']:
         if int(loan['autoRenew']) != toggle:
-            logging.info('Toggling autorenew for offer %s', loan['id'])
+            logger.info('Toggling autorenew for offer %s', loan['id'])
             api.toggleAutoRenew(loan['id'])
 
 
@@ -209,16 +225,13 @@ def frontSell(api, market, amount=False):
     if amount * sellPrice < tradeMin:
         return 'Total %s is below tradeMin: %s.' % (str(amount), str(tradeMin))
     # create sell order
-    trades = []
     initOrder = api.sell(market, price, amount, orderType='postOnly')
     orderNums = [int(initOrder['orderNumber'])]
-    for trade in initOrder["resultingTrades"]:
-        trades.append(trade)
     while 1:
         for order in api.returnOpenOrders(market):
             if int(order['orderNumber']) != int(orderNums[-1]):
                 continue
-            logging.debug(order)
+            logger.debug(order)
             price = getFront(api, market, 'sell')
             if float(order['rate']) > price:
                 logger.debug('Moving %s order %s', market, orderNums[-1])
@@ -226,8 +239,6 @@ def frontSell(api, market, amount=False):
                     orderNums[-1], price, orderType='postOnly')
                 if 'success' in norder and int(norder['success']) == 1:
                     orderNums.append(int(norder['orderNumber']))
-                    for trade in norder["resultingTrades"]:
-                        trades.append(trade)
                 else:
                     logger.error(norder)
                     break
@@ -240,8 +251,9 @@ def frontSell(api, market, amount=False):
 def frontBuy(api, market, allowance=tradeMin + satoshi):
     """ Creates a buy order for <market> using <allowance> as the
     amount and the 'front' of market as the bid rate. Keeps pushing the
-    order to 'front' until the order is filled. returns a list of trades """
-    logging.info('Creating "front buy" order in %s', market)
+    order to 'front' until the order is filled. returns a list of ordernumbers
+    """
+    logger.info('Creating "front buy" order in %s', market)
     parentCoin, childCoin = market.split('_')
     if getAvailCoin(api, parentCoin) < allowance or allowance < tradeMin:
         return "%s balance or allowance too low!" % parentCoin
@@ -257,7 +269,7 @@ def frontBuy(api, market, allowance=tradeMin + satoshi):
         for order in api.returnOpenOrders(market):
             if int(order['orderNumber']) != int(orderNums[-1]):
                 continue
-            logging.debug(order)
+            logger.debug(order)
             price = getFront(api, market, 'buy')
             if float(order['rate']) < price:
                 logger.debug('Moving %s order %s', market, orderNums[-1])
@@ -275,6 +287,7 @@ def frontBuy(api, market, allowance=tradeMin + satoshi):
 
 
 def checkOrderTrades(api, orderNumber):
+    """ Returns False if no trades (or bad order) or returns the trades """
     logger.info('Checking order %s for trades', str(orderNumber))
     try:
         result = api.returnOrderTrades(orderNumber)
@@ -285,19 +298,19 @@ def checkOrderTrades(api, orderNumber):
 
 
 def getFront(api, market, arg):
+    """ Gets 'front' of market and adds/subtracts 1 satoshi, if front+satoshi
+    fills an order, match the front """
     tick = api.returnTicker()[market]
     hbid = float(tick['highestBid'])
     lask = float(tick['lowestAsk'])
     if arg is 'buy':
         if hbid + satoshi == lask:
             return hbid
-        else:
-            return hbid + satoshi
+        return hbid + satoshi
     if arg is 'sell':
         if lask - satoshi == hbid:
             return lask
-        else:
-            return lask - satoshi
+        return lask - satoshi
 
 
 def getAvailCoin(api, coin):
@@ -307,3 +320,53 @@ def getAvailCoin(api, coin):
     if not coin in bals:
         return 0.0
     return float(bals[coin])
+
+
+def getLast(api, market, otype, span=5):
+    hist = api.returnTradeHistory(market, start=api.DAY * 20)
+    rates = []
+    for trade in hist:
+        if trade['category'] != 'exchange' or trade['type'] != otype:
+            continue
+        rates.append(float(trade['rate']))
+        if len(rates) == span:
+            break
+    return sum(rates) / len(rates)
+
+
+def addDoji(c):
+    """
+     |
+     | ---- topWick
+    _|_ /-- bodytop
+    |_|
+     |  \-- bodybottom
+     | ---- bottomWick
+     |
+    """
+    body = c['open'] - c['close']
+    shadow = c['high'] - c['low']
+    # shadow too small for doji
+    if abs(body) * 3 > shadow:
+        return False
+    # body is bearish
+    if body <= 0:
+        bodytop = c['high']
+        bodybottom = c['low']
+    # body is bullish
+    else:
+        bodytop = c['low']
+        bodybottom = c['high']
+    topWick = c['high'] - bodytop
+    bottomWick = bodybottom - c['low']
+    # wicks are about even
+    if abs(topWick - bottomWick) < satoshi * 2:
+        return 'doji'
+    # top wick is small
+    elif topWick < abs(body):
+        return 'dragon'
+    # bottom wick is small
+    elif bottomWick < abs(body):
+        return 'grave'
+    else:
+        return False
