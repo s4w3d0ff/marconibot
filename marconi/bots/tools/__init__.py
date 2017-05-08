@@ -3,7 +3,7 @@ import logging
 from math import floor, ceil
 from decimal import Decimal
 from operator import itemgetter
-from itertools import izip
+#from itertools import izip
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
@@ -16,15 +16,11 @@ except:
 # pip install pandas
 import pandas as pd
 import numpy as np
-# pip install autobahn[twisted]
-from twisted.internet import reactor
-from twisted.internet.defer import inlineCallbacks
-from autobahn.twisted.wamp import ApplicationSession, ApplicationRunner
 # - pip install pymongo
 from pymongo import MongoClient
-# - https://github.com/s4w3d0ff/trade_indica
+# - pip install git+https://github.com/s4w3d0ff/trade_indica.git
 import trade_indica as indica
-# - https://github.com/s4w3d0ff/python-poloniex
+# - pip install git+https://github.com/s4w3d0ff/python-poloniex
 from poloniex import Poloniex, Coach, PoloniexError
 
 # constants ----------------------------------------------------------------
