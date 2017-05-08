@@ -47,7 +47,7 @@ from .retry import retry
 # logger
 logger = logging.getLogger(__name__)
 
-retryDelays = (0, 2, 5, 30)
+retryDelays = (0, 1, 2, 3, 4, 5)
 
 # Possible Commands
 PUBLIC_COMMANDS = [

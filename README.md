@@ -1,17 +1,15 @@
 # marconi
-![marconi](images/marconi.jpeg)
+![marconi](images/marconi.jpeg)  
 Poloniex Trading Bot
 
 ### Requirements:
 __system__:
 ```
-Python 2.7+
+Python 3
 Mongodb
 ```
 __pip__:
 ```
-pip install autobahn[twisted]
+pip install autobahn[asyncio]
 pip install pymongo
-pip install git+https://github.com/s4w3d0ff/python-poloniex.git
-pip install git+https://github.com/s4w3d0ff/trade_indica.git
 ```

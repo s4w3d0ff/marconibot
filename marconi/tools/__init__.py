@@ -18,10 +18,11 @@ import pandas as pd
 import numpy as np
 # - pip install pymongo
 from pymongo import MongoClient
-# - pip install git+https://github.com/s4w3d0ff/trade_indica.git
-import trade_indica as indica
-# - pip install git+https://github.com/s4w3d0ff/python-poloniex
-from poloniex import Poloniex, Coach, PoloniexError
+
+# local --------------------------------------------------------------------
+from . import indicators as indica
+from .poloniex import Poloniex, Coach, PoloniexError
+from .poloniex.push import Application
 
 # constants ----------------------------------------------------------------
 
