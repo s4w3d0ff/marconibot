@@ -5,22 +5,22 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def retry(delays=(0, 1, 5, 30),
-          exception=Exception):
+class RetryExhausted(Exception):
+    pass
+
+
+def retry(delays=(0, 1, 2, 3, 4, 5), exception=Exception):
     def wrapper(function):
         def wrapped(*args, **kwargs):
-            problems = []
             for delay in chain(delays, [None]):
                 try:
                     return function(*args, **kwargs)
                 except exception as problem:
-                    problems.append(problem)
+                    logger.debug(problem)
                     if delay is None:
-                        logger.error(problems)
-                        raise
-                    else:
-                        logger.debug(problem)
-                        logger.info("-- delaying for %ds", delay)
-                        sleep(delay)
+                        raise RetryExhausted('Could not execute')
+                    logger.debug(problem)
+                    logger.info(" -- delaying for %ds", delay)
+                    sleep(delay)
         return wrapped
     return wrapper

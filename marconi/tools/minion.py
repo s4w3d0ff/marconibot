@@ -8,16 +8,16 @@ class Minion(object):
 
     def start(self):
         """ Start Minion.run Process """
-        self.__process = Thread(target=self.run)
-        self.__process.daemon = True
+        self.__thread = Thread(target=self.run)
+        self.__thread.daemon = True
         self._running = True
-        self.__process.start()
+        self.__thread.start()
 
     def stop(self):
         """ Force the Minion to stop """
         self._running = False
         try:
-            self.__process.join()
+            self.__thread.join()
         except Exception as e:
             logger.exception(e)
 

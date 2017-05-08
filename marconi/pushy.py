@@ -1,4 +1,4 @@
-from tools.poloniex.push import Application
+from tools import Application
 from tools import HTMLParser, getMongoDb, sleep, logging
 
 MODS = {"Xoblort": 1,
@@ -30,7 +30,7 @@ NAME = 'PulloutKing'
 html = HTMLParser()
 
 
-class PushApp(Application):
+class Pushy(Application):
 
     def populateTicker(self):
         initTick = self.api.returnTicker()
@@ -94,7 +94,7 @@ class PushApp(Application):
 if __name__ == '__main__':
     from tools.poloniex import Poloniex
     logging.basicConfig(level=logging.DEBUG)
-    app = PushApp()
+    app = Pushy()
     app.api = Poloniex(jsonNums=float)
     app.db = getMongoDb('markets')
     app.coins = app.api.returnCurrencies()
