@@ -1,4 +1,4 @@
-from . import time, getMongoDb, indica, logging, izip, addDoji, pd
+from . import time, getMongoDb, indica, logging, addDoji, pd
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.style.use('ggplot')
@@ -39,32 +39,32 @@ class Chart(object):
             # so slice the base data by bbands size (from rear)
             bbands = indica.bb(aves, self.window * 2).tolist()
             raw = raw[-len(bbands):]
-            for i, data in izip(range(len(raw)), bbands):
+            for i, data in zip(range(len(raw)), bbands):
                 # upper, middle, lower bands, bandwidth, range and %B
                 raw[i]['bb_high'], raw[i]['sma'], raw[i]['bb_low'], raw[i][
                     'bb_width'], raw[i]['bb_range'], raw[i]['bb_percent'] = data
-            for i, data in izip(
+            for i, data in zip(
                     range(len(raw)), indica.roc(aves, self.window).tolist()):
                 raw[i]['roc'] = data
-            for i, data in izip(
+            for i, data in zip(
                     range(len(raw)), indica.rsi(aves, self.window).tolist()):
                 raw[i]['rsi'] = data
-            for i, data in izip(
+            for i, data in zip(
                     range(len(raw)),
                     indica.ma_env(aves, self.window, 0.1, 3).tolist()):
                 raw[i]['wma_high'], raw[i]['wma'], raw[i]['wma_low'], raw[
                     i]['wma_range'], raw[i]['wma_percent'] = data
-            for i, data in izip(
+            for i, data in zip(
                     range(len(raw)),
                     indica.ma_env(aves, self.window // 2, 0.1, 0).tolist()):
                 raw[i]['ema_high'], raw[i]['ema'], raw[i]['ema_low'], raw[
                     i]['ema_range'], raw[i]['ema_percent'] = data
-            for i, data in izip(
+            for i, data in zip(
                     range(len(raw)),
                     indica.ma_env(aves, (self.window // 2) + 10, 0.1, 1).tolist()):
                 raw[i]['slow_ema_high'], raw[i]['slow_ema'], raw[i]['slow_ema_low'], raw[
                     i]['slow_ema_range'], raw[i]['slow_ema_percent'] = data
-            for i, data in izip(
+            for i, data in zip(
                     range(len(raw)),
                     indica.ma_env(aves, (self.window // 2) - 10, 0.1, 2).tolist()):
                 raw[i]['fast_ema_high'], raw[i]['fast_ema'], raw[i]['fast_ema_low'], raw[
