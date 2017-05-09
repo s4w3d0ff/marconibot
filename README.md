@@ -10,6 +10,9 @@ Mongodb
 ```
 __pip__:
 ```
-pip install autobahn[asyncio]
-pip install pymongo
+pip3 install pandas
+pip3 install matplotlib
+pip3 install autobahn[asyncio]
+pip3 install aiohttp
+pip3 install pymongo
 ```
