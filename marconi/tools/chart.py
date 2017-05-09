@@ -34,44 +34,6 @@ class Chart(object):
             logger.info('%s chart db updating...', self.pair)
             raw = self.api.returnChartData(
                 self.pair, self.period, time() - self.frame)
-            aves = [i['weightedAverage'] for i in raw]
-            # bbands is the shortest list
-            # so slice the base data by bbands size (from rear)
-            bbands = indica.bb(aves, self.window * 2).tolist()
-            raw = raw[-len(bbands):]
-            for i, data in zip(range(len(raw)), bbands):
-                # upper, middle, lower bands, bandwidth, range and %B
-                raw[i]['bb_high'], raw[i]['sma'], raw[i]['bb_low'], raw[i][
-                    'bb_width'], raw[i]['bb_range'], raw[i]['bb_percent'] = data
-            for i, data in zip(
-                    range(len(raw)), indica.roc(aves, self.window).tolist()):
-                raw[i]['roc'] = data
-            for i, data in zip(
-                    range(len(raw)), indica.rsi(aves, self.window).tolist()):
-                raw[i]['rsi'] = data
-            for i, data in zip(
-                    range(len(raw)),
-                    indica.ma_env(aves, self.window, 0.1, 3).tolist()):
-                raw[i]['wma_high'], raw[i]['wma'], raw[i]['wma_low'], raw[
-                    i]['wma_range'], raw[i]['wma_percent'] = data
-            for i, data in zip(
-                    range(len(raw)),
-                    indica.ma_env(aves, self.window // 2, 0.1, 0).tolist()):
-                raw[i]['ema_high'], raw[i]['ema'], raw[i]['ema_low'], raw[
-                    i]['ema_range'], raw[i]['ema_percent'] = data
-            for i, data in zip(
-                    range(len(raw)),
-                    indica.ma_env(aves, (self.window // 2) + 10, 0.1, 1).tolist()):
-                raw[i]['slow_ema_high'], raw[i]['slow_ema'], raw[i]['slow_ema_low'], raw[
-                    i]['slow_ema_range'], raw[i]['slow_ema_percent'] = data
-            for i, data in zip(
-                    range(len(raw)),
-                    indica.ma_env(aves, (self.window // 2) - 10, 0.1, 2).tolist()):
-                raw[i]['fast_ema_high'], raw[i]['fast_ema'], raw[i]['fast_ema_low'], raw[
-                    i]['fast_ema_range'], raw[i]['fast_ema_percent'] = data
-            for i in range(len(raw)):
-                raw[i]['label'] = addDoji(raw[i])
-
             self.db.update_one(
                 {'_id': self.pair},
                 {'$set': {
@@ -93,17 +55,53 @@ class Chart(object):
         del df['date']
         return df
 
-    def show(self):
-        df = self.getDataFrame()
-        fig, axes = plt.subplots(nrows=2, ncols=1)
-        df[['sma', 'bb_high', 'bb_low']].plot(ax=axes[0], colormap='Blues')
-        axes[0].set_title(self.pair)
-        df[['roc', 'rsi']].plot(subplots=True, ax=axes[1])
-        plt.show()
+    def withIndicators(self):
+        raw = self.__call__()['candles']
+        aves = [i['weightedAverage'] for i in raw]
+        # bbands is the shortest list
+        # so slice the base data by bbands size (from rear)
+        bbands = indica.bb(aves, self.window * 2).tolist()
+        raw = raw[-len(bbands):]
+        for i, data in zip(range(len(raw)), bbands):
+            # upper, middle, lower bands, bandwidth, range and %B
+            raw[i]['bb_high'], raw[i]['sma'], raw[i]['bb_low'], raw[i][
+                'bb_width'], raw[i]['bb_range'], raw[i]['bb_percent'] = data
+        for i, data in zip(
+                range(len(raw)), indica.roc(aves, self.window).tolist()):
+            raw[i]['roc'] = data
+        for i, data in zip(
+                range(len(raw)), indica.rsi(aves, self.window).tolist()):
+            raw[i]['rsi'] = data
+        for i, data in zip(
+                range(len(raw)),
+                indica.ma_env(aves, self.window, 0.1, 3).tolist()):
+            raw[i]['wma_high'], raw[i]['wma'], raw[i]['wma_low'], raw[
+                i]['wma_range'], raw[i]['wma_percent'] = data
+        for i, data in zip(
+                range(len(raw)),
+                indica.ma_env(aves, self.window, 0.1, 0).tolist()):
+            raw[i]['ema_high'], raw[i]['ema'], raw[i]['ema_low'], raw[
+                i]['ema_range'], raw[i]['ema_percent'] = data
+        for i, data in zip(
+                range(len(raw)),
+                indica.ma_env(aves, self.window * 2, 0.1, 1).tolist()):
+            raw[i]['slow_ema_high'], raw[i]['slow_ema'], raw[i]['slow_ema_low'], raw[
+                i]['slow_ema_range'], raw[i]['slow_ema_percent'] = data
+        for i, data in zip(
+                range(len(raw)),
+                indica.ma_env(aves, self.window // 2, 0.1, 2).tolist()):
+            raw[i]['fast_ema_high'], raw[i]['fast_ema'], raw[i]['fast_ema_low'], raw[
+                i]['fast_ema_range'], raw[i]['fast_ema_percent'] = data
+        for i in range(len(raw)):
+            raw[i]['label'] = addDoji(raw[i])
+        df = pd.DataFrame(raw, index=[pd.to_datetime(
+            c['date'], unit='s') for c in raw])
+        del df['date']
+        return df
 
 if __name__ == '__main__':
-    from poloniex import Poloniex
+    from .poloniex import Poloniex
     logging.basicConfig(level=logging.DEBUG)
     api = Poloniex(jsonNums=float)
     chart = Chart(api, 'BTC_LTC')
-    print(chart.show())
+    print(chart.getDataFrame().tail())
