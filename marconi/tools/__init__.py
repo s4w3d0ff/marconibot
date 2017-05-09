@@ -12,8 +12,10 @@ try:
     from html.parser import HTMLParser
 except:
     from HTMLParser import HTMLParser
+html = HTMLParser()
+
 # 3rd party ----------------------------------------------------------------
-# pip install pandas
+# pip install pandas numpy
 import pandas as pd
 import numpy as np
 # - pip install pymongo
@@ -26,19 +28,60 @@ from .poloniex.push import Application
 
 # constants ----------------------------------------------------------------
 
+# tools logger
 logger = logging.getLogger(__name__)
 
 PHI = (1 + 5 ** 0.5) / 2
+
 # smallest coin fraction
-satoshi = 0.00000001
+SATOSHI = 0.00000001
 # smallest loan fraction
-loantoshi = 0.000001
+LOANTOSHI = 0.000001
 # minimum trade amount (btc and usdt)
-tradeMin = 0.0001
+TRADE_MIN = 0.0001
+# scraped from trollbox js var mods (5/8/2017)
+TROLL_MODS = {
+    "Xoblort": 1,
+    "Chickenliver": 1,
+    "MobyDick": 1,
+    "cybiko123": 1,
+    "SweetJohnDee": 1,
+    "smallbit": 1,
+    "Wizwa": 1,
+    "OldManKidd": 1,
+    "Quantum": 1,
+    "Popcorntime": 1,
+    "busoni@poloniex": 1,
+    "Thoth": 1,
+    "wausboot": 1,
+    "Mirai": 1,
+    "qubix": 1,
+    "Oldgamejunk": 1,
+    "Chewpacabra": 1,
+    "orio": 1,
+    "j33hopper": 1,
+    "VenomGhost": 1,
+    "ultim8um": 1,
+    "TheDjentleman": 1,
+    "GambitKnight": 1,
+    "Bigolas": 1,
+    "Watchtower": 1
+}
+# Our name in the trollbox
+TROLL_NAME = 'PulloutKing'
+
+# console colors
+WT = '\033[0m'  # white (normal)
+RD = lambda text: '\033[31m' + text + WT  # red
+GR = lambda text: '\033[32m' + text + WT  # green
+OR = lambda text: '\033[33m' + text + WT  # orange
+BL = lambda text: '\033[34m' + text + WT  # blue
+PR = lambda text: '\033[35m' + text + WT  # purp
+CY = lambda text: '\033[36m' + text + WT  # cyan
+GY = lambda text: '\033[37m' + text + WT  # gray
 
 
 # convertions, misc ------------------------------------------------------
-
 def getMongoDb(coll):
     return MongoClient().poloniex[coll]
 
@@ -219,8 +262,8 @@ def frontSell(api, market, amount=False):
     if not amount:
         amount = getAvailCoin(api, childCoin)
     price = getFront(api, market, 'sell')
-    if amount * sellPrice < tradeMin:
-        return 'Total %s is below tradeMin: %s.' % (str(amount), str(tradeMin))
+    if amount * sellPrice < TRADE_MIN:
+        return 'Total %s is below TRADE_MIN: %s.' % (str(amount), str(TRADE_MIN))
     # create sell order
     initOrder = api.sell(market, price, amount, orderType='postOnly')
     orderNums = [int(initOrder['orderNumber'])]
@@ -245,14 +288,14 @@ def frontSell(api, market, amount=False):
             return orderNums
 
 
-def frontBuy(api, market, allowance=tradeMin + satoshi):
+def frontBuy(api, market, allowance=TRADE_MIN + SATOSHI):
     """ Creates a buy order for <market> using <allowance> as the
     amount and the 'front' of market as the bid rate. Keeps pushing the
     order to 'front' until the order is filled. returns a list of ordernumbers
     """
     logger.info('Creating "front buy" order in %s', market)
     parentCoin, childCoin = market.split('_')
-    if getAvailCoin(api, parentCoin) < allowance or allowance < tradeMin:
+    if getAvailCoin(api, parentCoin) < allowance or allowance < TRADE_MIN:
         return "%s balance or allowance too low!" % parentCoin
     # get 'front'
     price = getFront(api, market, 'buy')
@@ -295,19 +338,19 @@ def checkOrderTrades(api, orderNumber):
 
 
 def getFront(api, market, arg):
-    """ Gets 'front' of market and adds/subtracts 1 satoshi, if front+satoshi
+    """ Gets 'front' of market and adds/subtracts 1 SATOSHI, if front+SATOSHI
     fills an order, match the front """
     tick = api.returnTicker()[market]
     hbid = float(tick['highestBid'])
     lask = float(tick['lowestAsk'])
     if arg is 'buy':
-        if hbid + satoshi == lask:
+        if hbid + SATOSHI == lask:
             return hbid
-        return hbid + satoshi
+        return hbid + SATOSHI
     if arg is 'sell':
-        if lask - satoshi == hbid:
+        if lask - SATOSHI == hbid:
             return lask
-        return lask - satoshi
+        return lask - SATOSHI
 
 
 def getAvailCoin(api, coin):
@@ -357,7 +400,7 @@ def addDoji(c):
     topWick = c['high'] - bodytop
     bottomWick = bodybottom - c['low']
     # wicks are about even
-    if abs(topWick - bottomWick) < satoshi * 2:
+    if abs(topWick - bottomWick) < SATOSHI * 2:
         return 'doji'
     # top wick is small
     elif topWick < abs(body):

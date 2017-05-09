@@ -1,35 +1,9 @@
 from tools import Application
-from tools import HTMLParser, getMongoDb, sleep, logging
+from tools import html, getMongoDb, sleep, logging
+from tools import BL, GR
+from tools.poloniex import Poloniex
 
-MODS = {"Xoblort": 1,
-        "Chickenliver": 1,
-        "MobyDick": 1,
-        "cybiko123": 1,
-        "SweetJohnDee": 1,
-        "smallbit": 1,
-        "Wizwa": 1,
-        "OldManKidd": 1,
-        "Quantum": 1,
-        "Popcorntime": 1,
-        "busoni@poloniex": 1,
-        "Thoth": 1,
-        "wausboot": 1,
-        "Mirai": 1,
-        "qubix": 1,
-        "Oldgamejunk": 1,
-        "Chewpacabra": 1,
-        "orio": 1,
-        "j33hopper": 1,
-        "VenomGhost": 1,
-        "ultim8um": 1,
-        "TheDjentleman": 1,
-        "GambitKnight": 1,
-        "Bigolas": 1,
-        "Watchtower": 1}
-
-NAME = 'PulloutKing'
-
-html = HTMLParser()
+logger = logging.getLogger(__name__)
 
 
 class Pushy(Application):
@@ -38,14 +12,14 @@ class Pushy(Application):
         initTick = self.api.returnTicker()
         for market in initTick:
             initTick[market]['_id'] = market
-            self.db.update_one(
+            self.tickDb.update_one(
                 {'_id': market},
                 {'$set': initTick[market]},
                 upsert=True)
-        self.logger.info('Populated markets database with ticker data')
+        logger.info('Populated markets database with ticker data')
 
-    def onTick(self, **kwargs):
-        self.db.update_one(
+    async def onTick(self, **kwargs):
+        self.tickDb.update_one(
             {"_id": kwargs["currency_pair"]},
             {"$set": {'last': kwargs["last"],
                       'lowestAsk': kwargs["lowest_ask"],
@@ -59,47 +33,28 @@ class Pushy(Application):
                       }},
             upsert=True)
 
-    def checkMessage(self, coin, message):
-        # TODO: use REGEX!!!!
-        name = self.coins[coin]['name']
-        if '%s ' % coin.lower() in message or '%s ' % coin in message:
-            return True
-        if '%s ' % name.lower() in message or '%s ' % name.upper() in message:
-            return True
-        if name in message:
-            return True
-        return False
-
     def onTroll(self, **kwargs):
-
-        mType = kwargs["type"]
-        mNum = kwargs["id"]
+        kwargs['_id'] = kwargs.pop("id")
         name = kwargs["username"]
-        message = kwargs["text"]
         rep = kwargs["reputation"]
-        message = html.unescape(message)
-        self.logger.info('%s(%s): %s', name, str(rep), message)
-        for coin in self.coins:
-            if int(self.coins[coin]['delisted']):
-                continue
-            if self.checkMessage(coin, ' ' + message + ' '):
-                self.db.update_one({"_id": coin},
-                                   {"$setOnInsert": {"count": 0}},
-                                   upsert=True)
-                self.db.update_one({"_id": coin}, {"$inc": {"count": 1}})
+        message = kwargs['message'] = html.unescape(kwargs.pop("text"))
+        logger.debug('%s(%s): %s', BL(name), GR(str(rep)), message)
+        try:
+            self.trollDb.insert_one(kwargs)
+        except Exception as e:
+            logger.exception(e)
 
     async def main(self):
+        self.api = Poloniex(jsonNums=float)
+        self.tickDb = getMongoDb('markets')
+        self.trollDb = getMongoDb('trollbox')
         self.populateTicker()
         self.push.subscribe(topic="trollbox", handler=self.onTroll)
         self.push.subscribe(topic="ticker", handler=self.onTick)
 
 if __name__ == '__main__':
-    from tools.poloniex import Poloniex
     logging.basicConfig(level=logging.DEBUG)
     app = Pushy()
-    app.api = Poloniex(jsonNums=float)
-    app.db = getMongoDb('markets')
-    app.coins = app.api.returnCurrencies()
     app.run()
     while True:
         try:
