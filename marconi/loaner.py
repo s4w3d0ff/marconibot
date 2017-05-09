@@ -1,18 +1,10 @@
 #!/usr/bin/python
-from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, loantoshi
+from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, LOANTOSHI
+from tools import BL, OR, RD, GY, GR
 from tools.minion import Minion
 
 
 logger = logging.getLogger(__name__)
-
-WT = '\033[0m'  # white (normal)
-RD = lambda text: '\033[31m' + text + WT  # red
-GR = lambda text: '\033[32m' + text + WT  # green
-OR = lambda text: '\033[33m' + text + WT  # orange
-BL = lambda text: '\033[34m' + text + WT  # blue
-PR = lambda text: '\033[35m' + text + WT  # purp
-CY = lambda text: '\033[36m' + text + WT  # cyan
-GY = lambda text: '\033[37m' + text + WT  # gray
 
 
 class Loaner(Minion):
@@ -70,7 +62,7 @@ class Loaner(Minion):
                 continue
             orders = self.api.returnLoanOrders(coin)['offers']
             topRate = float(orders[0]['rate'])
-            price = topRate + (self.offset * loantoshi)
+            price = topRate + (self.offset * LOANTOSHI)
             logger.info('Creating %s %s loan offer at %s',
                         RD(str(amount)), OR(coin), GR(str(price * 100) + '%'))
             logger.debug(self.api.createLoanOffer(
@@ -132,7 +124,7 @@ if __name__ == '__main__':
     # Maximum age (in secs) to let an open offer sit
     maxage = 60 * 10  # 30 min
 
-    # number of loantoshis to offset from lowest asking rate
+    # number of LOANTOSHIs to offset from lowest asking rate
     offset = 20  # (6 * 0.000001)+lowestask
 
     # number of seconds between loops
