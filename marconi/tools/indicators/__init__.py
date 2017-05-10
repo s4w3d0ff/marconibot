@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-#        technical_indicators
+#        https://github.com/jcrmatos/technical_indicators
 #        Copyright (C) 2014  Joao Carlos Roseta Matos
 #        Copyright (C) 2017 https://github.com/s4w3d0ff
 #
