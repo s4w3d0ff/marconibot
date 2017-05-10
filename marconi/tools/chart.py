@@ -1,4 +1,4 @@
-from . import time, getMongoDb, indica, logging, addDoji, pd
+from . import time, getMongoDb, indica, logging, addDoji, pd, np
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.style.use('ggplot')
@@ -50,53 +50,47 @@ class Chart(object):
 
     def getDataFrame(self):
         data = self.__call__()['candles']
-        df = pd.DataFrame(data, index=[pd.to_datetime(
-            c['date'], unit='s') for c in data])
-        del df['date']
+        df = pd.DataFrame(data)
+        df['date'] = [pd.to_datetime(c['date'], unit='s') for c in data]
+        df.set_index('date', inplace=True)
         return df
 
     def withIndicators(self):
-        raw = self.__call__()['candles']
-        aves = [i['weightedAverage'] for i in raw]
-        # bbands is the shortest list
-        # so slice the base data by bbands size (from rear)
-        bbands = indica.bb(aves, self.window * 2).tolist()
-        raw = raw[-len(bbands):]
-        for i, data in zip(range(len(raw)), bbands):
-            # upper, middle, lower bands, bandwidth, range and %B
-            raw[i]['bb_high'], raw[i]['sma'], raw[i]['bb_low'], raw[i][
-                'bb_width'], raw[i]['bb_range'], raw[i]['bb_percent'] = data
-        for i, data in zip(
-                range(len(raw)), indica.roc(aves, self.window).tolist()):
-            raw[i]['roc'] = data
-        for i, data in zip(
-                range(len(raw)), indica.rsi(aves, self.window).tolist()):
-            raw[i]['rsi'] = data
-        for i, data in zip(
-                range(len(raw)),
-                indica.ma_env(aves, self.window, 0.1, 3).tolist()):
-            raw[i]['wma_high'], raw[i]['wma'], raw[i]['wma_low'], raw[
-                i]['wma_range'], raw[i]['wma_percent'] = data
-        for i, data in zip(
-                range(len(raw)),
-                indica.ma_env(aves, self.window, 0.1, 0).tolist()):
-            raw[i]['ema_high'], raw[i]['ema'], raw[i]['ema_low'], raw[
-                i]['ema_range'], raw[i]['ema_percent'] = data
-        for i, data in zip(
-                range(len(raw)),
-                indica.ma_env(aves, self.window * 2, 0.1, 1).tolist()):
-            raw[i]['slow_ema_high'], raw[i]['slow_ema'], raw[i]['slow_ema_low'], raw[
-                i]['slow_ema_range'], raw[i]['slow_ema_percent'] = data
-        for i, data in zip(
-                range(len(raw)),
-                indica.ma_env(aves, self.window // 2, 0.1, 2).tolist()):
-            raw[i]['fast_ema_high'], raw[i]['fast_ema'], raw[i]['fast_ema_low'], raw[
-                i]['fast_ema_range'], raw[i]['fast_ema_percent'] = data
-        for i in range(len(raw)):
-            raw[i]['label'] = addDoji(raw[i])
-        df = pd.DataFrame(raw, index=[pd.to_datetime(
-            c['date'], unit='s') for c in raw])
-        del df['date']
+        df = self.getDataFrame()
+        # get raw data
+        dfsize = len(list(df['open']))
+        df['bodysize'] = df['open'] - df['close']
+        # candle shadow/wick size
+        df['shadowsize'] = df['high'] - df['low']
+        df['sma'] = df['weightedAverage'].rolling(
+            window=self.window, center=False).mean()
+        df['emaslow'] = df['weightedAverage'].ewm(
+            span=self.window,
+            min_periods=1,
+            adjust=True,
+            ignore_na=False).mean()
+        df['emafast'] = df['weightedAverage'].ewm(
+            span=self.window // 2,
+            min_periods=1,
+            adjust=True,
+            ignore_na=False).mean()
+        df['macd'] = df['emafast'] - df['emaslow']
+        # get roc
+        roc = indica.roc(list(df['weightedAverage']), 1).tolist()
+        df['roc'] = roc + [np.nan for i in range(dfsize - len(roc))]
+        # get rsi
+        rsi = indica.rsi(list(df['weightedAverage']), 5).tolist()
+        df['rsi'] = [np.nan for i in range(dfsize - len(rsi))] + rsi
+        # get bbands
+        df['bbtop'] = df['sma'] + 2.0 * \
+            df['weightedAverage'].rolling(
+                min_periods=self.window, window=self.window, center=False).std()
+        df['bbbottom'] = df['sma'] - 2.0 * \
+            df['weightedAverage'].rolling(
+                min_periods=self.window, window=self.window, center=False).std()
+        df['bbrange'] = df['bbtop'] - df['bbbottom']
+        df['bbpercent'] = ((df['weightedAverage'] -
+                            df['bbbottom']) / df['bbrange']) - 0.5
         return df
 
 if __name__ == '__main__':
@@ -104,4 +98,6 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     api = Poloniex(jsonNums=float)
     chart = Chart(api, 'BTC_LTC')
-    print(chart.getDataFrame().tail())
+    df = chart.withIndicators()
+    print(df[['sma', 'emafast', 'rsi', 'macd', 'bbpercent']].tail(20))
+    print(df[['sma', 'emafast', 'rsi', 'macd', 'bbpercent']].head(20))
