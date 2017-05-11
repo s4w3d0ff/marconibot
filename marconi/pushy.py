@@ -1,7 +1,8 @@
 from tools import Application
-from tools import html, getMongoDb, sleep, logging
+from tools import html, getMongoDb, summarize_blocks, sleep, logging
 from tools import BL, GR
 from tools.poloniex import Poloniex
+from collections import deque
 
 logger = logging.getLogger(__name__)
 
@@ -33,21 +34,31 @@ class Pushy(Application):
                       }},
             upsert=True)
 
-    def onTroll(self, **kwargs):
+    async def onTroll(self, **kwargs):
         kwargs['_id'] = kwargs.pop("id")
         name = kwargs["username"]
         rep = kwargs["reputation"]
         message = kwargs['message'] = html.unescape(kwargs.pop("text"))
         logger.debug('%s(%s): %s', BL(name), GR(str(rep)), message)
-        try:
-            self.trollDb.insert_one(kwargs)
-        except Exception as e:
-            logger.exception(e)
+        self.tollbox.append(message)
+        if time() - self.summaryTime > self.api.HOUR:
+            self.summaryTime = time()
+            self.trollDb.insert_one({
+                '_id': self.summaryTime,
+                'summary': summarize_blocks(self.trollbox)
+            })
 
     async def main(self):
+        self.tollbox = deque(list(), 200)
         self.api = Poloniex(jsonNums=float)
         self.tickDb = getMongoDb('markets')
         self.trollDb = getMongoDb('trollbox')
+        self.summaryTime = self.trollDb.find_one()
+        if not self.summaryTime:
+            self.summaryTime = time()
+            self.trollDb.drop()
+        else:
+            self.summaryTime = self.summaryTime['_id']
         self.populateTicker()
         self.push.subscribe(topic="trollbox", handler=self.onTroll)
         self.push.subscribe(topic="ticker", handler=self.onTick)
