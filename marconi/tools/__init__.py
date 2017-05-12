@@ -25,6 +25,7 @@ from pymongo import MongoClient
 from . import indicators as indica
 from .poloniex import Poloniex, Coach, PoloniexError
 from .poloniex.push import Application
+from . import summarize
 
 # constants ----------------------------------------------------------------
 

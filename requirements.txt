@@ -1,9 +1,0 @@
-requests
-beautifulsoup4
-matplotlib
-pymongo
-pandas
-textblob
-nltk
-autobahn[asyncio]
-aiohttp

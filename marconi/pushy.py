@@ -1,12 +1,16 @@
 from tools import Application
-from tools import html, getMongoDb, sleep, logging
+from tools import html, getMongoDb, sleep, time, logging
 from tools import BL, GR
 from tools.poloniex import Poloniex
+from tools.summarize import summarize_blocks
+from collections import deque
+
 
 logger = logging.getLogger(__name__)
 
 
 class Pushy(Application):
+    trollbox = deque(list(), 100)
 
     def populateTicker(self):
         initTick = self.api.returnTicker()
@@ -18,7 +22,14 @@ class Pushy(Application):
                 upsert=True)
         logger.info('Populated markets database with ticker data')
 
-    async def onTick(self, **kwargs):
+    def onTick(self, **kwargs):
+        if kwargs['currency_pair'] == 'USDT_BTC':
+            logger.debug(
+                '%s: Last:%s lAsk:%s hBid:%s',
+                str(kwargs["currency_pair"]),
+                str(kwargs["last"]),
+                str(kwargs["lowest_ask"]),
+                str(kwargs["highest_bid"]))
         self.tickDb.update_one(
             {"_id": kwargs["currency_pair"]},
             {"$set": {'last': kwargs["last"],
@@ -34,26 +45,38 @@ class Pushy(Application):
             upsert=True)
 
     def onTroll(self, **kwargs):
-        kwargs['_id'] = kwargs.pop("id")
         name = kwargs["username"]
         rep = kwargs["reputation"]
-        message = kwargs['message'] = html.unescape(kwargs.pop("text"))
+        message = html.unescape(kwargs["text"])
         logger.debug('%s(%s): %s', BL(name), GR(str(rep)), message)
-        try:
-            self.trollDb.insert_one(kwargs)
-        except Exception as e:
-            logger.exception(e)
+        self.trollbox.append(message)
+        if time() - self.summaryTime > self.api.MINUTE * 5:
+            self.summaryTime = time()
+            summary = summarize_blocks(self.trollbox)
+            logger.info(summary)
+            self.trollDb.insert_one({
+                '_id': self.summaryTime,
+                'summary': summarize_blocks(self.trollbox)
+            })
 
     async def main(self):
         self.api = Poloniex(jsonNums=float)
         self.tickDb = getMongoDb('markets')
-        self.trollDb = getMongoDb('trollbox')
+        #self.trollDb = getMongoDb('trollbox')
+        #self.summaryTime = self.trollDb.find_one()
+        # if not self.summaryTime:
+        #    logger.info('No summary found.')
+        #    self.summaryTime = time()
+        # else:
+        #    logger.info(self.summaryTime['summary'])
+        #    self.summaryTime = self.summaryTime['_id']
+        #    logger.info('Last summary time: %s', str(self.summaryTime))
         self.populateTicker()
-        self.push.subscribe(topic="trollbox", handler=self.onTroll)
+        #self.push.subscribe(topic="trollbox", handler=self.onTroll)
         self.push.subscribe(topic="ticker", handler=self.onTick)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
     app = Pushy()
     app.run()
     while True:
