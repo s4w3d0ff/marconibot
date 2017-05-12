@@ -14,7 +14,7 @@ __author__ = 'andrew.shvv@gmail.com'
 logger = getLogger(__name__)
 
 
-class WAMPClient():
+class WAMPClient(object):
 
     def __init__(self,
                  url,
