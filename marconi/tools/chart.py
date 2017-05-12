@@ -1,4 +1,5 @@
-from . import time, getMongoDb, indica, logging, addDoji, pd, np
+from . import time, getMongoDb, indica, logging,
+from . import addDoji, pd, np, ema, macd, bbands
 import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.style.use('ggplot')
@@ -57,40 +58,19 @@ class Chart(object):
 
     def withIndicators(self):
         df = self.getDataFrame()
-        # get raw data
         dfsize = len(list(df['open']))
-        df['bodysize'] = df['open'] - df['close']
-        # candle shadow/wick size
-        df['shadowsize'] = df['high'] - df['low']
-        df['sma'] = df['weightedAverage'].rolling(
-            window=self.window, center=False).mean()
-        df['emaslow'] = df['weightedAverage'].ewm(
-            span=self.window,
-            min_periods=1,
-            adjust=True,
-            ignore_na=False).mean()
-        df['emafast'] = df['weightedAverage'].ewm(
-            span=self.window // 2,
-            min_periods=1,
-            adjust=True,
-            ignore_na=False).mean()
-        df['macd'] = df['emafast'] - df['emaslow']
+        df = bbands(df, self.window)
+        df = ema(df, self.window, colname='emaslow')
+        df = ema(df, self.window // 2, colname='emafast')
+        df = macd(df)
         # get roc
         roc = indica.roc(list(df['weightedAverage']), 1).tolist()
         df['roc'] = roc + [np.nan for i in range(dfsize - len(roc))]
         # get rsi
         rsi = indica.rsi(list(df['weightedAverage']), 5).tolist()
         df['rsi'] = [np.nan for i in range(dfsize - len(rsi))] + rsi
-        # get bbands
-        df['bbtop'] = df['sma'] + 2.0 * \
-            df['weightedAverage'].rolling(
-                min_periods=self.window, window=self.window, center=False).std()
-        df['bbbottom'] = df['sma'] - 2.0 * \
-            df['weightedAverage'].rolling(
-                min_periods=self.window, window=self.window, center=False).std()
-        df['bbrange'] = df['bbtop'] - df['bbbottom']
-        df['bbpercent'] = ((df['weightedAverage'] -
-                            df['bbbottom']) / df['bbrange']) - 0.5
+        df['bodysize'] = df['open'] - df['close']
+        df['shadowsize'] = df['high'] - df['low']
         return df
 
 if __name__ == '__main__':

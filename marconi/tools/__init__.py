@@ -170,16 +170,42 @@ def localstr2epoch(datestr=False, fmat="%Y-%m-%d %H:%M:%S"):
 # trading ------------------------------------------------------------------
 
 
-def getTrend(seq):
-    """
-    Basic trend calculation by splitting the <seq> data in half, find the
-    mean of each half, then subtract the old half from the new half. A
-    negitive number represents a down trend, positive number is an up trend.
-    >>> getTrend([1.563, 2.129, 3.213, 4.3425, 5.1986, 5.875644])
-    2.866122
-    """
-    half = len(seq) // 2
-    return getAverage(seq[half:]) - getAverage(seq[:-half])
+def sma(df, window, targetcol='weightedAverage', colname='sma'):
+    df[colname] = df[targetcol].rolling(
+        window=window,
+        center=False).mean()
+    return df
+
+
+def ema(df, window, targetcol='weightedAverage', colname='ema', **kwargs):
+    df[colname] = df[targetcol].ewm(
+        span=window,
+        min_periods=kwargs.get('min_periods', 1),
+        adjust=kwargs.get('adjust', True),
+        ignore_na=kwargs.get('ignore_na', False)
+    ).mean()
+    return df
+
+
+def macd(df, fastcol='emafast', slowcol='emaslow', colname='macd'):
+    df[colname] = df[fastcol] - df[slowcol]
+    return df
+
+
+def bbands(df, window, targetcol='weightedAverage'):
+    if not 'sma' in df:
+        df = sma(df, window, targetcol)
+    df['bbtop'] = df['sma'] + 2.0 * df[targetcol].rolling(
+        min_periods=window,
+        window=window,
+        center=False).std()
+    df['bbbottom'] = df['sma'] - 2.0 * df[targetcol].rolling(
+        min_periods=.window,
+        window=window,
+        center=False).std()
+    df['bbrange'] = df['bbtop'] - df['bbbottom']
+    df['bbpercent'] = ((df[targetcol] - df['bbbottom']) / df['bbrange']) - 0.5
+    return df
 
 
 def getAverage(seq):
