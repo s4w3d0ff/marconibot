@@ -1,8 +1,6 @@
-from . import time, getMongoDb, indica, logging,
-from . import addDoji, pd, np, ema, macd, bbands
-import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.style.use('ggplot')
+from . import time, getMongoDb, indica, logging
+from . import pd, np
+from .indicators import ema, macd, bbands, rsi
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +19,9 @@ class Chart(object):
         self.db = getMongoDb('markets')
         self.pair = pair
         self.api = api
-        self.frame = kwargs.get('frame', self.api.DAY * 7)
+        self.frame = kwargs.get('frame', self.api.DAY * 3)
         self.period = kwargs.get('period', self.api.MINUTE * 5)
-        self.window = kwargs.get('window', 120)
+        self.window = kwargs.get('window', 80)
 
     def __call__(self):
         try:  # look for old timestamp
@@ -49,35 +47,25 @@ class Chart(object):
             logger.info('%s chart db updated!', self.pair)
         return self.db.find_one({'_id': self.pair})['chart']
 
-    def getDataFrame(self):
+    def dataFrame(self):
         data = self.__call__()['candles']
         df = pd.DataFrame(data)
         df['date'] = [pd.to_datetime(c['date'], unit='s') for c in data]
         df.set_index('date', inplace=True)
-        return df
-
-    def withIndicators(self):
-        df = self.getDataFrame()
         dfsize = len(list(df['open']))
         df = bbands(df, self.window)
         df = ema(df, self.window, colname='emaslow')
         df = ema(df, self.window // 2, colname='emafast')
         df = macd(df)
-        # get roc
-        roc = indica.roc(list(df['weightedAverage']), 1).tolist()
-        df['roc'] = roc + [np.nan for i in range(dfsize - len(roc))]
-        # get rsi
-        rsi = indica.rsi(list(df['weightedAverage']), 5).tolist()
-        df['rsi'] = [np.nan for i in range(dfsize - len(rsi))] + rsi
+        df = rsi(df, self.window // 2)
         df['bodysize'] = df['open'] - df['close']
         df['shadowsize'] = df['high'] - df['low']
-        return df
+        return df.dropna()
 
 if __name__ == '__main__':
     from .poloniex import Poloniex
     logging.basicConfig(level=logging.DEBUG)
     api = Poloniex(jsonNums=float)
     chart = Chart(api, 'BTC_LTC')
-    df = chart.withIndicators()
-    print(df[['sma', 'emafast', 'rsi', 'macd', 'bbpercent']].tail(20))
-    print(df[['sma', 'emafast', 'rsi', 'macd', 'bbpercent']].head(20))
+    df = chart.dataFrame()
+    print(df[['weightedAverage', 'macd', 'bbpercent', 'rsi']].tail(50))
