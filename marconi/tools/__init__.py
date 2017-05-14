@@ -168,46 +168,6 @@ def localstr2epoch(datestr=False, fmat="%Y-%m-%d %H:%M:%S"):
 
 
 # trading ------------------------------------------------------------------
-
-
-def sma(df, window, targetcol='weightedAverage', colname='sma'):
-    df[colname] = df[targetcol].rolling(
-        window=window,
-        center=False).mean()
-    return df
-
-
-def ema(df, window, targetcol='weightedAverage', colname='ema', **kwargs):
-    df[colname] = df[targetcol].ewm(
-        span=window,
-        min_periods=kwargs.get('min_periods', 1),
-        adjust=kwargs.get('adjust', True),
-        ignore_na=kwargs.get('ignore_na', False)
-    ).mean()
-    return df
-
-
-def macd(df, fastcol='emafast', slowcol='emaslow', colname='macd'):
-    df[colname] = df[fastcol] - df[slowcol]
-    return df
-
-
-def bbands(df, window, targetcol='weightedAverage'):
-    if not 'sma' in df:
-        df = sma(df, window, targetcol)
-    df['bbtop'] = df['sma'] + 2.0 * df[targetcol].rolling(
-        min_periods=window,
-        window=window,
-        center=False).std()
-    df['bbbottom'] = df['sma'] - 2.0 * df[targetcol].rolling(
-        min_periods=.window,
-        window=window,
-        center=False).std()
-    df['bbrange'] = df['bbtop'] - df['bbbottom']
-    df['bbpercent'] = ((df[targetcol] - df['bbbottom']) / df['bbrange']) - 0.5
-    return df
-
-
 def getAverage(seq):
     """
     Finds the average of <seq>
@@ -399,41 +359,3 @@ def getLast(api, market, otype, span=5):
         if len(rates) == span:
             break
     return sum(rates) / len(rates)
-
-
-def addDoji(c):
-    """
-     |
-     | ---- topWick
-    _|_ /-- bodytop
-    |_|
-     |  \-- bodybottom
-     | ---- bottomWick
-     |
-    """
-    body = c['open'] - c['close']
-    shadow = c['high'] - c['low']
-    # shadow too small for doji
-    if abs(body) * 3 > shadow:
-        return False
-    # body is bearish
-    if body <= 0:
-        bodytop = c['high']
-        bodybottom = c['low']
-    # body is bullish
-    else:
-        bodytop = c['low']
-        bodybottom = c['high']
-    topWick = c['high'] - bodytop
-    bottomWick = bodybottom - c['low']
-    # wicks are about even
-    if abs(topWick - bottomWick) < SATOSHI * 2:
-        return 'doji'
-    # top wick is small
-    elif topWick < abs(body):
-        return 'dragon'
-    # bottom wick is small
-    elif bottomWick < abs(body):
-        return 'grave'
-    else:
-        return False
