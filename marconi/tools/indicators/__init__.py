@@ -54,15 +54,15 @@ def macd(df, fastcol='emafast', slowcol='emaslow', colname='macd'):
     return df
 
 
-def bbands(df, window, targetcol='weightedAverage'):
+def bbands(df, window, targetcol='weightedAverage', stddev=2.0):
     """ Calculates Bollinger Bands for 'targetcol' of a pandas dataframe """
     if not 'sma' in df:
         df = sma(df, window, targetcol)
-    df['bbtop'] = df['sma'] + 2.0 * df[targetcol].rolling(
+    df['bbtop'] = df['sma'] + stddev * df[targetcol].rolling(
         min_periods=window,
         window=window,
         center=False).std()
-    df['bbbottom'] = df['sma'] - 2.0 * df[targetcol].rolling(
+    df['bbbottom'] = df['sma'] - stddev * df[targetcol].rolling(
         min_periods=window,
         window=window,
         center=False).std()
