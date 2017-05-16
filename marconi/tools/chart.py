@@ -12,16 +12,16 @@ class Chart(object):
         """
         pair = market pair
         api = poloniex api object
-        frame = time frame of chart (default: 1 Day)
+        frame = time frame of chart (default: 3 Days)
         period = time period of candles (default: 5 Min)
-        window = number of candles to use for roc, rsi, wma (default: 60)
+        window = period for moving averages (default: 120)
         """
         self.db = getMongoDb('markets')
         self.pair = pair
         self.api = api
         self.frame = kwargs.get('frame', self.api.DAY * 3)
         self.period = kwargs.get('period', self.api.MINUTE * 5)
-        self.window = kwargs.get('window', 80)
+        self.window = kwargs.get('window', 120)
 
     def __call__(self):
         try:  # look for old timestamp
@@ -48,16 +48,25 @@ class Chart(object):
         return self.db.find_one({'_id': self.pair})['chart']
 
     def dataFrame(self):
+        # get data from db
         data = self.__call__()['candles']
+        # make dataframe
         df = pd.DataFrame(data)
+        # format dates
         df['date'] = [pd.to_datetime(c['date'], unit='s') for c in data]
+        # set 'date' col as index
         df.set_index('date', inplace=True)
-        dfsize = len(list(df['open']))
+        # calculate/add sma and bbands
         df = bbands(df, self.window)
-        df = ema(df, self.window, colname='emaslow')
+        # add slow ema
+        df = ema(df, self.window // 4, colname='emaslow')
+        # add fast ema
         df = ema(df, self.window // 2, colname='emafast')
+        # add macd
         df = macd(df)
+        # add rsi
         df = rsi(df, self.window // 2)
+        # add candle body and shadow size
         df['bodysize'] = df['open'] - df['close']
         df['shadowsize'] = df['high'] - df['low']
         return df.dropna()
@@ -68,4 +77,5 @@ if __name__ == '__main__':
     api = Poloniex(jsonNums=float)
     chart = Chart(api, 'BTC_LTC')
     df = chart.dataFrame()
-    print(df[['weightedAverage', 'macd', 'bbpercent', 'rsi']].tail(50))
+    print(df[['shadowsize', 'macd', 'bbpercent', 'rsi']].head(30))
+    print(df[['shadowsize', 'macd', 'bbpercent', 'rsi']].tail(30))
