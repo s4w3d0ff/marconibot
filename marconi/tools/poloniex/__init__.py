@@ -43,21 +43,22 @@ from requests import post as _post
 from requests import get as _get
 # local
 from .coach import Coach
-from .retry import retry
+from .retry import retry as _retry
 # logger
 logger = logging.getLogger(__name__)
 
-retryDelays = (0, 1, 2, 3, 4, 5)
+retryDelays = (0, 1, 2, 5)
 
 # Possible Commands
 PUBLIC_COMMANDS = [
     'returnTicker',
     'return24hVolume',
     'returnOrderBook',
-    'returnTradeHistory',
+    'marketTradeHist',
     'returnChartData',
     'returnCurrencies',
-    'returnLoanOrders']
+    'returnLoanOrders',
+    'getTrollboxMessages']  # not documented
 
 PRIVATE_COMMANDS = [
     'returnBalances',
@@ -99,7 +100,7 @@ class Poloniex(object):
 
     def __init__(
             self, key=False, secret=False,
-            timeout=1, coach=True, jsonNums=False):
+            timeout=10, coach=True, jsonNums=False):
         """
         key = str api key supplied by Poloniex
         secret = str secret hash supplied by Poloniex
@@ -133,7 +134,7 @@ class Poloniex(object):
         return self._nonce
 
     # -----------------Meat and Potatos---------------------------------------
-    @retry(delays=retryDelays, exception=RequestException)
+    @_retry(delays=retryDelays, exception=RequestException)
     def __call__(self, command, args={}):
         """ Main Api Function
         - encodes and sends <command> with optional [args] to Poloniex api
@@ -141,6 +142,7 @@ class Poloniex(object):
             (and the command is 'private'), if the <command> is not valid, or
             if an error is returned from poloniex.com
         - returns decoded json api message """
+
         global PUBLIC_COMMANDS, PRIVATE_COMMANDS
 
         # check in with the coach
@@ -171,16 +173,7 @@ class Poloniex(object):
                 headers={'Sign': sign.hexdigest(), 'Key': self.key},
                 timeout=self.timeout)
             # decode json
-            if not self.jsonNums:
-                jsonout = _loads(ret.text, parse_float=str)
-            else:
-                jsonout = _loads(ret.text,
-                                 parse_float=self.jsonNums,
-                                 parse_int=self.jsonNums)
-            # check if poloniex returned an error
-            if 'error' in jsonout:
-                raise PoloniexError(jsonout['error'])
-            return jsonout
+            return self.parseJson(ret.text)
 
         # public?
         elif command in PUBLIC_COMMANDS:
@@ -188,18 +181,27 @@ class Poloniex(object):
                 'https://poloniex.com/public?' + _urlencode(args),
                 timeout=self.timeout)
             # decode json
-            if not self.jsonNums:
-                jsonout = _loads(ret.text, parse_float=str)
-            else:
-                jsonout = _loads(ret.text,
-                                 parse_float=self.jsonNums,
-                                 parse_int=self.jsonNums)
-            # check if poloniex returned an error
-            if 'error' in jsonout:
-                raise PoloniexError(jsonout['error'])
-            return jsonout
+            return self.parseJson(ret.text)
         else:
             raise PoloniexError("Invalid Command!: %s" % command)
+
+    def parseJson(self, data):
+        self.logger.debug(data)
+        try:
+            if not self.jsonNums:
+                jsonout = _loads(data, parse_float=str)
+            else:
+                jsonout = _loads(data,
+                                 parse_float=self.jsonNums,
+                                 parse_int=self.jsonNums)
+        except Exception as e:
+            # dont think this is needed...
+            # self.logger.exception(e)
+            raise e
+        # check if poloniex returned an error
+        if 'error' in jsonout:
+            raise PoloniexError(jsonout['error'])
+        return jsonout
 
     # --PUBLIC COMMANDS-------------------------------------------------------
     def returnTicker(self):
@@ -221,7 +223,7 @@ class Poloniex(object):
             'depth': str(depth)
         })
 
-    @retry(delays=retryDelays, exception=RequestException)
+    @_retry(delays=retryDelays, exception=RequestException)
     def marketTradeHist(self, currencyPair, start=False, end=False):
         """ Returns the past 200 trades for a given market, or up to 50,000
         trades between a range specified in UNIX timestamps by the "start" and
@@ -238,16 +240,7 @@ class Poloniex(object):
             'https://poloniex.com/public?' + _urlencode(args),
             timeout=self.timeout)
         # decode json
-        if not self.jsonNums:
-            jsonout = _loads(ret.text, parse_float=str)
-        else:
-            jsonout = _loads(ret.text,
-                             parse_float=self.jsonNums,
-                             parse_int=self.jsonNums)
-        # check if poloniex returned an error
-        if 'error' in jsonout:
-            raise PoloniexError(jsonout['error'])
-        return jsonout
+        return self.parseJson(ret.text)
 
     def returnChartData(self, currencyPair, period=False,
                         start=False, end=False):
@@ -279,6 +272,11 @@ class Poloniex(object):
         specified by the "currency" parameter """
         return self.__call__('returnLoanOrders', {
                              'currency': str(currency).upper()})
+
+    def getTrollboxMessages(self, messages=30):
+        """ Returns the list trollbox messages """
+        return self.__call__('getTrollboxMessages', {
+                             'messages': str(messages)})
 
     # --PRIVATE COMMANDS------------------------------------------------------
     def returnBalances(self):

@@ -243,7 +243,7 @@ def autoRenewAll(api, toggle=True):
 
 def frontSell(api, market, amount=False):
     """ Creates a sell order for <market> using all coins in balance at
-    the 'front' of markete. Keeps pushing the order to 'front' until the order
+    the 'front' of market. Keeps pushing the order to 'front' until the order
     is filled. """
     parentCoin, childCoin = market.split('_')
     if not amount:

@@ -43,7 +43,7 @@ class Order(object):
             #   u'startingAmount': u'2396.22536189'}
             if int(order['orderNumber']) == self.orderNumber:
                 # we found the order (its still open)
-                logging.info('Order is still open')
+                logger.info('Order is still open')
                 return order
         else:
             return False
