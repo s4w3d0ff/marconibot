@@ -14,10 +14,10 @@ class Loaner(Minion):
                  api,
                  coins={'BTC': 0.01},
                  maxage=60 * 30,
-                 offset=6,
+                 window=10,
                  delay=60 * 10):
-        self.api, self.delay, self.coins, self.maxage, self.offset =\
-            api, delay, coins, maxage, offset
+        self.api, self.delay, self.coins, self.maxage, self.window =\
+            api, delay, coins, maxage, window
         # Check auto renew is not enabled for current loans
         autoRenewAll(self.api, toggle=False)
 
@@ -60,9 +60,9 @@ class Loaner(Minion):
                              RD(str(amount)),
                              BL(str(self.coins[coin])))
                 continue
-            orders = self.api.returnLoanOrders(coin)['offers']
-            topRate = float(orders[0]['rate'])
-            price = topRate + (self.offset * LOANTOSHI)
+            orders = self.api.returnLoanOrders(coin)['offers'][
+                5:5 + self.window]
+            price = sum([float(o['rate']) for o in orders]) / len(orders)
             logger.info('Creating %s %s loan offer at %s',
                         RD(str(amount)), OR(coin), GR(str(price * 100) + '%'))
             logger.debug(self.api.createLoanOffer(
@@ -117,23 +117,23 @@ if __name__ == '__main__':
     coins = {
         'DASH': 1,
         'DOGE': 1000.0,
-        'BTC': 0.1,
+        'BTC': 0.01,
         'LTC': 1,
         'ETH': 0.1}
 
     # Maximum age (in secs) to let an open offer sit
-    maxage = 60 * 10  # 30 min
+    maxage = 60 * 5  # 5 min
 
-    # number of LOANTOSHIs to offset from lowest asking rate
-    offset = 20  # (6 * 0.000001)+lowestask
+    # number of offer rates to average to detemine our rate
+    window = 10
 
     # number of seconds between loops
-    delay = 60 * 5  # 5 min
+    delay = 60 * 2  # 2 min
 
     ########################
     #################-Stop Configuring-#################################
-    loaner = Loaner(Poloniex(key, secret, timeout=3, jsonNums=float),
-                    coins, maxage, offset, delay)
+    loaner = Loaner(Poloniex(key, secret, timeout=10, jsonNums=float),
+                    coins, maxage, window, delay)
     loaner.start()
     while loaner._running:
         try:

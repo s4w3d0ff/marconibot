@@ -29,20 +29,13 @@ class Chart(object):
                 '_id': self.pair})['chart']['timestamp']
         except:  # not found
             timestamp = 0
-        if time() - timestamp > 60:
+        if time() - timestamp > 60 * 2:  # 2min
             logger.info('%s chart db updating...', self.pair)
             raw = self.api.returnChartData(
                 self.pair, self.period, time() - self.frame)
             self.db.update_one(
                 {'_id': self.pair},
-                {'$set': {
-                    "chart": {
-                        "frame": self.frame,
-                        "period": self.period,
-                        "window": self.window,
-                        "candles": raw,
-                        "timestamp": time()}}
-                 },
+                {'$set': {"chart": {"candles": raw, "timestamp": time()}}},
                 upsert=True)
             logger.info('%s chart db updated!', self.pair)
         return self.db.find_one({'_id': self.pair})['chart']
@@ -69,7 +62,7 @@ class Chart(object):
         # add candle body and shadow size
         df['bodysize'] = df['open'] - df['close']
         df['shadowsize'] = df['high'] - df['low']
-        return df.dropna()
+        return df
 
 if __name__ == '__main__':
     from .poloniex import Poloniex
@@ -77,5 +70,6 @@ if __name__ == '__main__':
     api = Poloniex(jsonNums=float)
     chart = Chart(api, 'BTC_LTC')
     df = chart.dataFrame()
+    df.dropna(inplace=True)
     print(df[['shadowsize', 'macd', 'bbpercent', 'rsi']].head(30))
     print(df[['shadowsize', 'macd', 'bbpercent', 'rsi']].tail(30))
