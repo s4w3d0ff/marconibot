@@ -13,11 +13,10 @@ class Loaner(Minion):
     def __init__(self,
                  api,
                  coins={'BTC': 0.01},
-                 maxage=60 * 30,
-                 window=10,
-                 delay=60 * 10):
-        self.api, self.delay, self.coins, self.maxage, self.window =\
-            api, delay, coins, maxage, window
+                 maxage=60 * 5,
+                 delay=60 * 3):
+        self.api, self.delay = api, delay
+        self.coins, self.maxage = coins, maxage
         # Check auto renew is not enabled for current loans
         autoRenewAll(self.api, toggle=False)
 
@@ -29,7 +28,6 @@ class Loaner(Minion):
         offers = self.api.returnOpenLoanOffers()
         for coin in self.coins:
             if coin not in offers:
-                logger.debug("No open %s offers found.", coin)
                 continue
             for offer in offers[coin]:
                 logger.info("%s|%s:%s-[rate:%s]",
@@ -41,7 +39,8 @@ class Loaner(Minion):
                 if self.getLoanOfferAge(offer) > self.maxage:
                     logger.info("Canceling %s offer %s",
                                 OR(coin), GY(str(offer['id'])))
-                    logger.debug(self.api.cancelLoanOffer(offer['id']))
+                    r = self.api.cancelLoanOffer(offer['id'])
+                    logger.info(r['message'])
 
     def createLoanOffers(self):
         logger.info(GR("Checking for coins to lend:---------------"))
@@ -50,23 +49,22 @@ class Loaner(Minion):
             return logger.info(RD("No coins found in lending account"))
         for coin in self.coins:
             if coin not in bals['lending']:
-                logger.debug("No available %s in lending", OR(coin))
                 continue
             amount = bals['lending'][coin]
-            logging.info("%s:%s", coin, str(amount))
             if float(amount) < self.coins[coin]:
-                logger.debug("Not enough %s:%s, below set minimum: %s",
-                             OR(coin),
-                             RD(str(amount)),
-                             BL(str(self.coins[coin])))
+                logger.info("Not enough %s:%s, below set minimum: %s",
+                            OR(coin),
+                            RD(str(amount)),
+                            BL(str(self.coins[coin])))
                 continue
-            orders = self.api.returnLoanOrders(coin)['offers'][
-                5:5 + self.window]
+            else:
+                logging.info("%s:%s", OR(coin), GR(str(amount)))
+            orders = self.api.returnLoanOrders(coin)['offers']
             price = sum([float(o['rate']) for o in orders]) / len(orders)
             logger.info('Creating %s %s loan offer at %s',
                         RD(str(amount)), OR(coin), GR(str(price * 100) + '%'))
-            logger.debug(self.api.createLoanOffer(
-                coin, amount, price, autoRenew=0))
+            r = self.api.createLoanOffer(coin, amount, price, autoRenew=0)
+            logger.info('%s', GR(r["message"]))
 
     def run(self):
         """ Main loop, cancels 'stale' loan offers, turns auto-renew off on
@@ -109,31 +107,26 @@ if __name__ == '__main__':
     )
     logging.getLogger('requests').setLevel(logging.ERROR)
     key, secret = argv[1:3]
-
+    polo = Poloniex(key, secret, timeout=30, jsonNums=float)
     #################-Configure Below-##################################
     ########################
-    # This dict defines what coins the bot should worry about
-    # The dict 'key' is the coin to lend, 'value' is the minimum amount to lend
-    coins = {
-        'DASH': 1,
-        'DOGE': 1000.0,
-        'BTC': 0.01,
-        'LTC': 1,
-        'ETH': 0.1}
-
-    # Maximum age (in secs) to let an open offer sit
-    maxage = 60 * 5  # 5 min
-
-    # number of offer rates to average to detemine our rate
-    window = 10
-
-    # number of seconds between loops
-    delay = 60 * 2  # 2 min
-
+    loaner = Loaner(polo,
+                    # This dict defines what coins the bot should worry about
+                    # The dict 'key' is the coin to lend, 'value' is the
+                    # minimum amount to lend
+                    coins={
+                        'DASH': 1,
+                        'BTC': 0.01,
+                        'DOGE': 1000,
+                        'LTC': 1
+                    },
+                    # Maximum age (in secs) to let an open offer sit
+                    maxage=60 * 5,  # 5 min
+                    # number of seconds between loops
+                    delay=60 * 3)  # 3 min
     ########################
     #################-Stop Configuring-#################################
-    loaner = Loaner(Poloniex(key, secret, timeout=10, jsonNums=float),
-                    coins, maxage, window, delay)
+
     loaner.start()
     while loaner._running:
         try:
