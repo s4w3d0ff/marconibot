@@ -74,13 +74,10 @@ class Pushy(Application):
         self.populateTicker()
         #self.push.subscribe(topic="trollbox", handler=self.onTroll)
         self.push.subscribe(topic="ticker", handler=self.onTick)
+        logger.info('Subscribed to ticker')
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('tools.poloniex').setLevel(logging.INFO)
     app = Pushy()
     app.run()
-    while True:
-        try:
-            sleep(1)
-        except:
-            app.stop()
