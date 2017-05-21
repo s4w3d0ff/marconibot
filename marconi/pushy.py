@@ -1,5 +1,5 @@
 from tools import Application
-from tools import html, getMongoDb, sleep, time, logging,
+from tools import html, getMongoDb, sleep, time, logging
 from tools import BL, GR
 from tools.poloniex import Poloniex
 from tools.summarize import summarize_blocks
