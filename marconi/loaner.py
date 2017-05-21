@@ -107,7 +107,7 @@ if __name__ == '__main__':
     )
     logging.getLogger('requests').setLevel(logging.ERROR)
     key, secret = argv[1:3]
-    polo = Poloniex(key, secret, timeout=30, jsonNums=float)
+    polo = Poloniex(key, secret, timeout=80, jsonNums=float)
     #################-Configure Below-##################################
     ########################
     loaner = Loaner(polo,
@@ -121,9 +121,9 @@ if __name__ == '__main__':
                         'LTC': 1
                     },
                     # Maximum age (in secs) to let an open offer sit
-                    maxage=60 * 5,  # 5 min
+                    maxage=60 * 15,  # 5 min
                     # number of seconds between loops
-                    delay=60 * 3)  # 3 min
+                    delay=60 * 5)  # 3 min
     ########################
     #################-Stop Configuring-#################################
 

@@ -62,6 +62,7 @@ class Chart(object):
         # add candle body and shadow size
         df['bodysize'] = df['open'] - df['close']
         df['shadowsize'] = df['high'] - df['low']
+        df['percentChange'] = df['weightedAverage'].pct_change()
         return df
 
 if __name__ == '__main__':

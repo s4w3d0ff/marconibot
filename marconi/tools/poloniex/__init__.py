@@ -1,12 +1,6 @@
 # Poloniex API wrapper tested on Python 2.7.6 & 3.4.3
 # https://github.com/s4w3d0ff/python-poloniex
 # BTC: 15D8VaZco22GTLVrFMAehXyif6EGf8GMYV
-# TODO:
-#   [x] PEP8
-#   [ ] Add better logger access
-#   [ ] Find out if request module has the equivalent to urlencode
-#   [ ] Add Push Api application wrapper
-#   [ ] Convert docstrings to sphinx
 #
 #    Copyright (C) 2016  https://github.com/s4w3d0ff
 #
@@ -100,7 +94,7 @@ class Poloniex(object):
 
     def __init__(
             self, key=False, secret=False,
-            timeout=10, coach=True, jsonNums=False):
+            timeout=80, coach=True, jsonNums=False):
         """
         key = str api key supplied by Poloniex
         secret = str secret hash supplied by Poloniex
@@ -142,7 +136,6 @@ class Poloniex(object):
             (and the command is 'private'), if the <command> is not valid, or
             if an error is returned from poloniex.com
         - returns decoded json api message """
-
         global PUBLIC_COMMANDS, PRIVATE_COMMANDS
 
         # check in with the coach
@@ -187,17 +180,12 @@ class Poloniex(object):
 
     def parseJson(self, data):
         self.logger.debug(data)
-        try:
-            if not self.jsonNums:
-                jsonout = _loads(data, parse_float=str)
-            else:
-                jsonout = _loads(data,
-                                 parse_float=self.jsonNums,
-                                 parse_int=self.jsonNums)
-        except Exception as e:
-            # dont think this is needed...
-            # self.logger.exception(e)
-            raise e
+        if not self.jsonNums:
+            jsonout = _loads(data, parse_float=str)
+        else:
+            jsonout = _loads(data,
+                             parse_float=self.jsonNums,
+                             parse_int=self.jsonNums)
         # check if poloniex returned an error
         if 'error' in jsonout:
             raise PoloniexError(jsonout['error'])
