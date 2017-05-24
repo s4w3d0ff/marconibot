@@ -18,7 +18,7 @@ html = HTMLParser()
 # pip install pandas numpy
 import pandas as pd
 import numpy as np
-# - pip install pymongo
+# pip install pymongo
 from pymongo import MongoClient
 
 # local --------------------------------------------------------------------
