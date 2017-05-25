@@ -58,11 +58,11 @@ class Chart(object):
         # add macd
         df = macd(df)
         # add rsi
-        df = rsi(df, self.window // 2)
+        #df = rsi(df, self.window // 2)
         # add candle body and shadow size
         df['bodysize'] = df['open'] - df['close']
         df['shadowsize'] = df['high'] - df['low']
-        df['percentChange'] = df['weightedAverage'].pct_change()
+        df['percentChange'] = df['close'].pct_change()
         return df
 
 if __name__ == '__main__':
