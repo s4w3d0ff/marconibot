@@ -9,11 +9,9 @@ setup(name='marconi',
       install_requires=[
           'requests',
           'numpy',
-          'beautifulsoup4',
           'matplotlib',
           'pymongo',
           'pandas',
-          'nltk',
           'autobahn[asyncio]',
           'aiohttp'
       ],
