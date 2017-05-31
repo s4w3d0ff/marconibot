@@ -180,9 +180,6 @@ def loadJSON(filename):
         return json.load(f)
 
 
-def restart_line():
-    sys.stdout.write('\r')
-    sys.stdout.flush()
 # trading ------------------------------------------------------------------
 
 
