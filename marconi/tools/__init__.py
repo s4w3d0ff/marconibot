@@ -1,10 +1,10 @@
 # core ---------------------------------------------------------------------
 import logging
 import json
+import sys
 from math import floor, ceil
 from decimal import Decimal
 from operator import itemgetter
-#from itertools import izip
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
@@ -179,6 +179,10 @@ def loadJSON(filename):
     with open(filename, 'r') as f:
         return json.load(f)
 
+
+def restart_line():
+    sys.stdout.write('\r')
+    sys.stdout.flush()
 # trading ------------------------------------------------------------------
 
 

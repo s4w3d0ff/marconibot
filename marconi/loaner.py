@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, LOANTOSHI
+from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging
 from tools import BL, OR, RD, GY, GR
 from tools.minion import Minion
 
@@ -17,8 +17,6 @@ class Loaner(Minion):
                  delay=60 * 3):
         self.api, self.delay = api, delay
         self.coins, self.maxage = coins, maxage
-        # Check auto renew is not enabled for current loans
-        autoRenewAll(self.api, toggle=False)
 
     def getLoanOfferAge(self, order):
         return time() - UTCstr2epoch(order['date'])
@@ -69,6 +67,8 @@ class Loaner(Minion):
     def run(self):
         """ Main loop, cancels 'stale' loan offers, turns auto-renew off on
         active loans, and creates new loan offers at optimum price """
+        # Check auto renew is not enabled for current loans
+        autoRenewAll(self.api, toggle=False)
         while self._running:
             try:
                 # Check for old offers
