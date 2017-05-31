@@ -15,8 +15,8 @@ beautifulsoup4
 matplotlib
 pymongo
 pandas
-textblob
 nltk
 autobahn[asyncio]
 aiohttp
+git+https://github.com/s4w3d0ff/mpl_finance.git
 ```

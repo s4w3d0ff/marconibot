@@ -117,7 +117,6 @@ if __name__ == '__main__':
                     coins={
                         'DASH': 1,
                         'BTC': 0.01,
-                        'DOGE': 1000,
                         'LTC': 1
                     },
                     # Maximum age (in secs) to let an open offer sit

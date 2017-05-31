@@ -1,5 +1,6 @@
 # core ---------------------------------------------------------------------
 import logging
+import json
 from math import floor, ceil
 from decimal import Decimal
 from operator import itemgetter
@@ -18,14 +19,14 @@ html = HTMLParser()
 # pip install pandas numpy
 import pandas as pd
 import numpy as np
-# - pip install pymongo
+# pip install pymongo
 from pymongo import MongoClient
 
 # local --------------------------------------------------------------------
 from . import indicators as indica
 from .poloniex import Poloniex, Coach, PoloniexError
 from .poloniex.push import Application
-from . import summarize
+from .daemon import DaemonContext
 
 # constants ----------------------------------------------------------------
 
@@ -83,8 +84,8 @@ GY = lambda text: '\033[37m' + text + WT  # gray
 
 
 # convertions, misc ------------------------------------------------------
-def getMongoDb(coll):
-    return MongoClient().poloniex[coll]
+def getMongoDb(db, coll):
+    return MongoClient()[db][coll]
 
 
 def wait(i=10):
@@ -167,7 +168,20 @@ def localstr2epoch(datestr=False, fmat="%Y-%m-%d %H:%M:%S"):
     return mktime(strptime(datestr, fmat))
 
 
+def saveJSON(data, filename):
+    """ Save data as json to a file """
+    with open(filename, 'w') as f:
+        return json.dump(data, f, indent=4)
+
+
+def loadJSON(filename):
+    """ Load json file """
+    with open(filename, 'r') as f:
+        return json.load(f)
+
 # trading ------------------------------------------------------------------
+
+
 def getAverage(seq):
     """
     Finds the average of <seq>
@@ -349,7 +363,7 @@ def getAvailCoin(api, coin):
     return float(bals[coin])
 
 
-def getLast(api, market, otype, span=5):
+def getLastPoss(api, market, otype, span=5):
     hist = api.returnTradeHistory(market, start=api.DAY * 20)
     rates = []
     for trade in hist:
