@@ -1,4 +1,4 @@
-from . import time, getMongoDb, indica, logging, itemgetter, restart_line
+from . import time, getMongoDb, indica, logging, itemgetter
 from . import pd, np
 from .indicators import ema, macd, bbands, rsi
 

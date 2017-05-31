@@ -1,7 +1,6 @@
 # core ---------------------------------------------------------------------
 import logging
 import json
-import sys
 from math import floor, ceil
 from decimal import Decimal
 from operator import itemgetter
