@@ -1,4 +1,4 @@
-from . import time, getMongoDb indica, logging, itemgetter
+from . import time, getMongoDb, indica, logging, itemgetter
 from . import pd, np
 from .indicators import ema, macd, bbands, rsi
 
@@ -12,45 +12,51 @@ class Chart(object):
         """
         pair = market pair
         api = poloniex api object
-        frame = time frame of chart (default: 3 Days)
         period = time period of candles (default: 5 Min)
-        window = period for moving averages (default: 120)
         """
         self.pair = pair
-        self.db = getMongoDb('poloCharts', self.pair)
         self.api = api
         self.period = kwargs.get('period', self.api.MINUTE * 5)
+        self.db = getMongoDb('poloCharts', self.pair + str(self.period))
 
-    def __call__(self):
-        last = sorted(list(self.db.find()), key=itemgetter('_id'))[-1]
-
+    def __call__(self, size=0):
+        old = sorted(list(self.db.find()), key=itemgetter('_id'))
+        try:
+            last = old[-1]
+        except:
+            last = False
         # no entrys found
         if not last:
-            logger.warning('%s collection is empty!', self.pair)
-            raw = self.api.returnChartData(
-                self.pair, period=self.period, start=time() - self.api.YEAR)
+            logger.warning('%s collection is empty!',
+                           self.pair + str(self.period))
+            raw = self.api.returnChartData(self.pair,
+                                           period=self.period,
+                                           start=time() - self.api.YEAR)
         else:
             since = time() - int(last['_id'])
             logger.debug(int(last['_id']))
             logger.debug(since)
             # too soon return old candles
             if since < self.period:
-                logger.debug('Getting chart data from db')
-                return sorted(list(self.db.find()), key=itemgetter('_id'))
+                logger.debug('Too soon to update candles')
+                return old[-size:]
             logger.debug('Getting new data')
-            raw = self.api.returnChartData(
-                self.pair, period=self.period, start=int(last['_id']))
+            new = self.api.returnChartData(self.pair,
+                                           period=self.period,
+                                           start=int(last['_id']) + self.period)
         # add new candles
-        updateSize = len(raw)
+        updateSize = len(new)
         logger.info('Updating %s with %s new entrys!',
-                    self.pair, str(updateSize))
+                    self.pair + str(self.period), str(updateSize))
         for i in range(updateSize):
-            date = raw[i]['date']
-            del raw[i]['date']
-            self.db.update_one({'_id': date}, {"$set": raw[i]}, upsert=True)
+            print("\r%s/%s" % (str(i + 1), str(updateSize)), end=" complete ")
+            date = new[i]['date']
+            del new[i]['date']
+            self.db.update_one({'_id': date}, {"$set": new[i]}, upsert=True)
+        print('')
         logger.debug('Getting chart data from db')
-        # return all
-        return sorted(list(self.db.find()), key=itemgetter('_id'))
+        # return data from db
+        return sorted(list(self.db.find()), key=itemgetter('_id'))[-size:]
 
     def dataFrame(self, window=120):
         # get data from db
@@ -72,7 +78,7 @@ class Chart(object):
         # add macd
         df = macd(df)
         # add rsi
-        df = rsi(df, window // 2)
+        df = rsi(df, window // 5)
         # add candle body and shadow size
         df['bodysize'] = df['open'] - df['close']
         df['shadowsize'] = df['high'] - df['low']
@@ -83,9 +89,8 @@ if __name__ == '__main__':
     from .poloniex import Poloniex
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger("tools.poloniex").setLevel(logging.INFO)
-
     logging.getLogger('requests').setLevel(logging.ERROR)
     api = Poloniex(jsonNums=float)
-    df = Chart(api, 'BTC_LTC').dataFrame()
+    df = Chart(api, 'BTC_ETH').dataFrame()
     df.dropna(inplace=True)
     print(df.tail(30))

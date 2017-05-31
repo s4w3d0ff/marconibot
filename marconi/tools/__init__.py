@@ -4,7 +4,6 @@ import json
 from math import floor, ceil
 from decimal import Decimal
 from operator import itemgetter
-#from itertools import izip
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
@@ -178,6 +177,7 @@ def loadJSON(filename):
     """ Load json file """
     with open(filename, 'r') as f:
         return json.load(f)
+
 
 # trading ------------------------------------------------------------------
 
