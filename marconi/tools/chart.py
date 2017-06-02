@@ -17,7 +17,7 @@ class Chart(object):
         self.pair = pair
         self.api = api
         self.period = kwargs.get('period', self.api.MINUTE * 5)
-        self.db = getMongoDb('poloCharts', self.pair + str(self.period))
+        self.db = getMongoDb('poloCharts', self.pair + '-' + str(self.period))
 
     def __call__(self, size=0):
         old = sorted(list(self.db.find()), key=itemgetter('_id'))
@@ -29,7 +29,7 @@ class Chart(object):
         if not last:
             logger.warning('%s collection is empty!',
                            self.pair + str(self.period))
-            raw = self.api.returnChartData(self.pair,
+            new = self.api.returnChartData(self.pair,
                                            period=self.period,
                                            start=time() - self.api.YEAR)
         else:
@@ -58,9 +58,9 @@ class Chart(object):
         # return data from db
         return sorted(list(self.db.find()), key=itemgetter('_id'))[-size:]
 
-    def dataFrame(self, window=120):
+    def dataFrame(self, size=0, window=120):
         # get data from db
-        data = self.__call__()
+        data = self.__call__(size)
         # make dataframe
         df = pd.DataFrame(data)
         # format dates
@@ -87,10 +87,36 @@ class Chart(object):
 
 if __name__ == '__main__':
     from .poloniex import Poloniex
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    import matplotlib.ticker as mticker
+    from .mpl_finance import _candlestick
+
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger("tools.poloniex").setLevel(logging.INFO)
     logging.getLogger('requests').setLevel(logging.ERROR)
     api = Poloniex(jsonNums=float)
-    df = Chart(api, 'BTC_ETH').dataFrame()
+    df = Chart(api, 'BTC_ETH').dataFrame().tail(170)
+    print(df)
     df.dropna(inplace=True)
-    print(df.tail(30))
+    fig, ax = plt.subplots()
+    idx_name = df.index.name
+    dat = df.reset_index()[[idx_name, "open", "high",
+                            "low", "close", "volume"]]
+    print(dat)
+    dat[df.index.name] = dat[df.index.name].map(mdates.date2num)
+    ax.xaxis_date()
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M:%S"))
+    plt.xticks(rotation=45)
+    _candlestick(ax, dat.values,
+                 width=0.002, colorup='g', colordown='r',
+                 alpha=1.0, ochl=False)
+
+    ax.grid('on')
+    plt.subplots_adjust(left=.09, bottom=.14, right=.94,
+                        top=.95, wspace=.20, hspace=0)
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+
+    # plt.savefig("candle.png")
+    plt.show()
