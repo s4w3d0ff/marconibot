@@ -2,7 +2,6 @@ from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.style.use('ggplot')
 import pickle
 from . import getMongoDb, logging, pd, np, time
 
@@ -12,13 +11,6 @@ logger = logging.getLogger(__name__)
 class Brain(object):
 
     def __init__(self, api):
-        """
-        self.lobe = VotingClassifier(
-            estimators=[
-                ('rf', RandomForestClassifier()),
-                ('lsvc', svm.SVC(kernel='linear', C=1.0))],
-            voting='hard',
-            n_jobs=-1)"""
         self.lobe = RandomForestClassifier()
         self.api = api
 

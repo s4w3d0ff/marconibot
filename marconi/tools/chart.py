@@ -1,4 +1,4 @@
-from . import time, getMongoDb, indica, logging, itemgetter
+from . import time, getMongoDb, logging, itemgetter
 from . import pd, np
 from .indicators import ema, macd, bbands, rsi
 
@@ -72,9 +72,9 @@ class Chart(object):
         # calculate/add sma and bbands
         df = bbands(df, window)
         # add slow ema
-        df = ema(df, window // 4, colname='emaslow')
+        df = ema(df, window // 2, colname='emaslow')
         # add fast ema
-        df = ema(df, window // 2, colname='emafast')
+        df = ema(df, window // 4, colname='emafast')
         # add macd
         df = macd(df)
         # add rsi
@@ -87,36 +87,25 @@ class Chart(object):
 
 if __name__ == '__main__':
     from .poloniex import Poloniex
+
+    import matplotlib
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
-    import matplotlib.ticker as mticker
-    from .mpl_finance import _candlestick
-
+    from .mpl_finance import candlestick2_ohlc
+    matplotlib.style.use('ggplot')
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger("tools.poloniex").setLevel(logging.INFO)
     logging.getLogger('requests').setLevel(logging.ERROR)
     api = Poloniex(jsonNums=float)
-    df = Chart(api, 'BTC_ETH').dataFrame().tail(170)
+    df = Chart(api, 'BTC_ETH').dataFrame().tail(150)
     print(df)
     df.dropna(inplace=True)
     fig, ax = plt.subplots()
-    idx_name = df.index.name
-    dat = df.reset_index()[[idx_name, "open", "high",
-                            "low", "close", "volume"]]
-    print(dat)
-    dat[df.index.name] = dat[df.index.name].map(mdates.date2num)
-    ax.xaxis_date()
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M:%S"))
-    plt.xticks(rotation=45)
-    _candlestick(ax, dat.values,
-                 width=0.002, colorup='g', colordown='r',
-                 alpha=1.0, ochl=False)
+    df['sma'].plot(ax=ax)
 
     ax.grid('on')
-    plt.subplots_adjust(left=.09, bottom=.14, right=.94,
-                        top=.95, wspace=.20, hspace=0)
     plt.xlabel('Date')
     plt.ylabel('Price')
-
+    fig.autofmt_xdate()
     # plt.savefig("candle.png")
     plt.show()

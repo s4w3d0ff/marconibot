@@ -8,11 +8,6 @@ from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
 from multiprocessing.dummy import Process as Thread
-try:
-    from html.parser import HTMLParser
-except:
-    from HTMLParser import HTMLParser
-html = HTMLParser()
 
 # 3rd party ----------------------------------------------------------------
 # pip install pandas numpy
@@ -22,7 +17,7 @@ import numpy as np
 from pymongo import MongoClient
 
 # local --------------------------------------------------------------------
-from . import indicators as indica
+from . import indicators
 from .poloniex import Poloniex, Coach, PoloniexError
 from .poloniex.push import Application
 from .daemon import DaemonContext
@@ -40,36 +35,6 @@ SATOSHI = 0.00000001
 LOANTOSHI = 0.000001
 # minimum trade amount (btc and usdt)
 TRADE_MIN = 0.0001
-# scraped from trollbox js var mods (5/8/2017)
-TROLL_MODS = {
-    "Xoblort": 1,
-    "Chickenliver": 1,
-    "MobyDick": 1,
-    "cybiko123": 1,
-    "SweetJohnDee": 1,
-    "smallbit": 1,
-    "Wizwa": 1,
-    "OldManKidd": 1,
-    "Quantum": 1,
-    "Popcorntime": 1,
-    "busoni@poloniex": 1,
-    "Thoth": 1,
-    "wausboot": 1,
-    "Mirai": 1,
-    "qubix": 1,
-    "Oldgamejunk": 1,
-    "Chewpacabra": 1,
-    "orio": 1,
-    "j33hopper": 1,
-    "VenomGhost": 1,
-    "ultim8um": 1,
-    "TheDjentleman": 1,
-    "GambitKnight": 1,
-    "Bigolas": 1,
-    "Watchtower": 1
-}
-# Our name in the trollbox
-TROLL_NAME = 'PulloutKing'
 
 # console colors
 WT = '\033[0m'  # white (normal)
