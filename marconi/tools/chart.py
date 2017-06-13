@@ -1,4 +1,4 @@
-from . import time, getMongoDb, indica, logging, itemgetter
+from . import time, getMongoDb, logging, itemgetter
 from . import pd, np
 from .indicators import ema, macd, bbands, rsi
 
@@ -17,7 +17,7 @@ class Chart(object):
         self.pair = pair
         self.api = api
         self.period = kwargs.get('period', self.api.MINUTE * 5)
-        self.db = getMongoDb('poloCharts', self.pair + str(self.period))
+        self.db = getMongoDb('poloCharts', self.pair + '-' + str(self.period))
 
     def __call__(self, size=0):
         old = sorted(list(self.db.find()), key=itemgetter('_id'))
@@ -29,7 +29,7 @@ class Chart(object):
         if not last:
             logger.warning('%s collection is empty!',
                            self.pair + str(self.period))
-            raw = self.api.returnChartData(self.pair,
+            new = self.api.returnChartData(self.pair,
                                            period=self.period,
                                            start=time() - self.api.YEAR)
         else:
@@ -58,9 +58,9 @@ class Chart(object):
         # return data from db
         return sorted(list(self.db.find()), key=itemgetter('_id'))[-size:]
 
-    def dataFrame(self, window=120):
+    def dataFrame(self, size=0, window=120):
         # get data from db
-        data = self.__call__()
+        data = self.__call__(size)
         # make dataframe
         df = pd.DataFrame(data)
         # format dates
@@ -72,9 +72,9 @@ class Chart(object):
         # calculate/add sma and bbands
         df = bbands(df, window)
         # add slow ema
-        df = ema(df, window // 4, colname='emaslow')
+        df = ema(df, window // 2, colname='emaslow')
         # add fast ema
-        df = ema(df, window // 2, colname='emafast')
+        df = ema(df, window // 4, colname='emafast')
         # add macd
         df = macd(df)
         # add rsi
@@ -87,10 +87,25 @@ class Chart(object):
 
 if __name__ == '__main__':
     from .poloniex import Poloniex
+
+    import matplotlib
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    from .mpl_finance import candlestick2_ohlc
+    matplotlib.style.use('ggplot')
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger("tools.poloniex").setLevel(logging.INFO)
     logging.getLogger('requests').setLevel(logging.ERROR)
     api = Poloniex(jsonNums=float)
-    df = Chart(api, 'BTC_ETH').dataFrame()
+    df = Chart(api, 'BTC_ETH').dataFrame().tail(150)
+    print(df)
     df.dropna(inplace=True)
-    print(df.tail(30))
+    fig, ax = plt.subplots()
+    df['sma'].plot(ax=ax)
+
+    ax.grid('on')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    fig.autofmt_xdate()
+    # plt.savefig("candle.png")
+    plt.show()

@@ -1,16 +1,13 @@
 from tools import Application
-from tools import html, getMongoDb, sleep, time, logging
+from tools import getMongoDb, sleep, time, logging
 from tools import BL, GR
 from tools.poloniex import Poloniex
-from tools.summarize import summarize_blocks
-from collections import deque
 
 
 logger = logging.getLogger(__name__)
 
 
 class Pushy(Application):
-    trollbox = deque(list(), 100)
 
     def populateTicker(self):
         initTick = self.api.returnTicker()
@@ -44,35 +41,10 @@ class Pushy(Application):
                       }},
             upsert=True)
 
-    def onTroll(self, **kwargs):
-        name = kwargs["username"]
-        rep = kwargs["reputation"]
-        message = html.unescape(kwargs["text"])
-        logger.debug('%s(%s): %s', BL(name), GR(str(rep)), message)
-        self.trollbox.append(message)
-        if time() - self.summaryTime > self.api.MINUTE * 5:
-            self.summaryTime = time()
-            summary = summarize_blocks(self.trollbox)
-            logger.info(summary)
-            self.trollDb.insert_one({
-                '_id': self.summaryTime,
-                'summary': summarize_blocks(self.trollbox)
-            })
-
     async def main(self):
         self.api = Poloniex(jsonNums=float)
         self.tickDb = getMongoDb('markets')
-        #self.trollDb = getMongoDb('trollbox')
-        #self.summaryTime = self.trollDb.find_one()
-        # if not self.summaryTime:
-        #    logger.info('No summary found.')
-        #    self.summaryTime = time()
-        # else:
-        #    logger.info(self.summaryTime['summary'])
-        #    self.summaryTime = self.summaryTime['_id']
-        #    logger.info('Last summary time: %s', str(self.summaryTime))
         self.populateTicker()
-        #self.push.subscribe(topic="trollbox", handler=self.onTroll)
         self.push.subscribe(topic="ticker", handler=self.onTick)
         logger.info('Subscribed to ticker')
 
