@@ -43,7 +43,7 @@ class Pushy(Application):
 
     async def main(self):
         self.api = Poloniex(jsonNums=float)
-        self.tickDb = getMongoDb('markets')
+        self.tickDb = getMongoDb('poloniex', 'ticker')
         self.populateTicker()
         self.push.subscribe(topic="ticker", handler=self.onTick)
         logger.info('Subscribed to ticker')
