@@ -1,4 +1,4 @@
-from . import Thread, logging
+from .. import Thread, logging
 
 logger = logging.getLogger(__name__)
 
