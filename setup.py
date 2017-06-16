@@ -9,7 +9,7 @@ setup(name='marconi',
       install_requires=[
           'requests',
           'numpy',
-          'matplotlib',
+          'bokeh',
           'pymongo',
           'pandas',
           'autobahn[asyncio]',

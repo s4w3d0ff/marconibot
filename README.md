@@ -11,12 +11,9 @@ Mongodb (running local)
 __pip__:
 ```
 requests
-beautifulsoup4
-matplotlib
+bokeh
 pymongo
 pandas
-nltk
 autobahn[asyncio]
 aiohttp
-git+https://github.com/s4w3d0ff/mpl_finance.git
 ```
