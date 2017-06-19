@@ -107,7 +107,7 @@ if __name__ == '__main__':
     )
     logging.getLogger('requests').setLevel(logging.ERROR)
     key, secret = argv[1:3]
-    polo = Poloniex(key, secret, timeout=80, jsonNums=float)
+    polo = Poloniex(key, secret, timeout=None, jsonNums=float)
     #################-Configure Below-##################################
     ########################
     loaner = Loaner(polo,

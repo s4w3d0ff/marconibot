@@ -31,7 +31,7 @@ class Chart(object):
                            self.pair + str(self.period))
             new = self.api.returnChartData(self.pair,
                                            period=self.period,
-                                           start=time() - self.api.YEAR)
+                                           start=time() - self.api.YEAR * 6)
         else:
             since = time() - int(last['_id'])
             logger.debug(int(last['_id']))
@@ -69,14 +69,13 @@ class Chart(object):
         # calculate/add sma and bbands
         df = bbands(df, window)
         # add slow ema
-        slowWin = window // 2
-        df = ema(df, slowWin, colname='emaslow')
+        df = ema(df, window, colname='emaslow')
         # add fast ema
-        df = ema(df, slowWin // 4, colname='emafast')
+        df = ema(df, window // 3, colname='emafast')
         # add macd
         df = macd(df)
         # add rsi
-        df = rsi(df, window // 5)
+        df = rsi(df, window // 7)
         # add candle body and shadow size
         df['bodysize'] = df['open'] - df['close']
         df['shadowsize'] = df['high'] - df['low']
