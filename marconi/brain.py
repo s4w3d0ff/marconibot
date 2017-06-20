@@ -25,17 +25,21 @@ class Brain(object):
         # split db
         return df.tail(size), df.iloc[:-size]
 
-    def getLabels(self, df, target='close'):
-        # create future
-        df['future'] = df[target].shift(-1)
-        df.fillna(df.mean(), inplace=True)
+    def getLabels(self, df, threshold=0.0057):
         # label sells
-        df.loc[df['future'] < df[target], 'label'] = -1
-        # label buys
-        df.loc[df['future'] > df[target], 'label'] = 1
-        # label holds
-        df.loc[df['future'] == df[target], 'label'] = 0
-        df.fillna(df.mean(), inplace=True)
+        futures = df['percentChange'].shift(-1).fillna(0).values
+
+        labels = []
+        for i in range(len(futures)):
+            future = futures[i]
+            if abs(future) > threshold:
+                if future < 0:
+                    labels.append(-1)
+                else:
+                    labels.append(1)
+            else:
+                labels.append(0)
+        df['label'] = labels
         return df
 
     def train(self, f, l):
@@ -45,6 +49,7 @@ class Brain(object):
 if __name__ == '__main__':
     from chart import Charter
     from poloniex import Poloniex
+    from tools import show
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger('poloniex').setLevel(logging.INFO)
     markets = ['BTC_LTC',
@@ -54,34 +59,49 @@ if __name__ == '__main__':
                'USDT_ETH',
                'BTC_DASH',
                'USDT_DASH']
+    periods = [60 * 60 * 4, 60 * 60 * 24]
+    windows = [120, 80]
     brain = Brain()
-    charter = Charter(Poloniex(jsonNums=float),
-                      pair=markets[0],
-                      period=60 * 60 * 4)
-    testDFs = {}
+    charter = Charter(Poloniex(jsonNums=float))
+
     for market in markets:
+        for period in periods:
+            for window in windows:
+                train = charter.dataFrame(market, period, window=window)
+                train.replace([np.inf, -np.inf], np.nan, inplace=True)
+                # make nan the mean
+                train.fillna(train.mean(), inplace=True)
 
-        df = charter.dataFrame(market, window=120)
-        testDFs[market], train = brain.splitData(df, size=2)
+                train = brain.getLabels(train)
 
-        train = brain.getLabels(train)
+                labels = train['label'].values
+                features = train[['bbpercent',
+                                  #'bodysize',
+                                  'macd',
+                                  'rsi',
+                                  'close']].values
 
-        labels = train['label'].values
-        features = train[['bbpercent',
-                          'bodysize',
-                          'macd',
-                          'bbrange',
-                          'rsi',
-                          'percentChange']].values
+                logger.info("%s training size: %s", market, str(len(features)))
+                brain.train(features, labels)
 
-        logger.info("%s training size: %s", market, str(len(features)))
-        brain.train(features, labels)
+    test = charter.dataFrame('BTC_XRP', window=120)
+    test['prediction'] = brain.lobe.predict(test[[
+        'bbpercent',
+        #'bodysize',
+        'macd',
+        #'bbrange',
+        'rsi',
+        'close']].values)
+    test = brain.getLabels(test)
+    print(test[['close', 'date', 'percentChange', 'label', 'prediction']].tail(
+        50).set_index('date'))
 
-    for market in testDFs:
-        print(market)
-        print(brain.lobe.predict(testDFs[market][['bbpercent',
-                                                  'bodysize',
-                                                  'macd',
-                                                  'bbrange',
-                                                  'rsi',
-                                                  'percentChange']].values))
+    #show(charter.graph('BTC_XRP', window=120))
+    print(brain.lobe.score(test[[
+        'bbpercent',
+        #'bodysize',
+        'macd',
+        #'bbrange',
+        'rsi',
+        'close']].values,
+        test['label'].values))

@@ -10,7 +10,7 @@ class Charter(object):
         based on market name and candle period. It also remembers the last
         called market and period when called multiple times. """
 
-    def __init__(self, api, pair, **kwargs):
+    def __init__(self, api, pair='USDT_BTC', **kwargs):
         """
         api = poloniex api object
         pair = market pair
@@ -84,7 +84,8 @@ class Charter(object):
         # make dataframe
         df = pd.DataFrame(data)
         df['date'] = pd.to_datetime(df["_id"], unit='s')
-        df.set_index('_id', inplace=True)
+        #df.set_index('date', inplace=True)
+        # df.reset_index(inplace=True)
         # calculate/add sma and bbands
         df = bbands(df, window)
         # add slow ema
@@ -99,7 +100,8 @@ class Charter(object):
         df['bodysize'] = df['open'] - df['close']
         df['shadowsize'] = df['high'] - df['low']
         df['percentChange'] = df['close'].pct_change()
-        df.fillna(df.mean(), inplace=True)
+        #df.fillna(df.mean(), inplace=True)
+        df.dropna(inplace=True)
         return df
 
     def graph(self, pair=False, period=False, size=0, window=120):
