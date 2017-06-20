@@ -5,63 +5,82 @@ from bokeh.models import LinearAxis, Range1d
 logger = logging.getLogger(__name__)
 
 
-class Chart(object):
-    """ Saves and retrieves chart data for a market """
+class Charter(object):
+    """ Retrieves chart data for a market and saves it in a mongo db collection
+        based on market name and candle period. It also remembers the last
+        called market and period when called multiple times. """
 
     def __init__(self, api, pair, **kwargs):
         """
-        pair = market pair
         api = poloniex api object
+        pair = market pair
         period = time period of candles (default: 5 Min)
         """
         self.pair = pair
         self.api = api
         self.period = kwargs.get('period', self.api.MINUTE * 5)
-        self.db = getMongoDb('poloCharts', self.pair + '-' + str(self.period))
 
-    def __call__(self, size=0):
-        old = sorted(list(self.db.find()), key=itemgetter('_id'))
+    def __call__(self, pair=False, period=False, size=0):
+        """ returns raw chart data from the mongo database, updates/fills the
+        data if needed, the date column is the '_id' of each candle entry, and
+        the date column has been removed """
+        # use last pair and period if not specified
+        if not pair:
+            pair = self.pair
+        if not period:
+            period = self.period
+        # 'remember' the last period, pair
+        self.period = period
+        self.pair = pair
+        # get db connection
+        dbcolName = pair + '-' + str(period)
+        db = getMongoDb('poloCharts', dbcolName)
+        # get old candles from db
+        old = sorted(list(db.find()), key=itemgetter('_id'))
+        # get last candle
         try:
             last = old[-1]
         except:
             last = False
-        # no entrys found
+        # no entrys found, get all data
         if not last:
-            logger.warning('%s collection is empty!',
-                           self.pair + str(self.period))
-            new = self.api.returnChartData(self.pair,
-                                           period=self.period,
-                                           start=time() - self.api.YEAR)
+            logger.warning('%s collection is empty!', dbcolName)
+            new = self.api.returnChartData(pair,
+                                           period=period,
+                                           start=time() - self.api.YEAR * 6)
+
         else:
             since = time() - int(last['_id'])
-            logger.debug(int(last['_id']))
-            logger.debug(since)
             # too soon return old candles
-            if since < self.period:
+            if since < period:
                 logger.debug('Too soon to update candles')
                 return old[-size:]
             logger.debug('Getting new data')
-            new = self.api.returnChartData(self.pair,
-                                           period=self.period,
-                                           start=int(last['_id']) + self.period)
+            # get just what we need to add to the db
+            new = self.api.returnChartData(pair,
+                                           period=period,
+                                           start=int(last['_id']) + period)
         # add new candles
         updateSize = len(new)
         logger.info('Updating %s with %s new entrys!',
-                    self.pair + str(self.period), str(updateSize))
+                    dbcolName, str(updateSize))
+
+        # show the progess
         for i in range(updateSize):
             print("\r%s/%s" % (str(i + 1), str(updateSize)), end=" complete ")
             date = new[i]['date']
             del new[i]['date']
-            self.db.update_one({'_id': date}, {"$set": new[i]}, upsert=True)
+            db.update_one({'_id': date}, {"$set": new[i]}, upsert=True)
         print('')
-        logger.debug('Getting chart data from db')
-        # return data from db
-        return sorted(list(self.db.find()), key=itemgetter('_id'))[-size:]
 
-    def dataFrame(self, size=0, window=120):
-        """ returns pandas DataFrame from raw db data with indicators"""
+        logger.debug('Getting chart data from db')
+        # return data from db (sorted just in case...)
+        return sorted(list(db.find()), key=itemgetter('_id'))[-size:]
+
+    def dataFrame(self, pair=False, period=False, size=0, window=120):
+        """ returns pandas DataFrame from raw db data with indicators """
         # get data from db
-        data = self.__call__(size)
+        data = self.__call__(pair, period, size)
         # make dataframe
         df = pd.DataFrame(data)
         df['date'] = pd.to_datetime(df["_id"], unit='s')
@@ -69,22 +88,22 @@ class Chart(object):
         # calculate/add sma and bbands
         df = bbands(df, window)
         # add slow ema
-        slowWin = window // 2
-        df = ema(df, slowWin, colname='emaslow')
+        df = ema(df, window, colname='emaslow')
         # add fast ema
-        df = ema(df, slowWin // 4, colname='emafast')
+        df = ema(df, window // 3, colname='emafast')
         # add macd
         df = macd(df)
         # add rsi
-        df = rsi(df, window // 5)
+        df = rsi(df, window // 7)
         # add candle body and shadow size
         df['bodysize'] = df['open'] - df['close']
         df['shadowsize'] = df['high'] - df['low']
         df['percentChange'] = df['close'].pct_change()
+        df.fillna(df.mean(), inplace=True)
         return df
 
-    def graph(self, size=0, window=120):
-        df = self.dataFrame(size, window)
+    def graph(self, pair=False, period=False, size=0, window=120):
+        df = self.dataFrame(pair, period, size, window)
         df.dropna(inplace=True)
 
         output_file("%s.html" % self.pair,
@@ -98,7 +117,7 @@ class Chart(object):
                    title=self.pair)
 
         p.extra_y_ranges = {
-            "volume": Range1d(start=1,
+            "volume": Range1d(start=0,
                               end=max(df['volume'].values))
         }
 
@@ -171,8 +190,6 @@ if __name__ == '__main__':
     logging.getLogger("tools.poloniex").setLevel(logging.INFO)
     logging.getLogger('requests').setLevel(logging.ERROR)
 
-    period = 60 * 60 * 24
-
     api = Poloniex(jsonNums=float)
-    p = Chart(api, 'BTC_ETH', period=period).graph(window=120)
+    p = Charter(api, 'BTC_ETH', period=api.DAY).graph(size=365 * 2, window=120)
     show(p)

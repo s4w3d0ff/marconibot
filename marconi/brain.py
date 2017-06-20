@@ -1,121 +1,87 @@
 from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
-import matplotlib.pyplot as plt
-import matplotlib
 import pickle
-from . import getMongoDb, logging, pd, np, time
+from tools import getMongoDb, logging, pd, np, time
 
 logger = logging.getLogger(__name__)
 
 
 class Brain(object):
 
-    def __init__(self, api):
-        self.lobe = RandomForestClassifier()
-        self.api = api
-
-    def getInput(self):
-        # get user input
-        raw = input('Buy(+), Sell(-), or Hold(0)?: ')
-        rec = str(raw).strip()
-        if rec == '+':
-            rec = 1
-        elif rec == '-':
-            rec = -1
+    def __init__(self, lobe=False):
+        if isinstance(lobe, str):
+            self.lobe = pickle.load(open(lobe, 'rb'))
         else:
-            rec = 0
-        return rec
+            self.lobe = svm.SVC(gamma=0.001, C=100.)
 
-    def getLabels(self, df, save=False, auto=False, threshold=0.01):
-        """ Go row by row, plot 10 rows on either side and ask for user input """
-        end = len(df)
-        if not auto:
-            logger.warn('There are %s rows to review!',
-                        str(end))
-            for index, row in df.iterrows():
-                logger.info('Index: %s', str(index))
-                rec = self.getInput()
-                df.set_value(index, 'label', rec)
-        else:
-            df['future'] = df['percentChange'].shift(-1)
-            # label based on 'futures'
-            df['label'] = list(map(self.autoLabels, df['future']))
+    def pickle(self, name='lobe.pickle'):
+        pickle.dump(self.lobe, open(name, wb))
 
-        df.fillna(0, inplace=True)
-        labels = np.array(df['label'])
+    def splitData(self, df, size=1):
+        # make infinity nan
+        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        # make nan the mean
+        df.fillna(df.mean(), inplace=True)
+        # split db
+        return df.tail(size), df.iloc[:-size]
 
-        return df, labels
-
-    def autoLabels(self, future, threshold=0.003):
-        if future > threshold:
-            return 1
-        if future < -threshold:
-            return -1
-        return 0
-
-    def train(self, markets=['BTC_ZEC', 'BTC_ETH', 'USDT_BTC', 'USDT_LTC'],
-              save=False, autoL=False, **kwargs):
-        for market in markets:
-            # create chart
-            chart = Chart(
-                self.api,
-                market,
-                frame=kwargs.get('frame', self.api.DAY * 300),
-                period=kwargs.get('period', self.api.MINUTE * 15)
-            )
-            # create df if none exists
-            df = chart.dataFrame()
-            df.replace([np.inf, -np.inf], np.nan, inplace=True)
-            df.dropna(inplace=True)
-            df.reset_index(inplace=True)
-            features = np.array(df[['close',
-                                    'bbpercent',
-                                    'bodysize',
-                                    'shadowsize',
-                                    'sma',
-                                    'macd',
-                                    'bbrange']])
-            df, labels = self.getLabels(df, auto=autoL, save=save)
-
-            # train
-            logger.info("Training size: %s", str(len(features)))
-            self.lobe.fit(features, labels)
-            if save:
-                pickle.dump(self.lobe, open("brain.pickle", "wb"))
+    def getLabels(self, df, target='close'):
+        # create future
+        df['future'] = df[target].shift(-1)
+        df.fillna(df.mean(), inplace=True)
+        # label sells
+        df.loc[df['future'] < df[target], 'label'] = -1
+        # label buys
+        df.loc[df['future'] > df[target], 'label'] = 1
+        # label holds
+        df.loc[df['future'] == df[target], 'label'] = 0
+        df.fillna(df.mean(), inplace=True)
         return df
 
-    def predict(self, market, **kwargs):
-        chart = Chart(api,
-                      market,
-                      frame=api.DAY * 5,
-                      period=api.MINUTE * 15)
-
-        df = chart.dataFrame()
-        df.replace([np.inf, -np.inf], np.nan, inplace=True)
-        df.dropna(inplace=True)
-        df.reset_index(inplace=True)
-        features = np.array(df[['close',
-                                'bbpercent',
-                                'bodysize',
-                                'shadowsize',
-                                'sma',
-                                'macd',
-                                'bbrange']])
-        return df, self.lobe.predict(features)
+    def train(self, f, l):
+        self.lobe.fit(f, l)
 
 
 if __name__ == '__main__':
-    from .chart import Chart
-    from .poloniex import Poloniex
-    from matplotlib.pyplot import subplots, draw
-    # pip3 install git+https://github.com/s4w3d0ff/mpl_finance.git
-    import mpl_finance
+    from chart import Charter
+    from poloniex import Poloniex
     logging.basicConfig(level=logging.DEBUG)
-    logging.getLogger('tools.poloniex').setLevel(logging.INFO)
-    api = Poloniex(jsonNums=float)
-    b = Brain(api)
-    ldf = b.train(save=True, autoL=True).tail(20)
-    pdf, predictions = b.predict('BTC_DASH')
-    pdf['predict'] = predictions
-    df = pdf.tail(20)
-    print(df[['close', 'percentChange', 'predict']])
+    logging.getLogger('poloniex').setLevel(logging.INFO)
+    markets = ['BTC_LTC',
+               'BTC_ETH',
+               'USDT_BTC',
+               'USDT_LTC',
+               'USDT_ETH',
+               'BTC_DASH',
+               'USDT_DASH']
+    brain = Brain()
+    charter = Charter(Poloniex(jsonNums=float),
+                      pair=markets[0],
+                      period=60 * 60 * 4)
+    testDFs = {}
+    for market in markets:
+
+        df = charter.dataFrame(market, window=120)
+        testDFs[market], train = brain.splitData(df, size=2)
+
+        train = brain.getLabels(train)
+
+        labels = train['label'].values
+        features = train[['bbpercent',
+                          'bodysize',
+                          'macd',
+                          'bbrange',
+                          'rsi',
+                          'percentChange']].values
+
+        logger.info("%s training size: %s", market, str(len(features)))
+        brain.train(features, labels)
+
+    for market in testDFs:
+        print(market)
+        print(brain.lobe.predict(testDFs[market][['bbpercent',
+                                                  'bodysize',
+                                                  'macd',
+                                                  'bbrange',
+                                                  'rsi',
+                                                  'percentChange']].values))
