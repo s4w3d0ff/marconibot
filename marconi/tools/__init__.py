@@ -1,14 +1,16 @@
 # core ---------------------------------------------------------------------
 import logging
 import json
-from math import floor, ceil
-from decimal import Decimal
+import pickle
+from copy import copy
 from operator import itemgetter
+from math import floor, ceil
+from math import pi as PI
+from decimal import Decimal
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
 from multiprocessing.dummy import Process as Thread
-from math import pi as PI
 # 3rd party ----------------------------------------------------------------
 # pip install pandas numpy
 import pandas as pd
@@ -17,12 +19,18 @@ import numpy as np
 from pymongo import MongoClient
 # pip install bokeh
 from bokeh.plotting import figure, output_file, show
+# pip install
+from bs4 import BeautifulSoup as BS
+# pip install cherrypy
+import cherrypy as cp
 
 # local --------------------------------------------------------------------
 from . import indicators
 from .poloniex import Poloniex, Coach, PoloniexError
 from .poloniex.push import Application
 from .daemon import DaemonContext
+from .minion import Minion
+from .brain import Brain
 
 # constants ----------------------------------------------------------------
 
