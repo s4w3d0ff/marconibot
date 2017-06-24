@@ -14,8 +14,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi.tools import np, pd, logging, getMongoDb
-from marconi.tools.chart import Chart
+from marconi.tools import np, pd, logging, getMongoDb, show
+from marconi.charter import Charter
 from marconi.tools.poloniex import Poloniex
 from marconi.tools.brain import Brain
 
@@ -29,10 +29,54 @@ class Marconi(object):
         self.api = api
         self.market = market
         self.brain = Brain(self.api)
-        self.chart = Chart(api, self.market)
+        self.chart = Charter(self.api, self.market)
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('requests').setLevel(logging.ERROR)
     logging.getLogger('marconi.tools.poloniex').setLevel(logging.INFO)
+
     api = Poloniex(jsonNums=float)
     m = Marconi(api, 'USDT_BTC')
+    m.chart.period = api.DAY
+
+    markets = ['BTC_LTC',
+               'ETH_ETC',
+               'BTC_DOGE',
+               'BTC_XRP',
+               'USDT_BTC',
+               'USDT_LTC',
+               'BTC_DASH',
+               'USDT_DASH',
+               'BTC_FCT',
+               'BTC_ETC']
+    window = 120
+    featureset = ['sma', 'macd', 'rsi', 'close']
+
+    for market in markets:
+        train = m.chart.dataFrame(market, period, window=window)
+        train.replace([np.inf, -np.inf], np.nan, inplace=True)
+        # make nan the mean
+        train.fillna(train.mean(), inplace=True)
+
+        features = train[featureset].values
+        logger.info("%s training size: %s", market, str(len(features)))
+
+        if 'label' in train:
+            labels = train['label'].values
+        # get labels
+        labels = []
+
+        m.brain.train(features, labels)
+
+    p, test = m. chart.graph('BTC_ETH',
+                             period,
+                             window=window,
+                             volume=True,
+                             bands=True,
+                             maves=True)
+    show(p)
+
+    test['prediction'] = brain.votinglobe.predict(test[featureset].values)
+    print(test[['close', 'bbpercent', 'prediction']])
