@@ -11,9 +11,11 @@ Mongodb (running local)
 __pip__:
 ```
 requests
+numpy
 bokeh
+cherrypy
+beautifulsoup4
 pymongo
 pandas
-autobahn[asyncio]
-aiohttp
+websocket-client
 ```

@@ -1,36 +1,30 @@
-from tools import copy, itemgetter, figure, pd, cp, MongoClient
+from tools import copy, itemgetter, figure, pd, cp, bs, MongoClient
 from bokeh.embed import components
 
-HTML = BS("""
-        <!DOCTYPE html><html>
-        <head><title></title>
-        <link
-        href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.css"
-        rel="stylesheet" type="text/css">
-        <link
-        href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.css"
-        rel="stylesheet" type="text/css">
-
-        <script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.js"></script>
-        <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.js"></script>
-        </head>
-        <body><center><center></body>
-        </html>""", 'html.parser')
-
-buttons = BS("""
-        <script type="text/javascript">
-            function sell() {
-                window.location.href = "/sell";
-                };
-            function buy() {
-                window.location.href = "/buy";
-                };
-            function hold() {
-                window.location.href = "/hold";
-                };
-        </script>
-        <button onclick="sell()">sell</button><button onclick="hold()">hold</button><button onclick="buy()">buy</button>
-        """, 'html.parser')
+indexHTML = """
+    <!DOCTYPE html><html>
+    <head><title>Label Me</title>
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.css" rel="stylesheet" type="text/css">
+    <link href="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.css" rel="stylesheet" type="text/css">
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-0.12.6.min.js"></script>
+    <script src="http://cdn.pydata.org/bokeh/release/bokeh-widgets-0.12.6.min.js"></script>
+    </head>
+    <body>
+    <script type="text/javascript">
+      function sell() {
+          window.location.href = "/sell";
+          };
+      function buy() {
+          window.location.href = "/buy";
+          };
+      function hold() {
+          window.location.href = "/hold";
+          };
+    </script>
+    <button onclick="sell()">sell</button><button onclick="hold()">hold</button><button onclick="buy()">buy</button>
+    <center><center></body>
+    </html>
+    """
 
 
 def plotCandlesticks(p, df, period, upcolor='green', downcolor='red'):
@@ -91,16 +85,15 @@ class Root(object):
         # plot candlesticks
         plotCandlesticks(p, frame, self.period)
         # mark current location
-        p.circle(x=[self.df.iloc[self.loc]['date']], y=[
-                 self.df.iloc[self.loc]['close']], alpha=0.5, size=100)
+        p.circle(x=[self.df.iloc[self.loc]['date']],
+                 y=[self.df.iloc[self.loc]['close']],
+                 alpha=0.5, size=100)
         # get html and js for chart
         script, div = components(p)
         # create html
-        html = copy(HTML)
-        html.title.string = 'Label Me'
-        html.body.append(BS(script, 'html.parser'))
-        html.body.append(BS(div, 'html.parser'))
-        html.body.append(buttons)
+        html = bs(indexHTML, 'html.parser')
+        html.body.append(bs(script, 'html.parser'))
+        html.body.append(bs(div, 'html.parser'))
         # return html
         return html.prettify()
 
