@@ -10,9 +10,10 @@ setup(name='marconi',
           'requests',
           'numpy',
           'bokeh',
+          'cherrypy',
+          'beautifulsoup4',
           'pymongo',
           'pandas',
-          'autobahn[asyncio]',
-          'aiohttp'
+          'websocket-client',
       ],
       zip_safe=False)

@@ -15,14 +15,16 @@ from multiprocessing.dummy import Process as Thread
 # pip install pandas numpy
 import pandas as pd
 import numpy as np
+# pip install beautifulsoup4
+from bs4 import BeautifulSoup as bs
+# pip install cherrypy
+import cherrypy as cp
 # pip install pymongo
 from pymongo import MongoClient
 # pip install bokeh
 from bokeh.plotting import figure, output_file, show
-# pip install
-from bs4 import BeautifulSoup as BS
-# pip install cherrypy
-import cherrypy as cp
+# pip install websocket-client
+import websocket
 
 # local --------------------------------------------------------------------
 from . import indicators
@@ -168,12 +170,10 @@ def getAverage(seq):
 
 def geoProgress(n, r=PHI, size=5):
     """ Creates a Geometric Progression with the Geometric sum of <n>
-    >>> geoProgress(42)
+    >>> l = geoProgress(42)
+    >>> l
     [2.5725461188664465, 4.162467057952537, 6.735013176818984, 10.897480234771521, 17.63249341159051]
-    >>> r = geoProgress(42)
-    >>> r
-    [2.5725461188664465, 4.162467057952537, 6.735013176818984, 10.897480234771521, 17.63249341159051]
-    >>> sum(r)
+    >>> sum(l)
     42.0
     """
     return [(n * (1 - r) / (1 - r ** size)) * r ** i for i in range(size)]
