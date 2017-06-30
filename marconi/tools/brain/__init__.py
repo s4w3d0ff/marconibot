@@ -22,11 +22,11 @@ class Brain(object):
                        }
         self.votinglobe = VotingClassifier(
             estimators=[(lobe, self._lobes[lobe]) for lobe in self._lobes],
-            voting='hard',
+            voting='soft',
             n_jobs=4,
         )
 
-    def splitData(self, df, size=1):
+    def splitTrainTestData(self, df, size=1):
         # make infinity nan
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
         # make nan the mean

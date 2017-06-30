@@ -25,17 +25,19 @@ def rsi(df, window, targetcol='weightedAverage', colname='rsi'):
                                             min_periods=0,
                                             adjust=False).mean()
     df[colname] = 100 - 100 / (1 + rs)
+    df[colname].fillna(df[colname].mean(), inplace=True)
     return df
 
 
-def sma(df, window, targetcol='weightedAverage', colname='sma'):
+def sma(df, window, targetcol='close', colname='sma'):
     """ Calculates Simple Moving Average on a 'targetcol' in a pandas dataframe
     """
-    df[colname] = df[targetcol].rolling(window=window, center=False).mean()
+    df[colname] = df[targetcol].rolling(
+        min_periods=1, window=window, center=False).mean()
     return df
 
 
-def ema(df, window, targetcol='weightedAverage', colname='ema', **kwargs):
+def ema(df, window, targetcol='close', colname='ema', **kwargs):
     """ Calculates Expodential Moving Average on a 'targetcol' in a pandas
     dataframe """
     df[colname] = df[targetcol].ewm(
@@ -44,6 +46,7 @@ def ema(df, window, targetcol='weightedAverage', colname='ema', **kwargs):
         adjust=kwargs.get('adjust', True),
         ignore_na=kwargs.get('ignore_na', False)
     ).mean()
+    df[colname].fillna(df[colname].mean(), inplace=True)
     return df
 
 
@@ -54,18 +57,21 @@ def macd(df, fastcol='emafast', slowcol='emaslow', colname='macd'):
     return df
 
 
-def bbands(df, window, targetcol='weightedAverage', stddev=2.0):
+def bbands(df, window, targetcol='close', stddev=2.0):
     """ Calculates Bollinger Bands for 'targetcol' of a pandas dataframe """
     if not 'sma' in df:
         df = sma(df, window, targetcol)
+    df['sma'].fillna(df['sma'].mean(), inplace=True)
     df['bbtop'] = df['sma'] + stddev * df[targetcol].rolling(
-        min_periods=window,
+        min_periods=1,
         window=window,
         center=False).std()
+    df['bbtop'].fillna(df['bbtop'].mean(), inplace=True)
     df['bbbottom'] = df['sma'] - stddev * df[targetcol].rolling(
-        min_periods=window,
+        min_periods=1,
         window=window,
         center=False).std()
+    df['bbbottom'].fillna(df['bbbottom'].mean(), inplace=True)
     df['bbrange'] = df['bbtop'] - df['bbbottom']
     df['bbpercent'] = ((df[targetcol] - df['bbbottom']) / df['bbrange']) - 0.5
     return df

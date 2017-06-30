@@ -1,7 +1,10 @@
 from tools import time, getMongoDb, logging, itemgetter
-from tools import pd, np, figure
+from tools import pd, np, figure, ColumnDataSource
 from tools.indicators import ema, macd, bbands, rsi
 
+from bokeh.layouts import gridplot
+from bokeh.models import NumeralTickFormatter
+from bokeh.models import HoverTool
 from bokeh.models import LinearAxis, Range1d
 
 logger = logging.getLogger(__name__)
@@ -21,6 +24,48 @@ def plotVolume(p, df, period, color='blue'):
            fill_color=color,
            alpha=0.2,
            y_range_name="volume")
+
+
+def plotRSI(p, df, period, upcolor='green', downcolor='red'):
+    p.extra_y_ranges = {"rsi": Range1d(start=0,
+                                       end=100)
+                        }
+    p.add_layout(LinearAxis(y_range_name="rsi"), 'right')
+    band_x = np.append(df['date'].values, df['date'].values[::-1])
+    band_y = np.append([30 for i in df['rsi'].values],
+                       [70 for i in df['rsi'].values[::-1]])
+    p.patch(band_x,
+            band_y,
+            color='olive',
+            fill_alpha=0.1,
+            legend="rsi",
+            y_range_name="rsi")
+    candleWidth = (period * 900)
+    # plot green bars
+    inc = df.rsi >= 50
+    p.vbar(x=df.date[inc],
+           width=candleWidth,
+           top=df.rsi[inc],
+           bottom=50,
+           fill_color=upcolor,
+           line_color=upcolor,
+           alpha=0.2,
+           y_range_name="rsi")
+    # Plot red bars
+    dec = df.rsi <= 50
+    p.vbar(x=df.date[dec],
+           width=candleWidth,
+           top=50,
+           bottom=df.rsi[dec],
+           fill_color=downcolor,
+           line_color=downcolor,
+           alpha=0.2,
+           y_range_name="rsi")
+
+
+def plotMACD(p, df):
+    p.line(df['date'], df['macd'], color='blue',
+           alpha=0.9, legend="macd")
 
 
 def plotCandlesticks(p, df, period, upcolor='green', downcolor='red'):
@@ -86,7 +131,7 @@ class Charter(object):
         self.pair = pair
         self.period = kwargs.get('period', self.api.DAY)
 
-    def __call__(self, pair=False, period=False):
+    def __call__(self, pair=False, period=False, frame=False):
         """ returns raw chart data from the mongo database, updates/fills the
         data if needed, the date column is the '_id' of each candle entry, and
         the date column has been removed """
@@ -98,11 +143,15 @@ class Charter(object):
         # 'remember' the last period, pair
         self.period = period
         self.pair = pair
+        if not frame:
+            frame = period * 50
         # get db connection
         dbcolName = pair + '-' + str(period)
-        db = getMongoDb('poloCharts', dbcolName)
+        db = getMongoDb('poloniexCharts', dbcolName)
         # get old candles from db
-        old = sorted(list(db.find()), key=itemgetter('_id'))
+        old = sorted(
+            list(db.find({"_id": {"$gt": time() - frame}})),
+            key=itemgetter('_id'))
         # get last candle
         try:
             last = old[-1]
@@ -113,19 +162,11 @@ class Charter(object):
             logger.warning('%s collection is empty!', dbcolName)
             new = self.api.returnChartData(pair,
                                            period=period,
-                                           start=time() - self.api.YEAR * 6)
-
+                                           start=time() - self.api.YEAR * 13)
         else:
-            since = time() - int(last['_id'])
-            # too soon return old candles
-            if since < period:
-                logger.debug('Too soon to update candles')
-                return old[-size:]
-            logger.debug('Getting new data')
-            # get just what we need to add to the db
             new = self.api.returnChartData(pair,
                                            period=period,
-                                           start=int(last['_id']) + period)
+                                           start=int(last['_id']))
         # add new candles
         updateSize = len(new)
         logger.info('Updating %s with %s new entrys!',
@@ -141,14 +182,17 @@ class Charter(object):
 
         logger.debug('Getting chart data from db')
         # return data from db (sorted just in case...)
-        return sorted(list(db.find()), key=itemgetter('_id'))
+        return sorted(
+            list(db.find({"_id": {"$gt": time() - frame}})),
+            key=itemgetter('_id'))
 
-    def dataFrame(self, pair=False, period=False, size=0, window=120, raw=False):
+    def dataFrame(self, pair=False, period=False,
+                  frame=False, window=120, raw=False):
         """ returns pandas DataFrame from raw db data with indicators """
         data = raw
         # get data from db
         if not raw:
-            data = self.__call__(pair, period)
+            data = self.__call__(pair, period, frame)
         # make dataframe
         df = pd.DataFrame(data)
         # set date column
@@ -167,35 +211,64 @@ class Charter(object):
         df['bodysize'] = df['close'] - df['open']
         df['shadowsize'] = df['high'] - df['low']
         df['percentChange'] = df['close'].pct_change()
-        df.fillna(df.mean(), inplace=True)[-size:]
+        df.dropna(inplace=True)
         return df
 
-    def graph(self, pair=False, period=False, size=0,
+    def graph(self, pair=False, period=False, frame=False,
               window=120, volume=False, bands=False,
-              maves=False, figargs=False):
-        df = self.dataFrame(pair, period, size, window)
+              maves=False, plotWidth=1300):
+        df = self.dataFrame(pair, period, frame, window)
+        # create candlestick plot
+        candlePlot = figure(x_axis_type="datetime",
+                            # x_minor_ticks=1000,
+                            y_range=(min(df['low'].values) - (min(df['low'].values) * 0.2),
+                                     max(df['high'].values) * 1.2),
+                            tools="pan,wheel_zoom,reset",
+                            title=self.pair + '-' + str(self.period),
+                            plot_width=plotWidth,
+                            plot_height=int(plotWidth // 2),
+                            toolbar_location="above")
 
-        if not figargs:
-            p = figure(x_axis_type="datetime",
-                       x_minor_ticks=1000,
-                       y_range=(min(df['low'].values),
-                                max(df['high'].values)),
-                       tools="pan,wheel_zoom,reset",
-                       title=self.pair,
-                       plot_width=1500,
-                       toolbar_location="above")
-        else:
-            p = figure(**figargs)
-
+        candlePlot.background_fill_color = "black"
+        candlePlot.background_fill_alpha = 0.15
+        candlePlot.border_fill_color = "whitesmoke"
+        candlePlot.min_border_left = 40
+        candlePlot.min_border_right = 40
         if volume:
-            plotVolume(p, df, self.period)
-
-        plotCandlesticks(p, df, self.period)
-
+            plotVolume(candlePlot, df, self.period)
+        plotCandlesticks(candlePlot, df, self.period)
         if bands:
-            plotBBands(p, df)
+            plotBBands(candlePlot, df)
         if maves:
-            plotMovingAverages(p, df)
+            plotMovingAverages(candlePlot, df)
+        candlePlot.xaxis.major_label_orientation = PI / 4
+        candlePlot.yaxis[0].formatter = NumeralTickFormatter(
+            format='0.00000000')
+        candlePlot.legend.location = "top_left"
+
+        # create a new plot and share x range
+        rsiPlot = figure(plot_height=200,
+                         x_axis_type=None,
+                         y_range=(-(max(df['macd'].values) * 2),
+                                  max(df['macd'].values) * 2),
+                         x_range=candlePlot.x_range,
+                         plot_width=candlePlot.plot_width,
+                         title=None,
+                         toolbar_location=None)
+
+        rsiPlot.background_fill_color = "black"
+        rsiPlot.background_fill_alpha = 0.15
+        rsiPlot.border_fill_color = "whitesmoke"
+        rsiPlot.min_border_left = 40
+        rsiPlot.min_border_right = 40
+        rsiPlot.min_border_bottom = 20
+        plotMACD(rsiPlot, df)
+        plotRSI(rsiPlot, df, self.period)
+        rsiPlot.yaxis[0].formatter = NumeralTickFormatter(
+            format='0.00000000')
+        rsiPlot.legend.location = "top_left"
+
+        p = gridplot([[candlePlot], [rsiPlot]])
 
         df.set_index('date', inplace=True)
         return p, df
@@ -212,10 +285,11 @@ if __name__ == '__main__':
     api = Poloniex(jsonNums=float)
 
     p, df = Charter(api,
-                    'BTC_DOGE',
-                    period=api.DAY).graph(bands=True, volume=True, maves=True)
-
-    p.xaxis.major_label_orientation = PI / 4
-    p.grid.grid_line_alpha = 0.8
+                    'BTC_LTC',
+                    period=api.DAY).graph(window=60,
+                                          bands=True,
+                                          volume=True,
+                                          maves=True,
+                                          frame=api.MONTH * 12)
 
     show(p)
