@@ -22,14 +22,14 @@ import cherrypy as cp
 # pip install pymongo
 from pymongo import MongoClient
 # pip install bokeh
-from bokeh.plotting import figure, output_file, show
+from bokeh.plotting import figure, output_file, show, ColumnDataSource
+from bokeh.layouts import gridplot
 # pip install websocket-client
 import websocket
 
 # local --------------------------------------------------------------------
 from . import indicators
 from .poloniex import Poloniex, Coach, PoloniexError
-from .poloniex.push import Application
 from .daemon import DaemonContext
 from .minion import Minion
 from .brain import Brain
@@ -172,7 +172,8 @@ def geoProgress(n, r=PHI, size=5):
     """ Creates a Geometric Progression with the Geometric sum of <n>
     >>> l = geoProgress(42)
     >>> l
-    [2.5725461188664465, 4.162467057952537, 6.735013176818984, 10.897480234771521, 17.63249341159051]
+    [2.5725461188664465, 4.162467057952537, 6.735013176818984,
+    10.897480234771521, 17.63249341159051]
     >>> sum(l)
     42.0
     """

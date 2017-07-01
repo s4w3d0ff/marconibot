@@ -1,4 +1,5 @@
 from tools import copy, itemgetter, figure, pd, cp, bs, MongoClient
+from charter import plotCandlesticks
 from bokeh.embed import components
 
 indexHTML = """
@@ -25,33 +26,6 @@ indexHTML = """
     <center><center></body>
     </html>
     """
-
-
-def plotCandlesticks(p, df, period, upcolor='green', downcolor='red'):
-    candleWidth = (period * 900)
-    # Plot candle 'shadows'/wicks
-    p.segment(x0=df.date,
-              y0=df.high,
-              x1=df.date,
-              y1=df.low,
-              color="black",
-              line_width=4)
-    # Plot green candles
-    inc = df.close > df.open
-    p.vbar(x=df.date[inc],
-           width=candleWidth,
-           top=df.open[inc],
-           bottom=df.close[inc],
-           fill_color=upcolor,
-           line_color="black")
-    # Plot red candles
-    dec = df.open > df.close
-    p.vbar(x=df.date[dec],
-           width=candleWidth,
-           top=df.open[dec],
-           bottom=df.close[dec],
-           fill_color=downcolor,
-           line_color="black")
 
 
 class Root(object):

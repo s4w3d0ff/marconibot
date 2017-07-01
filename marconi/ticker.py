@@ -30,17 +30,14 @@ class Ticker(object):
     def on_message(self, ws, message):
         message = json.loads(message)
         if 'error' in message:
-            print(message['error'])
-            return
+            return logger.error(message['error'])
 
         if message[0] == 1002:
             if message[1] == 1:
-                print('Subscribed to ticker')
-                return
+                return logger.info('Subscribed to ticker')
 
             if message[1] == 0:
-                print('Unsubscribed to ticker')
-                return
+                return logger.info('Unsubscribed to ticker')
 
             data = message[2]
 
@@ -59,10 +56,10 @@ class Ticker(object):
                 upsert=True)
 
     def on_error(self, ws, error):
-        print(error)
+        logger.error(error)
 
     def on_close(self, ws):
-        print("Websocket closed!")
+        logger.info("Websocket closed!")
 
     def on_open(self, ws):
         tick = self.api.returnTicker()
@@ -71,29 +68,32 @@ class Ticker(object):
                 {'_id': market},
                 {'$set': tick[market]},
                 upsert=True)
-        print('Populated markets database with ticker data')
-        ws.send(json.dumps({'command': 'subscribe',
-                            'channel': 1002}))
+        logger.info('Populated markets database with ticker data')
+        self.ws.send(json.dumps({'command': 'subscribe', 'channel': 1002}))
 
     def start(self):
         self.t = Thread(target=self.ws.run_forever)
         self.t.daemon = True
         self.t.start()
-        print('Thread started')
+        logger.info('Thread started')
 
     def stop(self):
         self.ws.close()
         self.t.join()
-        print('Thread joined')
+        logger.info('Thread joined')
 
 
 if __name__ == "__main__":
     import pprint
     from tools import sleep
+    logging.basicConfig(level=logging.DEBUG)
     # websocket.enableTrace(True)
-    ticker = wsTicker()
-    ticker.start()
-    for i in range(5):
-        sleep(10)
-        pprint.pprint(ticker('USDT_BTC'))
+    ticker = Ticker()
+    try:
+        ticker.start()
+        for i in range(3):
+            sleep(5)
+            pprint.pprint(ticker('USDT_BTC'))
+    except Exception as e:
+        logger.exception(e)
     ticker.stop()
