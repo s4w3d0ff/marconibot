@@ -50,7 +50,7 @@ def ema(df, window, targetcol='close', colname='ema', **kwargs):
     return df
 
 
-def macd(df, fastcol='emafast', slowcol='emaslow', colname='macd'):
+def macd(df, fastcol='emafast', slowcol='sma', colname='macd'):
     """ Calculates the differance between 'fastcol' and 'slowcol' in a pandas
     dataframe """
     df[colname] = df[fastcol] - df[slowcol]

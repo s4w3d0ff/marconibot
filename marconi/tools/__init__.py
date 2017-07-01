@@ -23,6 +23,7 @@ import cherrypy as cp
 from pymongo import MongoClient
 # pip install bokeh
 from bokeh.plotting import figure, output_file, show, ColumnDataSource
+from bokeh.layouts import gridplot
 # pip install websocket-client
 import websocket
 
@@ -171,7 +172,8 @@ def geoProgress(n, r=PHI, size=5):
     """ Creates a Geometric Progression with the Geometric sum of <n>
     >>> l = geoProgress(42)
     >>> l
-    [2.5725461188664465, 4.162467057952537, 6.735013176818984, 10.897480234771521, 17.63249341159051]
+    [2.5725461188664465, 4.162467057952537, 6.735013176818984,
+    10.897480234771521, 17.63249341159051]
     >>> sum(l)
     42.0
     """
