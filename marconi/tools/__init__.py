@@ -29,7 +29,7 @@ import websocket
 
 # local --------------------------------------------------------------------
 from . import indicators
-from .poloniex import Poloniex, Coach, PoloniexError
+from .api.poloniex import Poloniex, Coach, PoloniexError
 from .daemon import DaemonContext
 from .minion import Minion
 from .brain import Brain

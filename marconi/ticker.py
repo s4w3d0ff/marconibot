@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 from tools import MongoClient, websocket
-from tools.poloniex import Poloniex
+from tools import Poloniex
 from tools import Thread, logging, json
 
 logger = logging.getLogger(__name__)
