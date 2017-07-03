@@ -19,3 +19,30 @@ pymongo
 pandas
 websocket-client
 ```
+
+### Mongo database layout:
+```
+() = database
+(()) = collection/table
++{}+ = document
+
+(poloniex)
+  |
+  |
+ ((ticker))------------+{'_id': str(currencyPair),
+  |                       'id': float(),
+  |                       'last': float(),
+  |                       'lowestAsk': float(),
+  |                       'highestBid': float(),
+  |                       'percentChange': float(),
+  |                       'baseVolume': float(),
+  |                       'quoteVolume': float(),
+  |                       'isFrozen': float(),
+  |                       'high24hr': float(),
+  |                       'low24hr': float()}+,
+  |                      +{}+,
+  |                      +{}+,
+  |                      +{}+
+
+
+```

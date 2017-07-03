@@ -1,7 +1,7 @@
 #!/usr/bin/python
-from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging
+from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, getMongoDb
 from tools import BL, OR, RD, GY, GR
-from tools.minion import Minion
+from tools import Minion, pymongo, roundDown, float2percent
 
 
 logger = logging.getLogger(__name__)
@@ -17,6 +17,7 @@ class Loaner(Minion):
                  delay=60 * 3):
         self.api, self.delay = api, delay
         self.coins, self.maxage = coins, maxage
+        self.db = getMongoDb('poloniex', 'lendingHistory')
 
     def getLoanOfferAge(self, order):
         return time() - UTCstr2epoch(order['date'])
@@ -24,6 +25,8 @@ class Loaner(Minion):
     def cancelOldOffers(self):
         logger.info(GR("Checking Open Loan Offers:----------------"))
         offers = self.api.returnOpenLoanOffers()
+        if len(offers) < 1:
+            return logger.info(RD('No open loan offers found'))
         for coin in self.coins:
             if coin not in offers:
                 continue
@@ -32,11 +35,11 @@ class Loaner(Minion):
                             BL(offer['date']),
                             OR(coin),
                             RD(offer['amount']),
-                            GY(str(float(offer['rate']) * 100) + '%')
+                            GY(float2percent(offer['rate'])) + '%'
                             )
                 if self.getLoanOfferAge(offer) > self.maxage:
                     logger.info("Canceling %s offer %s",
-                                OR(coin), GY(str(offer['id'])))
+                                OR(coin), GY(offer['id']))
                     r = self.api.cancelLoanOffer(offer['id'])
                     logger.info(r['message'])
 
@@ -52,20 +55,76 @@ class Loaner(Minion):
             if float(amount) < self.coins[coin]:
                 logger.info("Not enough %s:%s, below set minimum: %s",
                             OR(coin),
-                            RD(str(amount)),
-                            BL(str(self.coins[coin])))
+                            RD(amount),
+                            BL(self.coins[coin]))
                 continue
             else:
-                logging.info("%s:%s", OR(coin), GR(str(amount)))
+                logging.info("%s:%s", OR(coin), GR(amount))
             orders = self.api.returnLoanOrders(coin)['offers']
             price = sum([float(o['rate']) for o in orders]) / len(orders)
             logger.info('Creating %s %s loan offer at %s',
-                        RD(str(amount)), OR(coin), GR(str(price * 100) + '%'))
+                        RD(amount), OR(coin), GR(float2percent(price)) + '%')
             r = self.api.createLoanOffer(coin, amount, price, autoRenew=0)
             logger.info('%s', GR(r["message"]))
 
+    def updateLendingHistory(self):
+        try:
+            old = list(self.db.find().sort('timestamp', pymongo.ASCENDING))[-1]
+        except IndexError:
+            logger.warning(RD('No loan history found in database'))
+            old = {'timestamp': time() - self.api.YEAR * 10}
+        start = old['timestamp'] + 1
+        new = self.api.returnLendingHistory(start=start)
+        if len(new) > 0:
+            logger.info(GR('%d new lending database entries' % len(new)))
+            for loan in new:
+                _id = loan['id']
+                del loan['id']
+                loan['timestamp'] = UTCstr2epoch(loan['close'])
+                loan['rate'] = float(loan['rate'])
+                loan['duration'] = float(loan['duration'])
+                loan['interest'] = float(loan['interest'])
+                loan['fee'] = float(loan['fee'])
+                loan['earned'] = float(loan['earned'])
+                self.db.update_one({'_id': _id}, {'$set': loan}, upsert=True)
+
+    def myLendingHistory(self):
+        self.updateLendingHistory()
+        for coin in self.coins:
+            earned = 0
+            fees = 0
+            interest = 0
+            duration = 0
+            rates = []
+            hist = list(self.db.find({'currency': coin}))
+            if len(hist) > 0:
+                logger.debug('%s past loan orders found for %s',
+                             GR(len(hist)), OR(coin))
+                for loan in hist:
+                    earned += loan['earned']
+                    fees += loan['fee']
+                    interest += loan['interest']
+                    duration += loan['duration']
+                    rates.append(loan['rate'])
+            logger.info("Total %s earned lending: [earnings: %s] [average rate: %s]",
+                        OR(coin), GR(roundDown(earned)),
+                        BL(roundDown(sum(rates) / len(rates)))
+                        )
+
+    def showActiveLoans(self):
+        active = self.api.returnActiveLoans()['provided']
+        logger.info(GR('Active Loans:-----------------------------'))
+        for i in active:
+            logger.info('%s|%s:%s-[rate:%s]-[fees:%s]',
+                        BL(i['date']),
+                        OR(i['currency']),
+                        RD(i['amount']),
+                        GY(roundDown(float2percent(i['rate']))) + '%',
+                        GR(i['fees'])
+                        )
+
     def run(self):
-        """ Main loop, cancels 'stale' loan offers, turns auto-renew off on
+        """ Main loop, cancels 'stale' loan offers, turns auto - renew off on
         active loans, and creates new loan offers at optimum price """
         # Check auto renew is not enabled for current loans
         autoRenewAll(self.api, toggle=False)
@@ -76,16 +135,9 @@ class Loaner(Minion):
                 # Create new offer (if can)
                 self.createLoanOffers()
                 # show active
-                active = self.api.returnActiveLoans()['provided']
-                logger.info(GR('Active Loans:-----------------------------'))
-                for i in active:
-                    logger.info('%s|%s:%s-[rate:%s]-[fees:%s]',
-                                BL(i['date']),
-                                OR(i['currency']),
-                                RD(i['amount']),
-                                GY(str(float(i['rate']) * 100) + '%'),
-                                GR(i['fees'])
-                                )
+                self.showActiveLoans()
+                # show history
+                self.myLendingHistory()
 
             except Exception as e:
                 logger.exception(e)
@@ -121,9 +173,9 @@ if __name__ == '__main__':
                         'DOGE': 10,
                     },
                     # Maximum age (in secs) to let an open offer sit
-                    maxage=60 * 15,  # 5 min
+                    maxage=60 * 15,  # 15 min
                     # number of seconds between loops
-                    delay=60 * 5)  # 3 min
+                    delay=60 * 5)  # 5 min
     ########################
     #################-Stop Configuring-#################################
 

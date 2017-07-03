@@ -40,9 +40,9 @@ class Ticker(object):
                 return logger.info('Unsubscribed to ticker')
 
             data = message[2]
-
+            data = [float(dat) for dat in data]
             self.db.update_one(
-                {"id": float(data[0])},
+                {"id": data[0]},
                 {"$set": {'last': data[1],
                           'lowestAsk': data[2],
                           'highestBid': data[3],
