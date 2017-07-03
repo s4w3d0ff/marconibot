@@ -20,7 +20,7 @@ from bs4 import BeautifulSoup as bs
 # pip install cherrypy
 import cherrypy as cp
 # pip install pymongo
-from pymongo import MongoClient
+import pymongo
 # pip install bokeh
 from bokeh.plotting import figure, output_file, show, ColumnDataSource
 from bokeh.layouts import gridplot
@@ -50,18 +50,18 @@ TRADE_MIN = 0.0001
 
 # console colors
 WT = '\033[0m'  # white (normal)
-RD = lambda text: '\033[31m' + text + WT  # red
-GR = lambda text: '\033[32m' + text + WT  # green
-OR = lambda text: '\033[33m' + text + WT  # orange
-BL = lambda text: '\033[34m' + text + WT  # blue
-PR = lambda text: '\033[35m' + text + WT  # purp
-CY = lambda text: '\033[36m' + text + WT  # cyan
-GY = lambda text: '\033[37m' + text + WT  # gray
+RD = lambda text: '\033[31m' + str(text) + WT  # red
+GR = lambda text: '\033[32m' + str(text) + WT  # green
+OR = lambda text: '\033[33m' + str(text) + WT  # orange
+BL = lambda text: '\033[34m' + str(text) + WT  # blue
+PR = lambda text: '\033[35m' + str(text) + WT  # purp
+CY = lambda text: '\033[36m' + str(text) + WT  # cyan
+GY = lambda text: '\033[37m' + str(text) + WT  # gray
 
 
 # convertions, misc ------------------------------------------------------
 def getMongoDb(db, coll):
-    return MongoClient()[db][coll]
+    return pymongo.MongoClient()[db][coll]
 
 
 def wait(i=10):
@@ -92,7 +92,7 @@ def roundDown(n, d=8):
     d :: int munber of decimals to round to
     """
     d = int('1' + ('0' * d))
-    return floor(n * d) / d
+    return floor(float(n) * d) / d
 
 
 def roundUp(n, d=8):
@@ -101,7 +101,7 @@ def roundUp(n, d=8):
     d :: int munber of decimals to round to
     """
     d = int('1' + ('0' * d))
-    return ceil(n * d) / d
+    return ceil(float(n) * d) / d
 
 
 def epoch2UTCstr(timestamp=False, fmat="%Y-%m-%d %H:%M:%S"):

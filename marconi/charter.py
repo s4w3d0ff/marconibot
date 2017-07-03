@@ -281,7 +281,7 @@ class Charter(object):
 
 
 if __name__ == '__main__':
-    from tools.poloniex import Poloniex
+    from tools import Poloniex
     from tools import show, PI, gridplot
 
     logging.basicConfig(level=logging.DEBUG)
