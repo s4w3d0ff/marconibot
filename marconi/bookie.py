@@ -12,12 +12,9 @@ class Bookie(object):
         self.updateTradeHist()
 
     def myTradeHistory(self, query=None):
-        return list(self.db.find(query))
-
-    def updateMyTradeHist(self):
         try:
             old = list(self.db.find().sort('timestamp', pymongo.ASCENDING))[-1]
-        except IndexError:
+        except:
             logger.warning('No trades found in database')
             old = {'timestamp': time() - self.api.YEAR * 10}
         start = old['timestamp'] + 1
@@ -36,7 +33,7 @@ class Bookie(object):
                 trade['rate'] = float(trade['rate'])
                 trade['fee'] = float(trade['fee'])
                 self.db.update_one({"_id": _id}, {"$set": trade}, upsert=True)
-
+        return list(self.db.find(query).sort('timestamp', pymongo.ASCENDING))
 
 if __name__ == '__main__':
     from tools import Poloniex

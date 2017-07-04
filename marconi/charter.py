@@ -68,7 +68,8 @@ def plotCandlesticks(p, df, period, upcolor='green', downcolor='red'):
            top=df.open[inc],
            bottom=df.close[inc],
            fill_color=upcolor,
-           line_color="black")
+           line_width=2,
+           line_color=upcolor)
     # Plot red candles
     dec = df.open > df.close
     p.vbar(x=df.date[dec],
@@ -76,24 +77,38 @@ def plotCandlesticks(p, df, period, upcolor='green', downcolor='red'):
            top=df.open[dec],
            bottom=df.close[dec],
            fill_color=downcolor,
-           line_color="black")
+           line_width=2,
+           line_color=downcolor)
     # format price labels
     p.yaxis[0].formatter = NumeralTickFormatter(format='0.00000000')
 
 
-def plotVolume(p, df, period, color='blue'):
+def plotVolume(p, df, period, upcolor='green', downcolor='red'):
     candleWidth = (period * 800)
     # create new y axis for volume
     p.extra_y_ranges = {"volume": Range1d(start=min(df['volume'].values),
                                           end=max(df['volume'].values))}
     p.add_layout(LinearAxis(y_range_name="volume"), 'right')
-    # Plot volume
-    p.vbar(x=df['date'],
+    # Plot green candles
+    inc = df.close > df.open
+    p.vbar(x=df.date[inc],
            width=candleWidth,
-           top=df['volume'],
+           top=df.volume[inc],
            bottom=0,
-           fill_color=color,
-           alpha=0.2,
+           alpha=0.1,
+           fill_color=upcolor,
+           line_color=upcolor,
+           y_range_name="volume")
+
+    # Plot red candles
+    dec = df.open > df.close
+    p.vbar(x=df.date[dec],
+           width=candleWidth,
+           top=df.volume[dec],
+           bottom=0,
+           alpha=0.1,
+           fill_color=downcolor,
+           line_color=downcolor,
            y_range_name="volume")
 
 
@@ -213,7 +228,10 @@ class Charter(object):
         return df
 
     def graph(self, pair=False, period=False, frame=False,
-              window=120, plotWidth=1000):
+              window=120, plot_width=1000, min_y_border=40,
+              border_color="whitesmoke", background_color="white",
+              background_alpha=0.4, legend_location="top_left",
+              tools="pan,wheel_zoom,reset"):
         df = self.dataFrame(pair, period, frame, window)
         #
         # Start Candlestick Plot -------------------------------------------
@@ -224,10 +242,10 @@ class Charter(object):
                      max(df['high'].values) * 1.2),
             x_range=(df.tail(int(len(df) // 10)).date.min().timestamp() * 1000,
                      df.date.max().timestamp() * 1000),
-            tools="pan,wheel_zoom,reset",
+            tools=tools,
             title=self.pair + '-' + str(self.period),
-            plot_width=plotWidth,
-            plot_height=int(plotWidth // 2.7),
+            plot_width=plot_width,
+            plot_height=int(plot_width // 2.7),
             toolbar_location="above")
         # add plots
         # plot volume
@@ -239,18 +257,18 @@ class Charter(object):
         # plot moving aves
         plotMovingAverages(candlePlot, df)
         # set legend location
-        candlePlot.legend.location = "top_left"
+        candlePlot.legend.location = legend_location
         # set background color
-        candlePlot.background_fill_color = "white"
-        candlePlot.background_fill_alpha = 0.4
+        candlePlot.background_fill_color = background_color
+        candlePlot.background_fill_alpha = background_alpha
         # set border color and size
-        candlePlot.border_fill_color = "whitesmoke"
-        candlePlot.min_border_left = 40
-        candlePlot.min_border_right = 40
+        candlePlot.border_fill_color = border_color
+        candlePlot.min_border_left = min_y_border
+        candlePlot.min_border_right = candlePlot.min_border_left
         #
         # Start RSI/MACD Plot -------------------------------------------
         # create a new plot and share x range with candlestick plot
-        rsiPlot = figure(plot_height=150,
+        rsiPlot = figure(plot_height=int(candlePlot.plot_height // 2.5),
                          x_axis_type="datetime",
                          y_range=(-(max(df['macd'].values) * 2),
                                   max(df['macd'].values) * 2),
@@ -263,17 +281,17 @@ class Charter(object):
         # plot rsi
         plotRSI(rsiPlot, df, self.period)
         # set background color
-        rsiPlot.background_fill_color = "white"
-        rsiPlot.background_fill_alpha = 0.4
+        rsiPlot.background_fill_color = candlePlot.background_fill_color
+        rsiPlot.background_fill_alpha = candlePlot.background_fill_alpha
         # set border color and size
-        rsiPlot.border_fill_color = "whitesmoke"
-        rsiPlot.min_border_left = 40
-        rsiPlot.min_border_right = 40
+        rsiPlot.border_fill_color = candlePlot.border_fill_color
+        rsiPlot.min_border_left = candlePlot.min_border_left
+        rsiPlot.min_border_right = candlePlot.min_border_right
         rsiPlot.min_border_bottom = 20
         # orient x labels
         rsiPlot.xaxis.major_label_orientation = PI / 4
         # set legend
-        rsiPlot.legend.location = "top_left"
+        rsiPlot.legend.location = legend_location
         # set dataframe 'date' as index
         df.set_index('date', inplace=True)
         # return layout and df

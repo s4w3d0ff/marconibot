@@ -26,10 +26,12 @@ from bokeh.plotting import figure, output_file, show, ColumnDataSource
 from bokeh.layouts import gridplot
 # pip install websocket-client
 import websocket
+# pip install git+https://github.com/s4w3d0ff/python-poloniex.git
+from poloniex import Poloniex, Coach, PoloniexError
+
 
 # local --------------------------------------------------------------------
 from . import indicators
-from .poloniex import Poloniex, Coach, PoloniexError
 from .daemon import DaemonContext
 from .minion import Minion
 from .brain import Brain

@@ -14,10 +14,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi.tools import np, pd, logging, getMongoDb, show
-from marconi.charter import Charter
-from marconi.tools.poloniex import Poloniex
+from marconi.tools import np, pd, logging, getMongoDb, show, Poloniex
 from marconi.tools.brain import Brain
+from marconi.tools.brain import RandomForestClassifier, DecisionTreeClassifier
+from marconi.charter import Charter
+from marconi.ticker import Ticker
+from marconi.loaner import Loaner
 
 
 logger = logging.getLogger(__name__)
@@ -25,22 +27,29 @@ logger = logging.getLogger(__name__)
 
 class Marconi(object):
 
-    def __init__(self, api, market, **kwarg):
+    def __init__(self, api=False):
         self.api = api
+        if not self.api:
+            self.api = Poloniex(jsonNums=float)
         self.market = market
-        self.brain = Brain(self.api)
-        self.chart = Charter(self.api, self.market)
+        self.parentCoin, self.child = self.market.split('_')
+        self.charter = Charter(Charter(self.api))
+        self.brain = Brain({'rf': RandomForestClassifier(n_estimators=10,
+                                                         random_state=123),
+                            'dt': DecisionTreeClassifier()})
+        self.ticker = Ticker(self.api)
+        # self.loaner = Loaner(self.api, coins=lendCoins})
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger('requests').setLevel(logging.ERROR)
-    logging.getLogger('marconi.tools.poloniex').setLevel(logging.INFO)
+    logging.getLogger('poloniex').setLevel(logging.INFO)
 
-    api = Poloniex(jsonNums=float)
-    m = Marconi(api, 'USDT_BTC')
-    m.chart.period = api.DAY
+    marconi = Marconi()
+    marconi.charter.dataFrame()
 
+    """
     markets = ['BTC_LTC',
                'ETH_ETC',
                'BTC_DOGE',
@@ -70,13 +79,14 @@ if __name__ == '__main__':
 
         m.brain.train(features, labels)
 
-    p, test = m. chart.graph('BTC_ETH',
-                             period,
-                             window=window,
-                             volume=True,
-                             bands=True,
-                             maves=True)
+    p, test = m.chart.graph('BTC_ETH',
+                            period,
+                            window=window,
+                            volume=True,
+                            bands=True,
+                            maves=True)
     show(p)
 
-    test['prediction'] = brain.votinglobe.predict(test[featureset].values)
+    test['prediction'] = m.brain.votinglobe.predict(test[featureset].values)
     print(test[['close', 'bbpercent', 'prediction']])
+    """
