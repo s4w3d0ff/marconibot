@@ -1,6 +1,7 @@
 from setuptools import setup
+from marconi import __version__
 setup(name='marconi',
-      version='0.0.1',
+      version=__version__,
       description='Poloniex API trader for Python 3',
       url='https://github.com/s4w3d0ff/marconibot',
       author='s4w3d0ff',
@@ -15,5 +16,9 @@ setup(name='marconi',
           'pymongo',
           'pandas',
           'websocket-client',
+          'poloniex'
+      ],
+      dependency_links=[
+          "git+https://git@github.com/s4w3d0ff/python-poloniex.git"
       ],
       zip_safe=False)
