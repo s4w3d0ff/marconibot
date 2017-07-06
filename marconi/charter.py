@@ -8,7 +8,7 @@ from bokeh.models import LinearAxis, Range1d
 logger = logging.getLogger(__name__)
 
 
-def plotRSI(p, df, period, upcolor='green', downcolor='red'):
+def plotRSI(p, df, plotwidth=800, upcolor='green', downcolor='red'):
     # create y axis for rsi
     p.extra_y_ranges = {"rsi": Range1d(start=0, end=100)}
     p.add_layout(LinearAxis(y_range_name="rsi"), 'right')
@@ -22,7 +22,8 @@ def plotRSI(p, df, period, upcolor='green', downcolor='red'):
             legend="rsi",
             y_range_name="rsi")
 
-    candleWidth = (period * 800)
+    candleWidth = (df.iloc[2]['date'].timestamp() -
+                   df.iloc[1]['date'].timestamp()) * plotwidth
     # plot green bars
     inc = df.rsi >= 50
     p.vbar(x=df.date[inc],
@@ -52,15 +53,16 @@ def plotMACD(p, df, color='blue'):
     p.yaxis[0].formatter = NumeralTickFormatter(format='0.00000000')
 
 
-def plotCandlesticks(p, df, period, upcolor='green', downcolor='red'):
-    candleWidth = (period * 750)
+def plotCandlesticks(p, df, plotwidth=750, upcolor='green', downcolor='red'):
+    candleWidth = (df.iloc[2]['date'].timestamp() -
+                   df.iloc[1]['date'].timestamp()) * plotwidth
     # Plot candle 'shadows'/wicks
     p.segment(x0=df.date,
               y0=df.high,
               x1=df.date,
               y1=df.low,
               color="black",
-              line_width=4)
+              line_width=2)
     # Plot green candles
     inc = df.close > df.open
     p.vbar(x=df.date[inc],
@@ -68,8 +70,8 @@ def plotCandlesticks(p, df, period, upcolor='green', downcolor='red'):
            top=df.open[inc],
            bottom=df.close[inc],
            fill_color=upcolor,
-           line_width=2,
-           line_color=upcolor)
+           line_width=0.5,
+           line_color='black')
     # Plot red candles
     dec = df.open > df.close
     p.vbar(x=df.date[dec],
@@ -77,14 +79,15 @@ def plotCandlesticks(p, df, period, upcolor='green', downcolor='red'):
            top=df.open[dec],
            bottom=df.close[dec],
            fill_color=downcolor,
-           line_width=2,
-           line_color=downcolor)
+           line_width=0.5,
+           line_color='black')
     # format price labels
     p.yaxis[0].formatter = NumeralTickFormatter(format='0.00000000')
 
 
-def plotVolume(p, df, period, upcolor='green', downcolor='red'):
-    candleWidth = (period * 800)
+def plotVolume(p, df, plotwidth=800, upcolor='green', downcolor='red'):
+    candleWidth = (df.iloc[2]['date'].timestamp() -
+                   df.iloc[1]['date'].timestamp()) * plotwidth
     # create new y axis for volume
     p.extra_y_ranges = {"volume": Range1d(start=min(df['volume'].values),
                                           end=max(df['volume'].values))}
@@ -159,7 +162,7 @@ class Charter(object):
         self.period = period
         self.pair = pair
         if not frame:
-            frame = self.api.YEAR
+            frame = self.api.YEAR * 10
         # get db connection
         dbcolName = pair + '-' + str(period)
         db = getMongoDb('poloniexCharts', dbcolName)
@@ -249,9 +252,9 @@ class Charter(object):
             toolbar_location="above")
         # add plots
         # plot volume
-        plotVolume(candlePlot, df, self.period)
+        plotVolume(candlePlot, df)
         # plot candlesticks
-        plotCandlesticks(candlePlot, df, self.period)
+        plotCandlesticks(candlePlot, df)
         # plot bbands
         plotBBands(candlePlot, df)
         # plot moving aves
@@ -279,7 +282,7 @@ class Charter(object):
         # plot macd
         plotMACD(rsiPlot, df)
         # plot rsi
-        plotRSI(rsiPlot, df, self.period)
+        plotRSI(rsiPlot, df)
         # set background color
         rsiPlot.background_fill_color = candlePlot.background_fill_color
         rsiPlot.background_fill_alpha = candlePlot.background_fill_alpha

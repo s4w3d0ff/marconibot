@@ -3,7 +3,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 
-from .. import logging, pd, np, time, pickle, SATOSHI
+from .. import logging, pd, np, time, pickle
 
 
 logger = logging.getLogger(__name__)
