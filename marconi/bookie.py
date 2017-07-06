@@ -9,7 +9,6 @@ class Bookie(object):
         self.api = api
         self.market = market
         self.db = getMongoDb('poloniex', 'my%sTradeHistory' % market)
-        self.updateTradeHist()
 
     def myTradeHistory(self, query=None):
         try:
