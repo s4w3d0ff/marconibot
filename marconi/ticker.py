@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from tools import MongoClient, websocket
+from tools import getMongoDb, websocket
 from tools import Poloniex
 from tools import Thread, logging, json
 
@@ -13,7 +13,7 @@ class Ticker(object):
         self.api = api
         if not self.api:
             self.api = Poloniex(jsonNums=float)
-        self.db = MongoClient().poloniex['ticker']
+        self.db = getMongoDb('poloniex', 'ticker')
         self.db.drop()
         self.ws = websocket.WebSocketApp("wss://api2.poloniex.com/",
                                          on_message=self.on_message,

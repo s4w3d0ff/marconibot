@@ -32,7 +32,6 @@ from poloniex import Poloniex, Coach, PoloniexError
 
 # local --------------------------------------------------------------------
 from . import indicators
-from .daemon import DaemonContext
 from .minion import Minion
 from .brain import Brain
 
