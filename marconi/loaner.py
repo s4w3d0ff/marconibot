@@ -92,8 +92,6 @@ class Loaner(Minion):
         self.updateLendingHistory()
         for coin in self.coins:
             earned = 0
-            fees = 0
-            interest = 0
             duration = 0
             rates = []
             hist = list(self.db.find({'currency': coin}))
@@ -102,10 +100,9 @@ class Loaner(Minion):
                              GR(len(hist)), OR(coin))
                 for loan in hist:
                     earned += loan['earned']
-                    fees += loan['fee']
-                    interest += loan['interest']
                     duration += loan['duration']
                     rates.append(loan['rate'])
+
             logger.info("Total %s earned lending: [earnings: %s] [average rate: %s]",
                         OR(coin), GR(roundDown(earned)),
                         BL(roundDown(sum(rates) / len(rates)))
