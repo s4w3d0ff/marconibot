@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from tools import getMongoColl, websocket
-from tools import Poloniex
-from tools import Thread, logging, json
+from marconi.tools import getMongoColl, websocket
+from marconi.tools import Poloniex
+from marconi.tools import Thread, logging, json
 
 logger = logging.getLogger(__name__)
 

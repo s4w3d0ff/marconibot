@@ -1,6 +1,6 @@
-from tools import time, getMongoColl, logging, itemgetter
-from tools import pd, np, figure
-from tools.indicators import ema, macd, bbands, rsi
+from .tools import time, getMongoColl, logging, itemgetter
+from .tools import pd, np, figure, PI
+from .tools.indicators import ema, macd, bbands, rsi
 
 from bokeh.models import NumeralTickFormatter
 from bokeh.models import LinearAxis, Range1d
@@ -309,8 +309,8 @@ class Charter(object):
 
 
 if __name__ == '__main__':
-    from tools import Poloniex
-    from tools import show, PI, gridplot
+    from .tools import Poloniex
+    from .tools import show, gridplot
 
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger("poloniex").setLevel(logging.INFO)

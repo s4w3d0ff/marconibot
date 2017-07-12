@@ -1,8 +1,8 @@
 #!/usr/bin/python
-from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, getMongoColl
-from tools import BL, OR, RD, GY, GR
-from tools import Minion, pymongo, roundDown, float2percent
-
+from .tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, getMongoColl
+from .tools import BL, OR, RD, GY, GR
+from .tools import pymongo, roundDown, float2percent
+from .tools.minion import Minion
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ class Loaner(Minion):
 
 if __name__ == '__main__':
     from sys import argv
-    from tools import Poloniex
+    from .tools import Poloniex
     logging.basicConfig(
         format='[%(asctime)s]%(message)s',
         datefmt=GR("%H:%M:%S"),

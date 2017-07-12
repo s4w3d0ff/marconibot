@@ -1,4 +1,4 @@
-from tools import time, UTCstr2epoch, logging, pymongo
+from .tools import time, UTCstr2epoch, logging, pymongo
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class Bookie(object):
             'timestamp', pymongo.ASCENDING))
 
 if __name__ == '__main__':
-    from tools import Poloniex
+    from .tools import Poloniex
     from sys import argv
     from pprint import pprint
     logging.basicConfig(level=logging.INFO)
