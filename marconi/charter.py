@@ -1,4 +1,4 @@
-from tools import time, getMongoDb, logging, itemgetter
+from tools import time, getMongoColl, logging, itemgetter
 from tools import pd, np, figure
 from tools.indicators import ema, macd, bbands, rsi
 
@@ -156,7 +156,7 @@ class Charter(object):
             frame = self.api.YEAR * 10
         dbcolName = pair + 'chart'
         # get db connection
-        db = getMongoDb('poloniex', dbcolName)
+        db = getMongoColl('poloniex', dbcolName)
         # get last candle
         try:
             last = sorted(

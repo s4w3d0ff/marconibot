@@ -20,7 +20,7 @@ pandas
 websocket-client
 ```
 
-### Mongo database layout:
+### Mongo Tree:
 ```
  ( )  = database
 (( )) = collection/table
@@ -76,4 +76,8 @@ websocket-client
   |
   |
 
+```
+Drop 'poloniex' Database:
+```bash
+python3 -c "from pymongo import MongoClient; MongoClient().drop_database('poloniex')"
 ```

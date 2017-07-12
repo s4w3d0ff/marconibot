@@ -61,7 +61,8 @@ GY = lambda text: '\033[37m' + str(text) + WT  # gray
 
 
 # convertions, misc ------------------------------------------------------
-def getMongoDb(db, coll):
+def getMongoColl(db, coll):
+    """ returns a mongodb collection """
     return pymongo.MongoClient()[db][coll]
 
 
@@ -80,10 +81,12 @@ def addPercent(n, p):
 
 
 def float2percent(n):
+    """ n * 100 """
     return float(n) * 100
 
 
 def percent2float(n):
+    """ n / 100 """
     return float(n) / 100
 
 

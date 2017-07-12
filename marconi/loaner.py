@@ -1,5 +1,5 @@
 #!/usr/bin/python
-from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, getMongoDb
+from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, getMongoColl
 from tools import BL, OR, RD, GY, GR
 from tools import Minion, pymongo, roundDown, float2percent
 
@@ -17,7 +17,7 @@ class Loaner(Minion):
                  delay=60 * 3):
         self.api, self.delay = api, delay
         self.coins, self.maxage = coins, maxage
-        self.db = getMongoDb('poloniex', 'lendingHistory')
+        self.db = getMongoColl('poloniex', 'lendingHistory')
 
     def getLoanOfferAge(self, order):
         return time() - UTCstr2epoch(order['date'])

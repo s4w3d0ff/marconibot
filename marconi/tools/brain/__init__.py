@@ -73,7 +73,7 @@ class Brain(object):
                   newLabels=False, split=False):
         df = self.prepDataframe(df)
         if split:
-            df, tdf
+            df, tdf = self.splitTrainTestData(df, split)
         f = self.getFeatures(df, featureset)
         l = self.getLabels(df, newLabels)
         self.leftLobe.fit(f, l)
@@ -86,7 +86,7 @@ class Brain(object):
                    newLabels=False, split=False):
         df = self.prepDataframe(df)
         if split:
-            df, tdf
+            df, tdf = self.splitTrainTestData(df, split)
         f = self.getFeatures(df, featureset)
         l = self.getLabels(df, newLabels)
         self.rightLobe.fit(f, l)
