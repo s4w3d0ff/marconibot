@@ -6,7 +6,7 @@ setup(name='marconi',
       url='https://github.com/s4w3d0ff/marconibot',
       author='s4w3d0ff',
       license='GPL v3',
-      packages=['marconi', 'marconi.tools'],
+      packages=['marconi'],
       install_requires=[
           'numpy',
           'scikit-learn',
@@ -19,6 +19,6 @@ setup(name='marconi',
           'poloniex'
       ],
       dependency_links=[
-          "git+https://git@github.com/s4w3d0ff/python-poloniex.git"
+          'git+ssh://git@github.com/s4w3d0ff/python-poloniex.git@master#egg=python-poloniex',
       ],
       zip_safe=False)
