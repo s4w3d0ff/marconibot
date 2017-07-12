@@ -27,14 +27,14 @@ class Brain(object):
 
         self.rightLobe = VotingClassifier(
             estimators=[(lobe, self._lobes[lobe]) for lobe in self._lobes],
-            voting='soft',
+            voting='hard',
             n_jobs=len(self._lobes))
 
     def prepDataframe(self, df):
         # make infinity nan
         df.replace([np.inf, -np.inf], np.nan, inplace=True)
-        # make nan the mean
-        df.fillna(df.mean(), inplace=True)
+        # drop nan
+        df.dropna(inplace=True)
         return df
 
     def splitTrainTestData(self, df, size=1):
@@ -73,7 +73,7 @@ class Brain(object):
                   newLabels=False, split=False):
         df = self.prepDataframe(df)
         if split:
-            df, tdf
+            df, tdf = self.splitTrainTestData(df, split)
         f = self.getFeatures(df, featureset)
         l = self.getLabels(df, newLabels)
         self.leftLobe.fit(f, l)
@@ -86,7 +86,7 @@ class Brain(object):
                    newLabels=False, split=False):
         df = self.prepDataframe(df)
         if split:
-            df, tdf
+            df, tdf = self.splitTrainTestData(df, split)
         f = self.getFeatures(df, featureset)
         l = self.getLabels(df, newLabels)
         self.rightLobe.fit(f, l)

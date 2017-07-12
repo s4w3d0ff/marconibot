@@ -1,5 +1,5 @@
-from tools import cancelAllLoanOffers, cancelAllOrders, closeAllMargins
-from tools import autoRenewAll, Minion
+from .tools import cancelAllLoanOffers, cancelAllOrders, closeAllMargins
+from .tools import autoRenewAll, Minion
 
 
 class Liquidator(Minion):

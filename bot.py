@@ -14,7 +14,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi.tools import np, pd, logging, getMongoDb, show, Poloniex
+from marconi.tools import np, pd, logging, show, Poloniex, shuffleDataFrame
 from marconi.tools.brain import Brain
 from marconi.tools.brain import RandomForestClassifier, DecisionTreeClassifier
 from marconi.charter import Charter
@@ -31,9 +31,8 @@ class Marconi(object):
         self.api = api
         if not self.api:
             self.api = Poloniex(jsonNums=float)
-        self.market = market
-        self.parentCoin, self.child = self.market.split('_')
-        self.charter = Charter(Charter(self.api))
+        self.parentCoin, self.childCoin = self.market.split('_')
+        self.charter = Charter(self.api)
         self.brain = Brain({'rf': RandomForestClassifier(n_estimators=10,
                                                          random_state=123),
                             'dt': DecisionTreeClassifier()})
@@ -47,46 +46,81 @@ if __name__ == '__main__':
     logging.getLogger('poloniex').setLevel(logging.INFO)
 
     marconi = Marconi()
-    marconi.charter.dataFrame()
+
+    markets = {
+        'BTC_LTC': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        },
+        'ETH_ETC': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        },
+        'BTC_DOGE': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        },
+        'BTC_XRP': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        },
+        'USDT_BTC': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        },
+        'USDT_LTC': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        },
+        'BTC_DASH': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        },
+        'USDT_DASH': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        },
+        'BTC_FCT': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        },
+        'BTC_ETC': {
+            'frame': 1337,
+            'zoom': '1D',
+            'window': 70
+        }
+    }
+
+    featureset = ['shadowsize', 'rsi', 'bbpercent', 'bbrange']
+
+    traindf = False
+    for market in markets:
+        df = marconi.charter.dataFrame(
+            pair=market,
+            frame=markets[market]['frame']
+            zoom=markets[market]['zoom']
+            window=markets[market]['window']
+        )
+
+        df['label'] =
+
+        df = shuffleDataFrame(df[featureset])
+
+        if not traindf:
+            traindf = df
+        else:
+            traindf.append(df)
 
     """
-    markets = ['BTC_LTC',
-               'ETH_ETC',
-               'BTC_DOGE',
-               'BTC_XRP',
-               'USDT_BTC',
-               'USDT_LTC',
-               'BTC_DASH',
-               'USDT_DASH',
-               'BTC_FCT',
-               'BTC_ETC']
-    window = 120
-    featureset = ['sma', 'macd', 'rsi', 'close']
-
-    for market in markets:
-        train = m.chart.dataFrame(market, period, window=window)
-        train.replace([np.inf, -np.inf], np.nan, inplace=True)
-        # make nan the mean
-        train.fillna(train.mean(), inplace=True)
-
-        features = train[featureset].values
-        logger.info("%s training size: %s", market, str(len(features)))
-
-        if 'label' in train:
-            labels = train['label'].values
-        # get labels
-        labels = []
-
-        m.brain.train(features, labels)
-
-    p, test = m.chart.graph('BTC_ETH',
-                            period,
-                            window=window,
-                            volume=True,
-                            bands=True,
-                            maves=True)
-    show(p)
-
     test['prediction'] = m.brain.votinglobe.predict(test[featureset].values)
     print(test[['close', 'bbpercent', 'prediction']])
     """

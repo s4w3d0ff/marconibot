@@ -11,6 +11,7 @@ from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
 from multiprocessing.dummy import Process as Thread
+
 # 3rd party ----------------------------------------------------------------
 # pip install pandas numpy
 import pandas as pd
@@ -21,7 +22,10 @@ from bs4 import BeautifulSoup as bs
 import cherrypy as cp
 # pip install pymongo
 import pymongo
+# pip install scikit-learn
+import sklearn
 # pip install bokeh
+import bokeh
 from bokeh.plotting import figure, output_file, show, ColumnDataSource
 from bokeh.layouts import gridplot
 # pip install websocket-client
@@ -29,12 +33,6 @@ import websocket
 # pip install git+https://github.com/s4w3d0ff/python-poloniex.git
 from poloniex import Poloniex, Coach, PoloniexError
 
-
-# local --------------------------------------------------------------------
-from . import indicators
-from .daemon import DaemonContext
-from .minion import Minion
-from .brain import Brain
 
 # constants ----------------------------------------------------------------
 
@@ -62,12 +60,19 @@ GY = lambda text: '\033[37m' + str(text) + WT  # gray
 
 
 # convertions, misc ------------------------------------------------------
-def getMongoDb(db, coll):
+
+def shuffleDataFrame(df):
+    """ Shuffles the rows of a dataframe """
+    return df.reindex(np.random.permutation(df.index))
+
+
+def getMongoColl(db, coll):
+    """ Returns a mongodb collection """
     return pymongo.MongoClient()[db][coll]
 
 
 def wait(i=10):
-    """ wraps 'time.sleep()' with logger output"""
+    """ Wraps 'time.sleep()' with logger output """
     logger.debug('Waiting %d sec...', i)
     sleep(i)
 
@@ -81,10 +86,12 @@ def addPercent(n, p):
 
 
 def float2percent(n):
+    """ n * 100 """
     return float(n) * 100
 
 
 def percent2float(n):
+    """ n / 100 """
     return float(n) / 100
 
 

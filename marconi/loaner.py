@@ -1,8 +1,8 @@
 #!/usr/bin/python
-from tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, getMongoDb
-from tools import BL, OR, RD, GY, GR
-from tools import Minion, pymongo, roundDown, float2percent
-
+from .tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, getMongoColl
+from .tools import BL, OR, RD, GY, GR
+from .tools import pymongo, roundDown, float2percent
+from .tools.minion import Minion
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class Loaner(Minion):
                  delay=60 * 3):
         self.api, self.delay = api, delay
         self.coins, self.maxage = coins, maxage
-        self.db = getMongoDb('poloniex', 'lendingHistory')
+        self.db = getMongoColl('poloniex', 'lendingHistory')
 
     def getLoanOfferAge(self, order):
         return time() - UTCstr2epoch(order['date'])
@@ -92,8 +92,6 @@ class Loaner(Minion):
         self.updateLendingHistory()
         for coin in self.coins:
             earned = 0
-            fees = 0
-            interest = 0
             duration = 0
             rates = []
             hist = list(self.db.find({'currency': coin}))
@@ -102,10 +100,9 @@ class Loaner(Minion):
                              GR(len(hist)), OR(coin))
                 for loan in hist:
                     earned += loan['earned']
-                    fees += loan['fee']
-                    interest += loan['interest']
                     duration += loan['duration']
                     rates.append(loan['rate'])
+
             logger.info("Total %s earned lending: [earnings: %s] [average rate: %s]",
                         OR(coin), GR(roundDown(earned)),
                         BL(roundDown(sum(rates) / len(rates)))
@@ -151,7 +148,7 @@ class Loaner(Minion):
 
 if __name__ == '__main__':
     from sys import argv
-    from tools import Poloniex
+    from .tools import Poloniex
     logging.basicConfig(
         format='[%(asctime)s]%(message)s',
         datefmt=GR("%H:%M:%S"),

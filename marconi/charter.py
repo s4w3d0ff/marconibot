@@ -1,6 +1,6 @@
-from tools import time, getMongoDb, logging, itemgetter
-from tools import pd, np, figure
-from tools.indicators import ema, macd, bbands, rsi
+from .tools import time, getMongoColl, logging, itemgetter
+from .tools import pd, np, figure, PI
+from .tools.indicators import ema, macd, bbands, rsi
 
 from bokeh.models import NumeralTickFormatter
 from bokeh.models import LinearAxis, Range1d
@@ -135,53 +135,44 @@ def plotMovingAverages(p, df):
 
 
 class Charter(object):
-    """ Retrieves chart data for a market and saves it in a mongo db collection
-        based on market name and candle period. It also remembers the last
-        called market and period when called multiple times. """
+    """ Retrieves 5min candlestick data for a market and saves it in a mongo
+    db collection. Can display data in a dataframe or bokeh plot."""
 
-    def __init__(self, api, pair='USDT_BTC', **kwargs):
+    def __init__(self, api):
         """
         api = poloniex api object
-        pair = market pair
-        period = time period of candles (default: 5 Min)
         """
         self.api = api
-        self.pair = pair
-        self.period = kwargs.get('period', self.api.DAY)
 
-    def __call__(self, pair=False, period=False, frame=False):
+    def __call__(self, pair, frame=False):
         """ returns raw chart data from the mongo database, updates/fills the
         data if needed, the date column is the '_id' of each candle entry, and
-        the date column has been removed """
+        the date column has been removed. Use 'frame' to restrict the amount
+        of data returned.
+        Example: 'frame=api.YEAR' will return last years data
+        """
         # use last pair and period if not specified
-        if not pair:
-            pair = self.pair
-        if not period:
-            period = self.period
-        # 'remember' the last period, pair
-        self.period = period
-        self.pair = pair
         if not frame:
             frame = self.api.YEAR * 10
+        dbcolName = pair + 'chart'
         # get db connection
-        dbcolName = pair + '-' + str(period)
-        db = getMongoDb('poloniexCharts', dbcolName)
+        db = getMongoColl('poloniex', dbcolName)
         # get last candle
         try:
             last = sorted(
-                list(db.find({"_id": {"$gt": time() - frame}})),
+                list(db.find({"_id": {"$gt": time() - 60 * 20}})),
                 key=itemgetter('_id'))[-1]
         except:
             last = False
-        # no entrys found, get all data
+        # no entrys found, get all 5min data from poloniex
         if not last:
             logger.warning('%s collection is empty!', dbcolName)
             new = self.api.returnChartData(pair,
-                                           period=period,
+                                           period=60 * 5,
                                            start=time() - self.api.YEAR * 13)
         else:
             new = self.api.returnChartData(pair,
-                                           period=period,
+                                           period=60 * 5,
                                            start=int(last['_id']))
         # add new candles
         updateSize = len(new)
@@ -202,17 +193,30 @@ class Charter(object):
             list(db.find({"_id": {"$gt": time() - frame}})),
             key=itemgetter('_id'))
 
-    def dataFrame(self, pair=False, period=False,
-                  frame=False, window=120, raw=False):
-        """ returns pandas DataFrame from raw db data with indicators """
-        data = raw
-        # get data from db
-        if not raw:
-            data = self.__call__(pair, period, frame)
+    def dataFrame(self, pair, frame=False, zoom=False, window=120):
+        """ returns pandas DataFrame from raw db data with indicators.
+        zoom = passed as the resample(rule) argument to 'merge' candles into a
+            different timeframe
+        window = number of candles to use when calculating indicators
+        """
+        data = self.__call__(pair, frame)
         # make dataframe
         df = pd.DataFrame(data)
         # set date column
         df['date'] = pd.to_datetime(df["_id"], unit='s')
+        if zoom:
+            df.set_index('date', inplace=True)
+            df = df.resample(rule=zoom,
+                             closed='left',
+                             label='left').apply({'open': 'first',
+                                                  'high': 'max',
+                                                  'low': 'min',
+                                                  'close': 'last',
+                                                  'quoteVolume': 'sum',
+                                                  'volume': 'sum',
+                                                  'weightedAverage': 'mean'})
+            df.reset_index(inplace=True)
+
         # calculate/add sma and bbands
         df = bbands(df, window)
         # add slow ema
@@ -230,12 +234,15 @@ class Charter(object):
         df.dropna(inplace=True)
         return df
 
-    def graph(self, pair=False, period=False, frame=False,
+    def graph(self, pair, frame=False, zoom=False,
               window=120, plot_width=1000, min_y_border=40,
               border_color="whitesmoke", background_color="white",
               background_alpha=0.4, legend_location="top_left",
               tools="pan,wheel_zoom,reset"):
-        df = self.dataFrame(pair, period, frame, window)
+        """
+        Plots market data using bokeh and returns a 2D array for gridplot
+        """
+        df = self.dataFrame(pair, frame, zoom, window)
         #
         # Start Candlestick Plot -------------------------------------------
         # create figure
@@ -246,7 +253,7 @@ class Charter(object):
             x_range=(df.tail(int(len(df) // 10)).date.min().timestamp() * 1000,
                      df.date.max().timestamp() * 1000),
             tools=tools,
-            title=self.pair + '-' + str(self.period),
+            title=pair,
             plot_width=plot_width,
             plot_height=int(plot_width // 2.7),
             toolbar_location="above")
@@ -302,17 +309,16 @@ class Charter(object):
 
 
 if __name__ == '__main__':
-    from tools import Poloniex
-    from tools import show, PI, gridplot
+    from .tools import Poloniex
+    from .tools import show, gridplot
 
     logging.basicConfig(level=logging.DEBUG)
-    logging.getLogger("tools.poloniex").setLevel(logging.INFO)
+    logging.getLogger("poloniex").setLevel(logging.INFO)
     logging.getLogger('requests').setLevel(logging.ERROR)
 
     api = Poloniex(jsonNums=float)
 
-    layout, df = Charter(api,
-                         'BTC_DASH',
-                         period=api.DAY).graph(window=90, frame=api.YEAR * 12)
+    layout, df = Charter(api).graph('USDT_BTC', window=90,
+                                    frame=api.YEAR * 12, zoom='1W')
     p = gridplot(layout)
     show(p)

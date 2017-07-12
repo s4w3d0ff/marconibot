@@ -1,23 +1,23 @@
-from tools import getMongoDb, time, UTCstr2epoch, logging, pymongo
+from .tools import time, UTCstr2epoch, logging, pymongo
 
 logger = logging.getLogger(__name__)
 
 
 class Bookie(object):
 
-    def __init__(self, api, market):
+    def __init__(self, api):
         self.api = api
-        self.market = market
-        self.db = getMongoDb('poloniex', 'my%sTradeHistory' % market)
+        self.db = pymongo.MongoClient().poloniex
 
-    def myTradeHistory(self, query=None):
+    def updateTradeHistory(self, market):
         try:
-            old = list(self.db.find().sort('timestamp', pymongo.ASCENDING))[-1]
+            old = list(self.db[market + 'tradeHistory'].find().sort(
+                'timestamp', pymongo.ASCENDING))[-1]
         except:
-            logger.warning('No trades found in database')
+            logger.warning('No %s trades found in database', market)
             old = {'timestamp': time() - self.api.YEAR * 10}
         start = old['timestamp'] + 1
-        hist = self.api.returnTradeHistory(self.market, start=start)
+        hist = self.api.returnTradeHistory(market, start=start)
         if len(hist) > 0:
             logger.info('%d new trade database entries' % len(hist))
 
@@ -31,14 +31,20 @@ class Bookie(object):
                 trade['orderNumber'] = int(trade['orderNumber'])
                 trade['rate'] = float(trade['rate'])
                 trade['fee'] = float(trade['fee'])
-                self.db.update_one({"_id": _id}, {"$set": trade}, upsert=True)
-        return list(self.db.find(query).sort('timestamp', pymongo.ASCENDING))
+                self.db[market + 'tradeHistory'].update_one(
+                    {"_id": _id}, {"$set": trade}, upsert=True)
+
+    def myTradeHistory(self, market, query=None):
+        self.updateTradeHistory(market)
+        return list(self.db[market + 'tradeHistory'].find(query).sort(
+            'timestamp', pymongo.ASCENDING))
 
 if __name__ == '__main__':
-    from tools import Poloniex
+    from .tools import Poloniex
     from sys import argv
+    from pprint import pprint
     logging.basicConfig(level=logging.INFO)
     key, secret = argv[1:3]
     api = Poloniex(key, secret, jsonNums=float)
-    bookie = Bookie(api, 'BTC_DOGE')
-    print(bookie.myTradeHistory()[0])
+    bookie = Bookie(api)
+    pprint(bookie.myTradeHistory('BTC_DASH')[-6:])
