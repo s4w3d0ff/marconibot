@@ -1,9 +1,12 @@
+from __future__ import print_function
+
 from .tools import time, getMongoColl, logging, itemgetter
 from .tools import pd, np, figure, PI
 from .tools.indicators import ema, macd, bbands, rsi
 
 from bokeh.models import NumeralTickFormatter
 from bokeh.models import LinearAxis, Range1d
+
 
 logger = logging.getLogger(__name__)
 

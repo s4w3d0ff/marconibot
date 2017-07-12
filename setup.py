@@ -16,9 +16,5 @@ setup(name='marconi',
           'pymongo',
           'pandas',
           'websocket-client',
-          'poloniex'
-      ],
-      dependency_links=[
-          'git+ssh://git@github.com/s4w3d0ff/python-poloniex.git@master#egg=python-poloniex',
       ],
       zip_safe=False)
