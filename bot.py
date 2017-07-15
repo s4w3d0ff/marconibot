@@ -14,7 +14,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi.tools import np, pd, logging, show, Poloniex, shuffleDataFrame
+from marconi.tools import np, pd, logging, Poloniex, shuffleDataFrame, time
 from marconi.tools.brain import Brain
 from marconi.tools.brain import RandomForestClassifier, DecisionTreeClassifier
 from marconi.charter import Charter
@@ -31,7 +31,6 @@ class Marconi(object):
         self.api = api
         if not self.api:
             self.api = Poloniex(jsonNums=float)
-        self.parentCoin, self.childCoin = self.market.split('_')
         self.charter = Charter(self.api)
         self.brain = Brain({'rf': RandomForestClassifier(n_estimators=10,
                                                          random_state=123),
@@ -41,6 +40,7 @@ class Marconi(object):
 
 
 if __name__ == '__main__':
+    from marconi.tools import localstr2epoch
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger('requests').setLevel(logging.ERROR)
     logging.getLogger('poloniex').setLevel(logging.INFO)
@@ -49,78 +49,91 @@ if __name__ == '__main__':
 
     markets = {
         'BTC_LTC': {
-            'frame': 1337,
-            'zoom': '1D',
+            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
+            'zoom': '1H',
             'window': 70
         },
         'ETH_ETC': {
-            'frame': 1337,
-            'zoom': '1D',
-            'window': 70
+            'start': localstr2epoch('2016-09', fmat="%Y-%m"),
+            'zoom': '2H',
+            'window': 80
         },
         'BTC_DOGE': {
-            'frame': 1337,
-            'zoom': '1D',
-            'window': 70
+            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
+            'zoom': '2H',
+            'window': 60
         },
         'BTC_XRP': {
-            'frame': 1337,
-            'zoom': '1D',
-            'window': 70
+            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
+            'zoom': '1H',
+            'window': 60
         },
         'USDT_BTC': {
-            'frame': 1337,
-            'zoom': '1D',
+            'start': localstr2epoch('2017-01', fmat="%Y-%m"),
+            'zoom': '1H',
             'window': 70
         },
         'USDT_LTC': {
-            'frame': 1337,
-            'zoom': '1D',
+            'start': localstr2epoch('2017-04', fmat="%Y-%m"),
+            'zoom': '1H',
             'window': 70
         },
         'BTC_DASH': {
-            'frame': 1337,
-            'zoom': '1D',
-            'window': 70
+            'start': localstr2epoch('2017-02', fmat="%Y-%m"),
+            'zoom': '1H',
+            'window': 60
         },
         'USDT_DASH': {
-            'frame': 1337,
-            'zoom': '1D',
+            'start': localstr2epoch('2017-02', fmat="%Y-%m"),
+            'zoom': '1H',
             'window': 70
         },
-        'BTC_FCT': {
-            'frame': 1337,
-            'zoom': '1D',
+        'BTC_ETH': {
+            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
+            'zoom': '1H',
             'window': 70
         },
         'BTC_ETC': {
-            'frame': 1337,
-            'zoom': '1D',
+            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
+            'zoom': '1H',
             'window': 70
         }
     }
 
-    featureset = ['shadowsize', 'rsi', 'bbpercent', 'bbrange']
+    featureset = ['shadowsize', 'rsi', 'bbpercent', 'bbrange', 'volume']
 
-    traindf = False
+    first = True
     for market in markets:
         df = marconi.charter.dataFrame(
             pair=market,
-            frame=markets[market]['frame']
-            zoom=markets[market]['zoom']
+            start=markets[market]['start'],
+            zoom=markets[market]['zoom'],
             window=markets[market]['window']
         )
+        df['label'] = df['percentChange'].shift(-1) > 0
+        df = marconi.brain.prepDataframe(df)
 
-        df['label'] =
-
-        df = shuffleDataFrame(df[featureset])
-
-        if not traindf:
-            traindf = df
+        if first:
+            first = False
+            tempDF = df
         else:
-            traindf.append(df)
+            tempDF.append(df)
+    tempDF = shuffleDataFrame(tempDF)
+    f = tempDF[featureset].values
+    l = tempDF['label'].values
+    logger.info('Fitting %d samples...', len(f))
+    marconi.brain.leftLobe.fit(f, l)
 
-    """
-    test['prediction'] = m.brain.votinglobe.predict(test[featureset].values)
-    print(test[['close', 'bbpercent', 'prediction']])
-    """
+    testDF = marconi.charter.dataFrame('USDT_ETH',
+                                       start=time() - 60 * 60 * 24,
+                                       zoom='10T',
+                                       window=30
+                                       )
+    testDF['label'] = testDF['percentChange'].shift(-1) > 0
+
+    testDF['predict'] = marconi.brain.leftLobe.predict(
+        testDF[featureset].values)
+
+    print(testDF[['percentChange', 'predict']].tail(50))
+    print(marconi.brain.leftLobe.score(
+        testDF[featureset].values, testDF['label'].values))

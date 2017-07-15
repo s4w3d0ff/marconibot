@@ -26,12 +26,11 @@ import pymongo
 import sklearn
 # pip install bokeh
 import bokeh
-from bokeh.plotting import figure, output_file, show, ColumnDataSource
-from bokeh.layouts import gridplot
 # pip install websocket-client
 import websocket
-# pip install git+https://github.com/s4w3d0ff/python-poloniex.git
-from poloniex import Poloniex, Coach, PoloniexError
+
+
+from .poloniex import Poloniex, Coach, PoloniexError
 
 
 # constants ----------------------------------------------------------------

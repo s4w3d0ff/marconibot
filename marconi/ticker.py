@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-from marconi.tools import getMongoColl, websocket
-from marconi.tools import Poloniex
-from marconi.tools import Thread, logging, json
+from .tools import getMongoColl, websocket
+from .tools import Poloniex
+from .tools import Thread, logging, json
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,6 @@ class Ticker(object):
         if not self.api:
             self.api = Poloniex(jsonNums=float)
         self.db = getMongoColl('poloniex', 'ticker')
-        self.db.drop()
         self.ws = websocket.WebSocketApp("wss://api2.poloniex.com/",
                                          on_message=self.on_message,
                                          on_error=self.on_error,
