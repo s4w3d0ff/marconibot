@@ -44,9 +44,7 @@ class Brain(object):
     def getFeatures(self, df, featureset):
         return df[featureset].values
 
-    def getLabels(self, df, new=False):
-        if 'label' in df and not new:
-            return df['label'].values
+    def getLabels(self, df, new='auto_close'):
         if new == 'auto_close':
             for i in range(len(df)):
                 # skip first row
@@ -65,7 +63,7 @@ class Brain(object):
                     continue
                 # else hold
                 df.iloc[i - 1]['label'] = 0
-            return df['label'].values
+            return df
 
     def trainLeft(self, df,
                   featureset=['bbpercent', 'macd', 'rsi',

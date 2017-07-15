@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from .tools import time, getMongoColl, logging, itemgetter
+from .tools import time, getMongoColl, logging, itemgetter, epoch2localstr
 from .tools import pd, np, PI
 from .tools.plotting import (figure, plotBBands, plotRSI,
                              plotMACD, plotVolume, plotCandlesticks,
@@ -21,26 +21,22 @@ class Charter(object):
         """
         self.api = api
 
-    def __call__(self, pair, frame=False):
+    def __call__(self, pair, start=False):
         """ returns raw chart data from the mongo database, updates/fills the
         data if needed, the date column is the '_id' of each candle entry, and
-        the date column has been removed. Use 'frame' to restrict the amount
+        the date column has been removed. Use 'start' to restrict the amount
         of data returned.
-        Example: 'frame=api.YEAR' will return last years data
+        Example: 'start=time() - api.YEAR' will return last years data
         """
-        # use last pair and period if not specified
-        if not frame:
-            frame = self.api.YEAR * 10
+        if not start:
+            start = time() - self.api.YEAR * 3
         dbcolName = pair + 'chart'
         # get db connection
         db = getMongoColl('poloniex', dbcolName)
         # get last candle
         try:
-            last = sorted(
-                list(db.find({"_id": {"$gt": time() - 60 * 20}})),
-                key=itemgetter('_id'))[-1]
-        except Exception as e:
-            logger.exception(e)
+            last = sorted(list(db.find()), key=itemgetter('_id'))[-1]
+        except IndexError:
             last = False
         # no entrys found, get all 5min data from poloniex
         if not last:
@@ -68,16 +64,16 @@ class Charter(object):
         logger.debug('Getting chart data from db')
         # return data from db (sorted just in case...)
         return sorted(
-            list(db.find({"_id": {"$gt": time() - frame}})),
+            list(db.find({"_id": {"$gt": start}})),
             key=itemgetter('_id'))
 
-    def dataFrame(self, pair, frame=False, zoom=False, window=120):
+    def dataFrame(self, pair, start=False, zoom=False, window=120):
         """ returns pandas DataFrame from raw db data with indicators.
         zoom = passed as the resample(rule) argument to 'merge' candles into a
             different timeframe
         window = number of candles to use when calculating indicators
         """
-        data = self.__call__(pair, frame)
+        data = self.__call__(pair, start)
         # make dataframe
         df = pd.DataFrame(data)
         # set date column
@@ -112,7 +108,7 @@ class Charter(object):
         df.dropna(inplace=True)
         return df
 
-    def graph(self, pair, frame=False, zoom=False,
+    def graph(self, pair, start=False, zoom=False,
               window=120, plot_width=1000, min_y_border=40,
               border_color="whitesmoke", background_color="white",
               background_alpha=0.4, legend_location="top_left",
@@ -120,10 +116,12 @@ class Charter(object):
         """
         Plots market data using bokeh and returns a 2D array for gridplot
         """
-        df = self.dataFrame(pair, frame, zoom, window)
+        df = self.dataFrame(pair, start, zoom, window)
         #
         # Start Candlestick Plot -------------------------------------------
         # create figure
+        if not zoom:
+            zoom = '5T'
         candlePlot = figure(
             x_axis_type=None,
             y_range=(min(df['low'].values) - (min(df['low'].values) * 0.2),
@@ -131,11 +129,10 @@ class Charter(object):
             x_range=(df.tail(int(len(df) // 10)).date.min().timestamp() * 1000,
                      df.date.max().timestamp() * 1000),
             tools=tools,
-            title=pair,
+            title=pair + ' ' + zoom + ' from ' + epoch2localstr(start),
             plot_width=plot_width,
-            plot_height=int(plot_width // 2.7),
+            plot_height=int(plot_width // 3),
             toolbar_location="above")
-        # add plots
         # plot volume
         plotVolume(candlePlot, df)
         # plot candlesticks
@@ -156,7 +153,7 @@ class Charter(object):
         #
         # Start RSI/MACD Plot -------------------------------------------
         # create a new plot and share x range with candlestick plot
-        rsiPlot = figure(plot_height=int(candlePlot.plot_height // 2.5),
+        rsiPlot = figure(plot_height=int(candlePlot.plot_height // 3),
                          x_axis_type="datetime",
                          y_range=(-(max(df['macd'].values) * 2),
                                   max(df['macd'].values) * 2),
@@ -187,7 +184,7 @@ class Charter(object):
 
 
 if __name__ == '__main__':
-    from .tools import Poloniex
+    from .tools import Poloniex, localstr2epoch
     from .tools.plotting import show, gridplot
 
     logging.basicConfig(level=logging.DEBUG)
@@ -196,7 +193,10 @@ if __name__ == '__main__':
 
     api = Poloniex(jsonNums=float)
 
-    layout, df = Charter(api).graph('USDT_DASH', window=50,
-                                    frame=api.YEAR * 12, zoom='12H')
+    layout, df = Charter(api).graph('ETH_ETC',
+                                    window=70,
+                                    start=localstr2epoch(
+                                        '2016-01', fmat="%Y-%m"),
+                                    zoom='1H')
     p = gridplot(layout)
     show(p)
