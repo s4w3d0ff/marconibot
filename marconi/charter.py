@@ -20,6 +20,7 @@ class Charter(object):
         api = poloniex api object
         """
         self.api = api
+        self.api.jsonNums = float
 
     def __call__(self, pair, start=False):
         """ returns raw chart data from the mongo database, updates/fills the
@@ -198,5 +199,10 @@ if __name__ == '__main__':
                                     start=localstr2epoch(
                                         '2016-01', fmat="%Y-%m"),
                                     zoom='1H')
+
+    df['future'] = df['close'].shift(-1)
+    df.dropna(inplace=True)
+    df['label'] = df.apply(labelByIndicators, axis=1)
+    print(df[['label', 'bbpercent', 'close', 'future']].tail(40))
     p = gridplot(layout)
     show(p)
