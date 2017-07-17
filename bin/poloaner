@@ -1,6 +1,6 @@
 #!/usr/bin/python
 from marconi.loaner import Loaner
-from marconi.tools import sleep, logging, Poloniex
+from marconi.tools import sleep, logging, Poloniex, GR
 from sys import argv
 
 logging.basicConfig(
