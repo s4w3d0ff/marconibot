@@ -14,9 +14,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi.tools import np, pd, logging, Poloniex, shuffleDataFrame, time
-from marconi.tools.brain import Brain
-from marconi.tools.brain import RandomForestClassifier, DecisionTreeClassifier
+from marconi.tools import logging, Poloniex, shuffleDataFrame, time
+from marconi.tools.brain import Brain, labelByIndicators, prepDataframe
 from marconi.charter import Charter
 from marconi.ticker import Ticker
 from marconi.loaner import Loaner
@@ -32,12 +31,12 @@ class Marconi(object):
         if not self.api:
             self.api = Poloniex(jsonNums=float)
         self.charter = Charter(self.api)
-        self.brain = Brain({'rf': RandomForestClassifier(n_estimators=10,
-                                                         random_state=123),
-                            'dt': DecisionTreeClassifier()})
+        self.brain = Brain()
         self.ticker = Ticker(self.api)
         # self.loaner = Loaner(self.api, coins=lendCoins})
 
+    def run(self):
+        pass
 
 if __name__ == '__main__':
     from marconi.tools import localstr2epoch
@@ -45,7 +44,7 @@ if __name__ == '__main__':
     logging.getLogger('requests').setLevel(logging.ERROR)
     logging.getLogger('poloniex').setLevel(logging.INFO)
 
-    marconi = Marconi()
+    bot = Marconi()
 
     markets = {
         'BTC_LTC': {
@@ -70,12 +69,12 @@ if __name__ == '__main__':
         },
         'USDT_BTC': {
             'start': localstr2epoch('2017-01', fmat="%Y-%m"),
-            'zoom': '1H',
+            'zoom': '30T',
             'window': 70
         },
         'USDT_LTC': {
             'start': localstr2epoch('2017-04', fmat="%Y-%m"),
-            'zoom': '1H',
+            'zoom': '30T',
             'window': 70
         },
         'BTC_DASH': {
@@ -104,36 +103,43 @@ if __name__ == '__main__':
 
     first = True
     for market in markets:
-        df = marconi.charter.dataFrame(
+        # append each df with labels
+        df = bot.charter.dataFrame(
             pair=market,
             start=markets[market]['start'],
             zoom=markets[market]['zoom'],
             window=markets[market]['window']
         )
-        df['label'] = df['percentChange'].shift(-1) > 0
-        df = marconi.brain.prepDataframe(df)
-
+        df['future'] = df['close'].shift(-1)
+        df['label'] = df.apply(labelByIndicators, axis=1)
         if first:
             first = False
-            tempDF = df
+            trainDF = df
         else:
-            tempDF.append(df)
-    tempDF = shuffleDataFrame(tempDF)
-    f = tempDF[featureset].values
-    l = tempDF['label'].values
-    logger.info('Fitting %d samples...', len(f))
-    marconi.brain.leftLobe.fit(f, l)
+            trainDF.append(df)
 
-    testDF = marconi.charter.dataFrame('USDT_ETH',
-                                       start=time() - 60 * 60 * 24,
-                                       zoom='10T',
-                                       window=30
-                                       )
-    testDF['label'] = testDF['percentChange'].shift(-1) > 0
+    # train brain with dataFrame
+    bot.brain.train(trainDF, featureset, labels=True)
 
-    testDF['predict'] = marconi.brain.leftLobe.predict(
+    # get test dataframe
+    testDF = bot.charter.dataFrame('USDT_BTC',
+                                   start=time() - 60 * 60 * 24 * 365,
+                                   zoom='1H',
+                                   window=120
+                                   )
+    # get labels
+    testDF['future'] = df['close'].shift(-1)
+    testDF['label'] = testDF.apply(labelByIndicators, axis=1)
+    # get predictions
+    testDF['leftpredict'] = bot.brain.leftLobe.predict(
+        testDF[featureset].values)
+    testDF['rightpredict'] = bot.brain.leftLobe.predict(
         testDF[featureset].values)
 
-    print(testDF[['percentChange', 'predict']].tail(50))
-    print(marconi.brain.leftLobe.score(
-        testDF[featureset].values, testDF['label'].values))
+    # show results and scores
+    print(testDF[['bbpercent', 'close', 'label',
+                  'leftpredict', 'rightpredict']].tail(40))
+    print(bot.brain.leftLobe.score(testDF[featureset].values,
+                                   testDF['label'].values))
+    print(bot.brain.rightLobe.score(testDF[featureset].values,
+                                    testDF['label'].values))

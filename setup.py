@@ -7,6 +7,7 @@ setup(name='marconi',
       author='s4w3d0ff',
       license='GPL v3',
       packages=['marconi'],
+      scripts=['bin/poloaner'],
       install_requires=[
           'numpy',
           'scikit-learn',

@@ -1,0 +1,39 @@
+#!/usr/bin/python
+from marconi.loaner import Loaner
+from marconi.tools import sleep
+from sys import argv
+
+logging.basicConfig(
+    format='[%(asctime)s]%(message)s',
+    datefmt=GR("%H:%M:%S"),
+    level=logging.INFO
+)
+logging.getLogger('requests').setLevel(logging.ERROR)
+key, secret = argv[1:3]
+polo = Poloniex(key, secret, timeout=None, jsonNums=float)
+#################-Configure Below-##################################
+########################
+loaner = Loaner(polo,
+                # This dict defines what coins the bot should worry about
+                # The dict 'key' is the coin to lend, 'value' is the
+                # minimum amount to lend
+                coins={
+                    'DASH': 1,
+                    'BTC': 0.01,
+                    'LTC': 1,
+                    'DOGE': 10,
+                },
+                # Maximum age (in secs) to let an open offer sit
+                maxage=60 * 15,  # 15 min
+                # number of seconds between loops
+                delay=60 * 5)  # 5 min
+########################
+#################-Stop Configuring-#################################
+
+loaner.start()
+while loaner._running:
+    try:
+        sleep(1)
+    except:
+        loaner.stop()
+        break
