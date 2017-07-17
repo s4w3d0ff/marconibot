@@ -6,7 +6,7 @@ setup(name='marconi',
       url='https://github.com/s4w3d0ff/marconibot',
       author='s4w3d0ff',
       license='GPL v3',
-      packages=['marconi'],
+      packages=['marconi', 'marconi.tools'],
       scripts=['bin/poloaner'],
       install_requires=[
           'numpy',
