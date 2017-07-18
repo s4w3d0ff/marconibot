@@ -103,10 +103,11 @@ class Loaner(Minion):
                     duration += loan['duration']
                     rates.append(loan['rate'])
 
-            logger.info("Total %s earned lending: [earnings: %s] [average rate: %s]",
-                        OR(coin), GR(roundDown(earned)),
-                        BL(roundDown(sum(rates) / len(rates)))
-                        )
+            logger.info(
+                "Total %s earned lending: [earnings: %s] [average rate: %s]",
+                OR(coin), GR(roundDown(earned)),
+                BL(roundDown(sum(rates) / len(rates)))
+            )
 
     def showActiveLoans(self):
         active = self.api.returnActiveLoans()['provided']
@@ -145,41 +146,3 @@ class Loaner(Minion):
                     if not self._running:
                         break
                     sleep(1)
-
-if __name__ == '__main__':
-    from sys import argv
-    from .tools import Poloniex
-    logging.basicConfig(
-        format='[%(asctime)s]%(message)s',
-        datefmt=GR("%H:%M:%S"),
-        level=logging.INFO
-    )
-    logging.getLogger('requests').setLevel(logging.ERROR)
-    key, secret = argv[1:3]
-    polo = Poloniex(key, secret, timeout=None, jsonNums=float)
-    #################-Configure Below-##################################
-    ########################
-    loaner = Loaner(polo,
-                    # This dict defines what coins the bot should worry about
-                    # The dict 'key' is the coin to lend, 'value' is the
-                    # minimum amount to lend
-                    coins={
-                        'DASH': 1,
-                        'BTC': 0.01,
-                        'LTC': 1,
-                        'DOGE': 10,
-                    },
-                    # Maximum age (in secs) to let an open offer sit
-                    maxage=60 * 15,  # 15 min
-                    # number of seconds between loops
-                    delay=60 * 5)  # 5 min
-    ########################
-    #################-Stop Configuring-#################################
-
-    loaner.start()
-    while loaner._running:
-        try:
-            sleep(1)
-        except:
-            loaner.stop()
-            break
