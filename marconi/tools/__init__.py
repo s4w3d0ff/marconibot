@@ -16,10 +16,6 @@ from multiprocessing.dummy import Process as Thread
 # pip install pandas numpy
 import pandas as pd
 import numpy as np
-# pip install beautifulsoup4
-from bs4 import BeautifulSoup as bs
-# pip install cherrypy
-import cherrypy as cp
 # pip install pymongo
 import pymongo
 # pip install scikit-learn
