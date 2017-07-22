@@ -87,7 +87,7 @@ class Brain(object):
         if not labels in df:
             logger.info('Generating new labels')
             df['future'] = df['percentChange'].shift(-1)
-            df[labels] = df.apply(labelByIndicators, axis=1)
+            df[labels] = df.apply(labelByPercent, axis=1)
             del df['future']
         # prep df, remove nan
         df = prepDataframe(df)

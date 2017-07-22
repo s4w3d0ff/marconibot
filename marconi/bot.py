@@ -14,11 +14,10 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi.tools import logging, Poloniex, pd
-from marconi.tools.brain import Brain, labelByIndicators
-from marconi.charter import Charter
-from marconi.ticker import Ticker
-from marconi.loaner import Loaner
+from .tools import logging, Poloniex, pd
+from .tools.brain import Brain, labelByIndicators
+from .charter import Charter
+from .ticker import Ticker
 
 
 logger = logging.getLogger(__name__)
