@@ -16,18 +16,20 @@ def labelByPercent(candle, threshold=0.1, futureCol='percentChange'):
     if candle[futureCol] < -threshold:
         # sell
         return 1
+    return 0
 
 
-def labelByIndicators(candle, bbHLMulti=10, rsiHL=(60, 35), futureCol='close'):
+def labelByIndicators(candle, bbHLMulti=(10, 10),
+                      rsiHL=(60, 35), futureCol='close'):
     score = 0
     # close is above sma
     if candle['bbpercent'] > 0:
         # sell
-        score += -int(candle['bbpercent'] * bbHLMulti
+        score += -int(candle['bbpercent'] * bbHLMulti[0])
     # close is below sma
     if candle['bbpercent'] < 0:
         # buy
-        score += int(abs(candle['bbpercent']) * bbHLMulti)
+        score += int(abs(candle['bbpercent']) * bbHLMulti[1])
     # rsi indicates overbought
     if candle['rsi'] > rsiHL[0]:
         # sell
@@ -69,13 +71,13 @@ def splitTrainTestData(df, size=1):
 class Brain(object):
 
     def __init__(self, lobes=False):
-        self._lobes=lobes
+        self._lobes = lobes
         if not self._lobes:
-            self._lobes={'rf': RandomForestClassifier(n_estimators=10,
-                                                      random_state=666),
-                         'dt': DecisionTreeClassifier()
-                         }
-        self.votingLobe=VotingClassifier(
+            self._lobes = {'rf': RandomForestClassifier(n_estimators=10,
+                                                        random_state=666),
+                           'dt': DecisionTreeClassifier()
+                           }
+        self.votingLobe = VotingClassifier(
             estimators=[(lobe, self._lobes[lobe]) for lobe in self._lobes],
             voting='hard',
             n_jobs=len(self._lobes))
@@ -84,16 +86,16 @@ class Brain(object):
         # make sure we have labels
         if not labels in df:
             logger.info('Generating new labels')
-            df['future']=df['percentChange'].shift(-1)
-            df[labels]=df.apply(labelByIndicators, axis=1)
+            df['future'] = df['percentChange'].shift(-1)
+            df[labels] = df.apply(labelByIndicators, axis=1)
             del df['future']
         # prep df, remove nan
-        df=prepDataframe(df)
+        df = prepDataframe(df)
         # split if needed
         if split:
-            df, tdf=splitTrainTestData(df, split)
+            df, tdf = splitTrainTestData(df, split)
         # shuffle data for good luck
-        df=shuffleDataFrame(df)
+        df = shuffleDataFrame(df)
         # fit lobes
         logger.info('%d samples to train', len(df))
         self.votingLobe.fit(df.drop(labels, axis=1).values, df[labels].values)
