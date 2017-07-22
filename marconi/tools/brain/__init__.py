@@ -7,15 +7,15 @@ from .. import logging, pd, np, time, pickle, shuffleDataFrame
 logger = logging.getLogger(__name__)
 
 
-def labelByPercent(candle, threshold=0.1):
+def labelByPercent(candle, threshold=0.1, futureCol='percentChange'):
     # percentchange is greater than threshold
-    if candle['percentChange'] > threshold:
+    if candle[futureCol] > threshold:
         # buy
-        score += 1
+        return -1
     # percentchange is less than -threshold
-    if candle['percentChange'] < threshold:
+    if candle[futureCol] < -threshold:
         # sell
-        score += -1
+        return 1
 
 
 def labelByIndicators(candle, bbHLMulti=10, rsiHL=(60, 35), futureCol='close'):
