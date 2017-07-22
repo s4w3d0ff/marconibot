@@ -68,7 +68,7 @@ class Charter(object):
             list(db.find({"_id": {"$gt": start}})),
             key=itemgetter('_id'))
 
-    def dataFrame(self, pair, start=False, zoom=False, window=120):
+    def dataFrame(self, pair, start=False, zoom=False, slowWindow=50, fastWindow=20):
         """ returns pandas DataFrame from raw db data with indicators.
         zoom = passed as the resample(rule) argument to 'merge' candles into a
             different timeframe
@@ -93,15 +93,15 @@ class Charter(object):
             df.reset_index(inplace=True)
 
         # calculate/add sma and bbands
-        df = bbands(df, window)
+        df = bbands(df, (slowWindow + fastWindow) // 2)
         # add slow ema
-        df = ema(df, window, colname='emaslow')
+        df = ema(df, slowWindow, colname='emaslow')
         # add fast ema
-        df = ema(df, int(window // 3.5), colname='emafast')
+        df = ema(df, fastWindow, colname='emafast')
         # add macd
         df = macd(df)
         # add rsi
-        df = rsi(df, window // 5)
+        df = rsi(df, fastWindow)
         # add candle body and shadow size
         df['bodysize'] = df['close'] - df['open']
         df['shadowsize'] = df['high'] - df['low']

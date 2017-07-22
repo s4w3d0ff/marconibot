@@ -14,8 +14,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi.tools import logging, Poloniex, shuffleDataFrame, time
-from marconi.tools.brain import Brain, labelByIndicators, prepDataframe
+from marconi.tools import logging, Poloniex, pd
+from marconi.tools.brain import Brain, labelByIndicators
 from marconi.charter import Charter
 from marconi.ticker import Ticker
 from marconi.loaner import Loaner
@@ -35,111 +35,27 @@ class Marconi(object):
         self.ticker = Ticker(self.api)
         # self.loaner = Loaner(self.api, coins=lendCoins})
 
-    def run(self):
-        pass
-
-if __name__ == '__main__':
-    from marconi.tools import localstr2epoch
-    logging.basicConfig(level=logging.DEBUG)
-    logging.getLogger('requests').setLevel(logging.ERROR)
-    logging.getLogger('poloniex').setLevel(logging.INFO)
-
-    bot = Marconi()
-
-    markets = {
-        'BTC_LTC': {
-            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
-            'zoom': '1H',
-            'window': 70
-        },
-        'ETH_ETC': {
-            'start': localstr2epoch('2016-09', fmat="%Y-%m"),
-            'zoom': '2H',
-            'window': 80
-        },
-        'BTC_DOGE': {
-            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
-            'zoom': '2H',
-            'window': 60
-        },
-        'BTC_XRP': {
-            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
-            'zoom': '1H',
-            'window': 60
-        },
-        'USDT_BTC': {
-            'start': localstr2epoch('2017-01', fmat="%Y-%m"),
-            'zoom': '30T',
-            'window': 70
-        },
-        'USDT_LTC': {
-            'start': localstr2epoch('2017-04', fmat="%Y-%m"),
-            'zoom': '30T',
-            'window': 70
-        },
-        'BTC_DASH': {
-            'start': localstr2epoch('2017-02', fmat="%Y-%m"),
-            'zoom': '1H',
-            'window': 60
-        },
-        'USDT_DASH': {
-            'start': localstr2epoch('2017-02', fmat="%Y-%m"),
-            'zoom': '1H',
-            'window': 70
-        },
-        'BTC_ETH': {
-            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
-            'zoom': '1H',
-            'window': 70
-        },
-        'BTC_ETC': {
-            'start': localstr2epoch('2017-03', fmat="%Y-%m"),
-            'zoom': '1H',
-            'window': 70
-        }
-    }
-
-    featureset = ['shadowsize', 'rsi', 'bbpercent', 'bbrange', 'volume']
-
-    first = True
-    for market in markets:
-        # append each df with labels
-        df = bot.charter.dataFrame(
-            pair=market,
-            start=markets[market]['start'],
-            zoom=markets[market]['zoom'],
-            window=markets[market]['window']
-        )
-        df['future'] = df['close'].shift(-1)
-        df['label'] = df.apply(labelByIndicators, axis=1)
-        if first:
-            first = False
-            trainDF = df
-        else:
-            trainDF.append(df)
-
-    # train brain with dataFrame
-    bot.brain.train(trainDF, featureset, labels=True)
-
-    # get test dataframe
-    testDF = bot.charter.dataFrame('USDT_BTC',
-                                   start=time() - 60 * 60 * 24 * 365,
-                                   zoom='1H',
-                                   window=120
-                                   )
-    # get labels
-    testDF['future'] = df['close'].shift(-1)
-    testDF['label'] = testDF.apply(labelByIndicators, axis=1)
-    # get predictions
-    testDF['leftpredict'] = bot.brain.leftLobe.predict(
-        testDF[featureset].values)
-    testDF['rightpredict'] = bot.brain.leftLobe.predict(
-        testDF[featureset].values)
-
-    # show results and scores
-    print(testDF[['bbpercent', 'close', 'label',
-                  'leftpredict', 'rightpredict']].tail(40))
-    print(bot.brain.leftLobe.score(testDF[featureset].values,
-                                   testDF['label'].values))
-    print(bot.brain.rightLobe.score(testDF[featureset].values,
-                                    testDF['label'].values))
+    def learn(self, markets={},
+              featureset=['macd', 'rsi', 'bbpercent', 'bbrange'],
+              labels='indica', slowWindow=60, fastWindow=20):
+        first = True
+        for market in markets:
+            # append each df with labels
+            df = self.charter.dataFrame(
+                pair=market,
+                # start=markets[market]['start'],
+                # zoom=markets[market]['zoom'],
+                slowWindow=slowWindow,
+                fastWindow=fastWindow,
+                **markets[market]
+            )
+            if labels == 'indica':
+                df['future'] = df['close'].shift(-1)
+                df[labels] = df.apply(labelByIndicators, axis=1)
+            if first:
+                first = False
+                trainDF = df[featureset + [labels]]
+            else:
+                trainDF = pd.concat([trainDF, df[featureset + [labels]]])
+            logger.debug(trainDF.shape)
+        self.brain.train(trainDF, labels=labels)
