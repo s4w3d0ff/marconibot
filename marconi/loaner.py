@@ -1,5 +1,6 @@
 #!/usr/bin/python
-from .tools import UTCstr2epoch, time, sleep, autoRenewAll, logging, getMongoColl
+from .tools import UTCstr2epoch, time, wait, logging, getMongoColl
+from .tools.trading import autoRenewAll
 from .tools import BL, OR, RD, GY, GR
 from .tools import pymongo, roundDown, float2percent
 from .tools.minion import Minion
@@ -145,4 +146,4 @@ class Loaner(Minion):
                 for i in range(int(self.delay)):
                     if not self._running:
                         break
-                    sleep(1)
+                    wait(1)
