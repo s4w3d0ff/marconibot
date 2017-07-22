@@ -33,7 +33,6 @@ class Marconi(object):
         self.charter = Charter(self.api)
         self.brain = Brain()
         self.ticker = Ticker(self.api)
-        # self.loaner = Loaner(self.api, coins=lendCoins})
 
     def learn(self, markets={},
               featureset=['macd', 'rsi', 'bbpercent', 'bbrange'],
