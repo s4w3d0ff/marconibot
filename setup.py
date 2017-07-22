@@ -16,6 +16,7 @@ setup(name='marconi',
                 'marconi.tools.trading'],
       scripts=['bin/poloaner'],
       install_requires=[
+          'requests',
           'numpy',
           'scikit-learn',
           'bokeh',

@@ -10,11 +10,10 @@ Mongodb (running local)
 ```
 __pip__:
 ```
+scikit-learn
 requests
 numpy
 bokeh
-cherrypy
-beautifulsoup4
 pymongo
 pandas
 websocket-client
