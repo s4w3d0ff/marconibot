@@ -1,3 +1,25 @@
+# -*- coding: utf-8 -*-
+#
+#    BTC: 13MXa7EdMYaXaQK6cDHqd4dwr2stBK3ESE
+#    LTC: LfxwJHNCjDh2qyJdfu22rBFi2Eu8BjQdxj
+#
+#    https://github.com/s4w3d0ff/marconibot
+#
+#    Copyright (C) 2017  https://github.com/s4w3d0ff
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 
@@ -47,7 +69,7 @@ def labelByIndicators(candle, bbHLMulti=(10, 10),
         score += -1
     # pos macd
     if candle['macd'] > 0:
-        # overbought, sell
+        # sell
         score += -1
     # neg macd
     if candle['macd'] < 0:
@@ -68,6 +90,12 @@ def splitTrainTestData(df, size=1):
     return df.iloc[:-size], df.tail(size)
 
 
+def getLabels(df, kind='indica', future='close'):
+    if kind == 'indica':
+        df['future'] = df[future].shift(-1)
+        return df.apply(labelByIndicators, axis=1)
+
+
 class Brain(object):
 
     def __init__(self, lobes=False):
@@ -81,6 +109,7 @@ class Brain(object):
             estimators=[(lobe, self._lobes[lobe]) for lobe in self._lobes],
             voting='hard',
             n_jobs=len(self._lobes))
+        self._lastTrainingDf = None
 
     def train(self, df, labels='label', split=False):
         # make sure we have labels
@@ -99,5 +128,12 @@ class Brain(object):
         # fit lobes
         logger.info('%d samples to train', len(df))
         self.votingLobe.fit(df.drop(labels, axis=1).values, df[labels].values)
+        self._lastTrainingDf = df
         if split:
             return tdf
+
+    def predict(self, X):
+        return self.votingLobe.predict(X)
+
+    def score(self, X, y):
+        return self.votingLobe.score(X, y)

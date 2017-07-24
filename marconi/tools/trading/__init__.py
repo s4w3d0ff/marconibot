@@ -1,3 +1,25 @@
+# -*- coding: utf-8 -*-
+#
+#    BTC: 13MXa7EdMYaXaQK6cDHqd4dwr2stBK3ESE
+#    LTC: LfxwJHNCjDh2qyJdfu22rBFi2Eu8BjQdxj
+#
+#    https://github.com/s4w3d0ff/marconibot
+#
+#    Copyright (C) 2017  https://github.com/s4w3d0ff
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 from .. import logging, pd, np, time, SATOSHI, PoloniexError, TRADE_MIN
 
 logger = logging.getLogger(__name__)
@@ -182,6 +204,7 @@ class Backtester(object):
         self.childBal = 0.0
         self.parentMin = parentMin
         self.childMin = childMin
+        self.lastTest = None
 
     def _backtest(self, row):
         move = float(row['predict']) / 10
@@ -208,6 +231,7 @@ class Backtester(object):
             self.parentBal += close * cldSamt
         return self.parentBal + (close * self.childBal)
 
+    @property
     def totals(self):
         return self.parentBal, self.childBal
 
@@ -217,4 +241,5 @@ class Backtester(object):
         self.childMin = kwargs.get('childMin', self.childMin)
         self.parentBal = self.startAmount
         self.childBal = 0.0
-        return df.apply(self._backtest, axis=1)
+        self.lastTest = df.apply(self._backtest, axis=1)
+        return self.lastTest
