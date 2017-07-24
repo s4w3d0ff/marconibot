@@ -1,3 +1,10 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#
+#    BTC: 13MXa7EdMYaXaQK6cDHqd4dwr2stBK3ESE
+#    LTC: LfxwJHNCjDh2qyJdfu22rBFi2Eu8BjQdxj
+#
+#    https://github.com/s4w3d0ff/marconibot
 #
 #    Copyright (C) 2017  https://github.com/s4w3d0ff
 #
