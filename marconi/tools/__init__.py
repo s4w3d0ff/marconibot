@@ -24,7 +24,10 @@
 import logging
 import json
 import pickle
-from Queue import Queue
+try:
+    from Queue import Queue
+except:
+    from queue import Queue
 from functools import wraps
 from copy import copy
 from operator import itemgetter
