@@ -1,6 +1,6 @@
-# marconi  
+[![Build Status](https://travis-ci.org/s4w3d0ff/marconibot.svg?branch=master)](https://travis-ci.org/s4w3d0ff/marconibot)  
 ![marconi](images/marconi.jpeg)  
-Poloniex Trading Bot
+Poloniex Trading Bot Toolkit
 
 ### Requirements:
 __system__:
