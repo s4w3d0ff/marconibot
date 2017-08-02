@@ -37,7 +37,7 @@ from decimal import Decimal
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
-from threading import Thread as _Thread
+from multiprocessing.dummy import Process as Thread
 # 3rd party ----------------------------------------------------------------
 # pip install pandas numpy
 import pandas as pd
@@ -80,7 +80,7 @@ CY = lambda text: '\033[36m' + str(text) + WT  # cyan
 GY = lambda text: '\033[37m' + str(text) + WT  # gray
 
 
-class Thread(_Thread):
+class Rthread(Thread):
     """ makes join return the threaded results """
 
     def __init__(self, group=None, target=None, name=None,
