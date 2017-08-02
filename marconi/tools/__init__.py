@@ -24,6 +24,8 @@
 import logging
 import json
 import pickle
+from Queue import Queue
+from functools import wraps
 from copy import copy
 from operator import itemgetter
 from math import floor, ceil
@@ -32,8 +34,7 @@ from decimal import Decimal
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing import Process
-from multiprocessing.dummy import Process as Thread
-
+from threading import Thread as _Thread
 # 3rd party ----------------------------------------------------------------
 # pip install pandas numpy
 import pandas as pd
@@ -47,7 +48,7 @@ import bokeh
 # pip install websocket-client
 import websocket
 
-
+# local --------------------------------------------------------------------
 from .poloniex import Poloniex, Coach, PoloniexError
 
 
@@ -74,6 +75,24 @@ BL = lambda text: '\033[34m' + str(text) + WT  # blue
 PR = lambda text: '\033[35m' + str(text) + WT  # purp
 CY = lambda text: '\033[36m' + str(text) + WT  # cyan
 GY = lambda text: '\033[37m' + str(text) + WT  # gray
+
+
+class Thread(_Thread):
+    """ makes join return the threaded results """
+
+    def __init__(self, group=None, target=None, name=None,
+                 args=(), kwargs={}, Verbose=None):
+        Thread.__init__(self, group, target, name, args, kwargs, Verbose)
+        self._return = None
+
+    def run(self):
+        if self._Thread__target is not None:
+            self._return = self._Thread__target(*self._Thread__args,
+                                                **self._Thread__kwargs)
+
+    def join(self):
+        Thread.join(self)
+        return self._return
 
 
 # convertions, misc ------------------------------------------------------

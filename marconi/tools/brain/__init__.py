@@ -41,32 +41,37 @@ def labelByPercent(candle, threshold=0.1, futureCol='percentChange'):
     return 0
 
 
-def labelByIndicators(candle, bbHLMulti=(10, 10),
-                      rsiHL=(60, 35), futureCol='close'):
+def labelByIndicators(candle, threshold=0.01, rsiHL=(60, 40)):
     score = 0
-    # close is above sma
+    # close is above sma: sell
     if candle['bbpercent'] > 0:
-        # sell
-        score += -int(candle['bbpercent'] * bbHLMulti[0])
-    # close is below sma
+        if candle['bbpercent'] > 0.5:
+            score += -int(candle['bbpercent'])
+        else:
+            score += -1
+    # close is below sma: buy
     if candle['bbpercent'] < 0:
-        # buy
-        score += int(abs(candle['bbpercent']) * bbHLMulti[1])
+        if candle['bbpercent'] < -0.5:
+            score += int(abs(candle['bbpercent']))
+        else:
+            score += 1
+
     # rsi indicates overbought
     if candle['rsi'] > rsiHL[0]:
-        # sell
         score += -1
     # rsi indicates oversold
-    if candle['rsi'] < rsiHL[1]:
+    if candle['rsi'] < rsiHL[0]:
         score += 1
-    # if next candle close is larger than this close
-    if candle['future'] > candle[futureCol]:
+
+    # future percentchange is greater than threshold
+    if candle['future'] > threshold:
         # buy
         score += 1
-    # if smaller
-    if candle['future'] < candle[futureCol]:
+    # future percentchange is less than -threshold
+    if candle['future'] < -threshold:
         # sell
         score += -1
+
     # pos macd
     if candle['macd'] > 0:
         # sell
@@ -75,6 +80,7 @@ def labelByIndicators(candle, bbHLMulti=(10, 10),
     if candle['macd'] < 0:
         # buy
         score += 1
+
     return score
 
 
@@ -90,7 +96,7 @@ def splitTrainTestData(df, size=1):
     return df.iloc[:-size], df.tail(size)
 
 
-def getLabels(df, kind='indica', future='close'):
+def getLabels(df, kind='indica', future='percentChange'):
     if kind == 'indica':
         df['future'] = df[future].shift(-1)
         return df.apply(labelByIndicators, axis=1)
@@ -101,23 +107,20 @@ class Brain(object):
     def __init__(self, lobes=False):
         self._lobes = lobes
         if not self._lobes:
-            self._lobes = {'rf': RandomForestClassifier(n_estimators=10,
+            self._lobes = {'rf': RandomForestClassifier(n_estimators=7,
                                                         random_state=666),
                            'dt': DecisionTreeClassifier()
                            }
         self.votingLobe = VotingClassifier(
             estimators=[(lobe, self._lobes[lobe]) for lobe in self._lobes],
             voting='hard',
-            n_jobs=len(self._lobes))
-        self._lastTrainingDf = None
+            n_jobs=-1)
 
     def train(self, df, labels='label', split=False):
         # make sure we have labels
         if not labels in df:
             logger.info('Generating new labels')
-            df['future'] = df['percentChange'].shift(-1)
-            df[labels] = df.apply(labelByPercent, axis=1)
-            del df['future']
+            df[labels] = getLabels(df)
         # prep df, remove nan
         df = prepDataframe(df)
         # split if needed
@@ -128,7 +131,6 @@ class Brain(object):
         # fit lobes
         logger.info('%d samples to train', len(df))
         self.votingLobe.fit(df.drop(labels, axis=1).values, df[labels].values)
-        self._lastTrainingDf = df
         if split:
             return tdf
 

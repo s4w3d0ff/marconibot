@@ -80,7 +80,14 @@ class Ticker(object):
         logger.error(error)
 
     def on_close(self, ws):
-        logger.info("Websocket closed!")
+        if self._running:
+            try:
+                self.ws.send(json.dumps(
+                    {'command': 'subscribe', 'channel': 1002}))
+            except Exception as e:
+                logger.exception(e)
+        else:
+            logger.info("Websocket closed!")
 
     def on_open(self, ws):
         tick = self.api.returnTicker()
