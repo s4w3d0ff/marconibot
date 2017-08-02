@@ -91,7 +91,8 @@ class Charter(object):
             list(db.find({"_id": {"$gt": start}})),
             key=itemgetter('_id'))
 
-    def dataFrame(self, pair, start=False, zoom=False, slowWindow=50, fastWindow=20):
+    def dataFrame(self, pair, start=False,
+                  zoom=False, slowWindow=50, fastWindow=20):
         """ returns pandas DataFrame from raw db data with indicators.
         zoom = passed as the resample(rule) argument to 'merge' candles into a
             different timeframe
@@ -133,14 +134,14 @@ class Charter(object):
         return df
 
     def graph(self, pair, start=False, zoom=False,
-              window=120, plot_width=1000, min_y_border=40,
+              slowWindow=50, fastWindow=20, plot_width=1000, min_y_border=40,
               border_color="whitesmoke", background_color="white",
               background_alpha=0.4, legend_location="top_left",
               tools="pan,wheel_zoom,reset"):
         """
         Plots market data using bokeh and returns a 2D array for gridplot
         """
-        df = self.dataFrame(pair, start, zoom, window)
+        df = self.dataFrame(pair, start, zoom, slowWindow, fastWindow)
         #
         # Start Candlestick Plot -------------------------------------------
         # create figure
@@ -204,7 +205,7 @@ class Charter(object):
         # set dataframe 'date' as index
         df.set_index('date', inplace=True)
         # return layout and df
-        return [[candlePlot], [rsiPlot]], df
+        return [candlePlot, rsiPlot], df
 
 
 if __name__ == '__main__':

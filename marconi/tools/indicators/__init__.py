@@ -21,7 +21,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from .. import pd, np
+from .. import pd, np, addPercent
 
 
 def rsi(df, window, targetcol='weightedAverage', colname='rsi'):
@@ -73,7 +73,7 @@ def ema(df, window, targetcol='close', colname='ema', **kwargs):
     return df
 
 
-def macd(df, fastcol='emafast', slowcol='sma', colname='macd'):
+def macd(df, fastcol='emafast', slowcol='emaslow', colname='macd'):
     """ Calculates the differance between 'fastcol' and 'slowcol' in a pandas
     dataframe """
     df[colname] = df[fastcol] - df[slowcol]
@@ -110,8 +110,15 @@ def getCandleLabel(c):
      | ---- bottomWick
      |
     """
-    body = c['body']
-    shadow = c['shadow']
+    body = c['bodysize']
+    shadow = c['shadowsize']
+    # no shadow
+    if shadow == abs(body):
+        # no body
+        if abs(body) == 0:
+            return 'other'
+        return 'maru'
+
     # body is bearish
     if body <= 0:
         bodytop = c['high']
@@ -120,33 +127,32 @@ def getCandleLabel(c):
     else:
         bodytop = c['low']
         bodybottom = c['high']
+
     topWick = c['high'] - bodytop
     bottomWick = bodybottom - c['low']
-    # no shadow
-    if shadow <= SATOSHI:
-        # decent sized body
-        if abs(body) > SATOSHI * 5:
-            return 'maru'
-        # no body
-        if abs(body) < SATOSHI * 2:
-            return 'doji'
-    # large shadow
-    if shadow > abs(body) * 2:
-        # decent sized body
-        if abs(body) > SATOSHI * 5:
-            # no topwick
-            if topWick <= SATOSHI:
-                return 'hanging'
-            # no bottomWick
-            if bottomWick <= SATOSHI:
-                return 'hammer'
-        # no body
-        if abs(body) < SATOSHI * 2:
-            # no topWick
-            if topWick <= SATOSHI:
-                return 'dragon'
-            # no bottomWick
-            if bottomWick <= SATOSHI:
-                return 'grave'
-            return 'doji'
-    return False
+
+    # short wicks
+    if topWick + bottomWick < abs(body):
+        return 'other'
+
+    # shadow is 75% larger than body
+    if shadow > addPercent(abs(body), 75):
+        # hammers have large top wicks and big bodies
+        if topWick > abs(body) / 2:
+            return 'hammer'
+        # hanging have large bottom wicks and big bodies
+        if bottomWick > abs(body) / 2:
+            return 'hanging'
+        return 'bdoji'
+
+    # shadow is 50% larger than body
+    if shadow > addPercent(abs(body), 50):
+        # graves have large top wicks and small bodies
+        if topWick > abs(body) / 2:
+            return 'grave'
+        # dragons have large bottom wicks and small bodies
+        if bottomWick > abs(body) / 2:
+            return 'dragon'
+        return 'ldoji'
+
+    return 'doji'

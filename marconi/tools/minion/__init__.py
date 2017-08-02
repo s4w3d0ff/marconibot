@@ -40,7 +40,7 @@ class Minion(object):
         """ Force the Minion to stop """
         self._running = False
         try:
-            self.__thread.join()
+            return self.__thread.join()
         except Exception as e:
             logger.exception(e)
 
