@@ -6,15 +6,21 @@ python:
 - '3.5'
 - '3.6'
 
+cache: pip
+
+sudo: false
+
 virtualenv:
-    system_site_packages: true
+  system_site_packages: true
 
-before_install:
-  - SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
-  - rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
-  - sudo apt-get -qq update
-  - sudo apt-get install -qq python3-scipy python3-numpy python3-pandas python3-six
+addons:
+  apt:
+    packages:
+      - python3-scipy
+      - python3-numpy
+      - python3-pandas
+      - python3-six
 
-install: python$TRAVIS_PYTHON_VERSION setup.py install
+install: python3 setup.py install
 
 #script: python test.py
