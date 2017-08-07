@@ -41,45 +41,34 @@ def labelByPercent(candle, threshold=0.1, futureCol='percentChange'):
     return 0
 
 
-def labelByIndicators(candle, threshold=0.01, rsiHL=(60, 40)):
+def labelByIndicators(candle, rsiHL=(60, 40)):
     score = 0
-    # close is above sma: sell
     if candle['bbpercent'] > 0:
+        # close is above topbb
         if candle['bbpercent'] > 0.5:
-            score += -int(candle['bbpercent'])
+            score += -3
         else:
             score += -1
-    # close is below sma: buy
     if candle['bbpercent'] < 0:
+        # close is below bottombb
         if candle['bbpercent'] < -0.5:
-            score += int(abs(candle['bbpercent']))
+            score += 3
         else:
             score += 1
 
-    # rsi indicates overbought
+    # rsi indicates overbought: sell
     if candle['rsi'] > rsiHL[0]:
-        score += -1
-    # rsi indicates oversold
-    if candle['rsi'] < rsiHL[0]:
-        score += 1
+        if candle['rsi'] > rsiHL[0] + 10:
+            score += -3
+        else:
+            score += -1
 
-    # future percentchange is greater than threshold
-    if candle['future'] > threshold:
-        # buy
-        score += 1
-    # future percentchange is less than -threshold
-    if candle['future'] < -threshold:
-        # sell
-        score += -1
-
-    # pos macd
-    if candle['macd'] > 0:
-        # sell
-        score += -1
-    # neg macd
-    if candle['macd'] < 0:
-        # buy
-        score += 1
+    # rsi indicates oversold: buy
+    if candle['rsi'] < rsiHL[1]:
+        if candle['rsi'] < rsiHL[1] - 10:
+            score += 3
+        else:
+            score += 1
 
     return score
 

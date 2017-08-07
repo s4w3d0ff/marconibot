@@ -45,7 +45,6 @@ setup(name='marconi',
           'pymongo',
           'pandas',
           'websocket-client',
-          'scipy',
           'numpy',
       ],
       zip_safe=False)
