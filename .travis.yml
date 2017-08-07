@@ -1,13 +1,12 @@
 language: python
 python:
-- '2.7'
 - '3.3'
 - '3.4'
 - '3.5'
 - '3.6'
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -qq python-scipy python-numpy
+  - sudo apt-get install -qq python3-scipy python3-numpy
 
-install: python setup.py install
+install: python3 setup.py install
 #script: python test.py

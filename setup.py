@@ -44,8 +44,6 @@ setup(name='marconi',
           'bokeh',
           'pymongo',
           'pandas',
-          'websocket-client',
-          'numpy',
-          'scipy'
+          'websocket-client'
       ],
       zip_safe=False)
