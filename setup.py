@@ -46,5 +46,6 @@ setup(name='marconi',
           'pandas',
           'websocket-client',
           'numpy',
+          'scipy'
       ],
       zip_safe=False)
