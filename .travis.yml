@@ -13,7 +13,7 @@ before_install:
   - SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
   - rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
   - sudo apt-get -qq update
-  - sudo apt-get install -qq python3-scipy python3-numpy python3-pandas
+  - sudo apt-get install -qq python3-scipy python3-numpy python3-pandas python3-six
 
 install: python3 setup.py install
 
