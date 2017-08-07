@@ -1,12 +1,20 @@
 language: python
+
 python:
 - '3.3'
 - '3.4'
 - '3.5'
 - '3.6'
+
+virtualenv:
+    system_site_packages: true
+
 before_install:
+  - SITE_PKG_DIR=$VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/site-packages
+  - rm -f $VIRTUAL_ENV/lib/python$TRAVIS_PYTHON_VERSION/no-global-site-packages.txt
   - sudo apt-get -qq update
-  - sudo apt-get install -qq python3-scipy python3-numpy
+  - sudo apt-get install -qq python3-scipy python3-numpy python3-pandas
 
 install: python3 setup.py install
+
 #script: python test.py

@@ -40,10 +40,12 @@ setup(name='marconi',
       scripts=['bin/poloaner'],
       install_requires=[
           'requests',
-          'scikit-learn',
           'bokeh',
           'pymongo',
+          'scikit-learn',
+          'numpy',
           'pandas',
-          'websocket-client'
+          'scipy',
+          'websocket-client',
       ],
       zip_safe=False)
