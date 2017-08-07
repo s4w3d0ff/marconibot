@@ -13,14 +13,9 @@ sudo: false
 virtualenv:
   system_site_packages: true
 
-addons:
-  apt:
-    packages:
-      - python3-scipy
-      - python3-numpy
-      - python3-pandas
-      - python3-six
+before-install:
+  - pip install six scipy numpy pandas
 
-install: python3 setup.py install
+install: python setup.py install
 
 #script: python test.py
