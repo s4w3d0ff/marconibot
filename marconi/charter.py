@@ -21,8 +21,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from __future__ import print_function
-
 from .tools import time, getMongoColl, logging, itemgetter, epoch2localstr
 from .tools import pd, np, PI
 from .tools.plotting import (figure, plotBBands, plotRSI,
@@ -62,6 +60,7 @@ class Charter(object):
             last = sorted(list(db.find()), key=itemgetter('_id'))[-1]
         except IndexError:
             last = False
+        logger.info('Getting new candles from Poloniex')
         # no entrys found, get all 5min data from poloniex
         if not last:
             logger.warning('%s collection is empty!', dbcolName)
@@ -76,14 +75,6 @@ class Charter(object):
         updateSize = len(new)
         logger.info('Updating %s with %s new entrys!',
                     dbcolName, str(updateSize))
-
-        # show the progess
-        for i in range(updateSize):
-            print("\r%s/%s" % (str(i + 1), str(updateSize)), end=" complete ")
-            date = new[i]['date']
-            del new[i]['date']
-            db.update_one({'_id': date}, {"$set": new[i]}, upsert=True)
-        print('')
 
         logger.debug('Getting chart data from db')
         # return data from db (sorted just in case...)
