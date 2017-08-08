@@ -36,8 +36,9 @@ from math import pi as PI
 from decimal import Decimal
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
-from multiprocessing import Process
-from multiprocessing.dummy import Process as Thread
+from multiprocessing.dummy import Process, Pool
+from threading import Thread
+
 # 3rd party ----------------------------------------------------------------
 # pip install pandas numpy
 import pandas as pd
@@ -80,24 +81,6 @@ CY = lambda text: '\033[36m' + str(text) + WT  # cyan
 GY = lambda text: '\033[37m' + str(text) + WT  # gray
 
 
-class Rthread(Thread):
-    """ makes join return the threaded results """
-
-    def __init__(self, group=None, target=None, name=None,
-                 args=(), kwargs={}, Verbose=None):
-        Thread.__init__(self, group, target, name, args, kwargs, Verbose)
-        self._return = None
-
-    def run(self):
-        if self._Thread__target is not None:
-            self._return = self._Thread__target(*self._Thread__args,
-                                                **self._Thread__kwargs)
-
-    def join(self):
-        Thread.join(self)
-        return self._return
-
-
 # convertions, misc ------------------------------------------------------
 
 def shuffleDataFrame(df):
@@ -114,7 +97,7 @@ def getMongoColl(db, coll):
 
 def wait(i=10):
     """ Wraps 'time.sleep()' with logger output """
-    logger.debug('Waiting %d sec...', i)
+    logger.debug('Waiting %d sec... (%.2fmin)', i, i / 60.0)
     sleep(i)
 
 

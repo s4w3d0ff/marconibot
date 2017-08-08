@@ -22,8 +22,8 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from .tools import getMongoColl, websocket
-from .tools import Poloniex
-from .tools import Thread, logging, json
+from .tools import Poloniex, Thread
+from .tools import logging, json
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +40,6 @@ class Ticker(object):
                                          on_error=self.on_error,
                                          on_close=self.on_close)
         self.ws.on_open = self.on_open
-        self._running = False
 
     def __call__(self, market=None):
         """ returns ticker from mongodb """
@@ -80,7 +79,7 @@ class Ticker(object):
         logger.error(error)
 
     def on_close(self, ws):
-        if self._running:
+        if self.t._running:
             try:
                 self.ws.send(json.dumps(
                     {'command': 'subscribe', 'channel': 1002}))
@@ -102,15 +101,15 @@ class Ticker(object):
     def start(self):
         self.t = Thread(target=self.ws.run_forever)
         self.t.daemon = True
-        self._running = True
+        self.t._running = True
         self.t.start()
-        logger.info('Thread started')
+        logger.info('Ticker process started')
 
     def stop(self):
-        self._running = False
+        self.t._running = False
         self.ws.close()
         self.t.join()
-        logger.info('Thread joined')
+        logger.info('Ticker process stopped/joined')
 
 
 if __name__ == "__main__":

@@ -119,7 +119,7 @@ class Backtester(object):
         self.parentBal = parentBal
         self.childBal = childBal
 
-    def _backtest(self, row, moveOn='predict', minX=10):
+    def _backtest(self, row, moveOn='predict'):
         # get move and rate
         move = row[moveOn]
         rate = row['close']
@@ -129,11 +129,10 @@ class Backtester(object):
             parentAmt = self.parentBal * (move / 100)
             childAmt = parentAmt / rate
             if parentAmt < TRADE_MIN:
-                logger.warning('Parent trade amount is below the minimum!')
+                logger.debug('Parent trade amount is below the minimum!')
 
             elif self.parentBal - parentAmt < 0:
-                logger.warning(
-                    'This trade would make parentBal below 0!')
+                logger.debug('This trade would make parentBal below 0!')
             else:
                 self.childBal = self.childBal + childAmt
                 self.parentBal = self.parentBal - parentAmt
@@ -143,11 +142,10 @@ class Backtester(object):
             childAmt = abs(self.childBal * (move / 100))
             parentAmt = childAmt * rate
             if parentAmt < TRADE_MIN:
-                logger.warning('Parent trade amount is below the minimum!')
+                logger.debug('Parent trade amount is below the minimum!')
 
             elif self.childBal - childAmt < 0:
-                logger.warning(
-                    'This trade would make childBal below 0!')
+                logger.debug('This trade would make childBal below 0!')
             else:
                 self.parentBal = self.parentBal + parentAmt
                 self.childBal = self.childBal - childAmt
@@ -155,7 +153,7 @@ class Backtester(object):
         return pd.Series({'btParent': self.parentBal,
                           'btChild': self.childBal})
 
-    def __call__(self, df, parentBal=False, childBal=False, minX=10, moveOn='predict'):
+    def __call__(self, df, parentBal=False, childBal=False, moveOn='predict'):
         if parentBal:
             self.parentBal = parentBal
         if childBal:
@@ -163,7 +161,7 @@ class Backtester(object):
 
         pstart = float(self.parentBal)
         cstart = float(self.childBal)
-        df = df.merge(df.apply(self._backtest, axis=1, moveOn=moveOn, minX=minX),
+        df = df.merge(df.apply(self._backtest, axis=1, moveOn=moveOn),
                       left_index=True,
                       right_index=True)
         df['btTotal'] = df['btParent'] + (df['btChild'] * df['close'])

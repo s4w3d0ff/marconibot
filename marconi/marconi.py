@@ -26,7 +26,6 @@ from marconi.tools.poloniex import Poloniex
 from marconi.tools.plotting import show, gridplot
 from marconi.tools.trading import Backtester
 from marconi.tools.brain import Brain, getLabels
-from marconi.tools.minion import Minion
 from marconi.charter import Charter
 from marconi.ticker import Ticker
 
@@ -73,7 +72,7 @@ class Marconi(object):
 
     @property
     def tickerStatus(self):
-        return self.ticker._running
+        return self.ticker.t._running
 
     def plotMarkets(self, markets):
         grid = []
