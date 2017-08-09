@@ -39,6 +39,7 @@ setup(name='marconi',
                 'marconi.tools.trading'],
       scripts=['bin/poloaner'],
       setup_requires=['numpy'],
+      # cmdclass={'build_ext':build_ext},
       install_requires=[
           'requests',
           'bokeh',
