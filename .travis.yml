@@ -15,7 +15,7 @@ addons:
     - python-numpy
     - python-scipy
 install:
-  - pip setup.py install
+  - python setup.py install
 cache:
   - apt
   - pip
