@@ -9,11 +9,11 @@ python:
 addons:
   apt:
     packages:
-#    - libblas-dev
-#    - liblapack-dev
+    - libblas-dev
+    - liblapack-dev
     - gfortran
-    - python-numpy
-    - python-scipy
+#    - python-numpy
+#    - python-scipy
 install:
   - python setup.py install
 cache:
