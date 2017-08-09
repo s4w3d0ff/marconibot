@@ -1,11 +1,18 @@
 language: python
+
 sudo: false
+
+notifications:
+  email: false
+
 branches:
   only:
     - travis
+
 python:
   - "2.7"
   - "3.4"
+
 addons:
   apt:
     packages:
@@ -14,8 +21,10 @@ addons:
     - gfortran
 #    - python-numpy
 #    - python-scipy
+
 install:
-  - python setup.py install
+  - python setup.py install --quiet
+
 cache:
   - apt
   - pip
