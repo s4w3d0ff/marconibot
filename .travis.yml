@@ -2,7 +2,7 @@ language: python
 sudo: false
 branches:
   only:
-    - master
+    - travis
 python:
   - "2.7"
   - "3.4"
