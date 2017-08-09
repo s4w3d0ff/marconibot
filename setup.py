@@ -38,6 +38,7 @@ setup(name='marconi',
                 'marconi.tools.minion',
                 'marconi.tools.trading'],
       scripts=['bin/poloaner'],
+      setup_requires=['numpy'],
       install_requires=[
           'requests',
           'bokeh',
