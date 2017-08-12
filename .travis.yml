@@ -9,24 +9,29 @@ branches:
   only:
     - travis
 
-python:
-  - "2.7"
-  - "3.4"
+matrix:
+  - env: PYTHON_VERSION="2.7" CYTHON_VERSION="0.23.4"
+      addons:
+      apt:
+        packages:
+          - python-scipy
+          - libatlas3gf-base
+          - libatlas-dev
 
-addons:
-  apt:
-    packages:
-    - libblas-dev
-    - liblapack-dev
-    - gfortran
-#    - python-numpy
-#    - python-scipy
+  - env: PYTHON_VERSION="3.4" CYTHON_VERSION="0.23.4"
+      addons:
+      apt:
+        packages:
+          - python3-scipy
+          - libatlas3gf-base
+          - libatlas-dev
 
 install:
   - python setup.py install --quiet
 
 cache:
-  - apt
-  - pip
-  - directories:
-    - $HOME/.cache/pip
+  apt: true
+  pip: true
+  directories:
+  - $HOME/.cache/pip
+  - $HOME/.ccache

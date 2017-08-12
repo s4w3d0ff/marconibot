@@ -53,6 +53,49 @@ def stopLimit(api, market, amount, stop, limit, interval=2, ticker=False):
     return order
 
 
+def dump(api, market, amount, ticker=False):
+    """ Dumps childcoin <amount> on <market> at highestBid """
+    parentCoin, childCoin = market.split('_')
+    if amount == 'all':
+        amount = api.returnCompleteBalances('exchange')[childCoin]['available']
+    while True:
+        if not ticker:
+            hbid = api.returnTicker()[market]['highestBid']
+        else:
+            hBid = ticker(market)['highestBid']
+        try:
+            return api.sell(currencyPair=market,
+                            rate=hBid + (SATOSHI * 1000),
+                            amount=amount,
+                            orderType='fillOrKill')
+        except Exception as e:
+            # log exceptions and keep trying
+            logger.exception(e)
+            continue
+
+
+def pump(api, market, amount, ticker=False):
+    """ Pumps parentCoin <amount> of <market> at lowestAsk """
+    parentCoin, childCoin = market.split('_')
+    if amount == 'all':
+        amount = api.returnCompleteBalances(
+            'exchange')[parentCoin]['available']
+    while True:
+        if not ticker:
+            lAsk = api.returnTicker()[market]['lowestAsk']
+        else:
+            lAsk = ticker(market)['lowestAsk']
+        try:
+            return api.sell(currencyPair=market,
+                            rate=lAsk + (SATOSHI * 1000),
+                            amount=amount,
+                            orderType='fillOrKill')
+        except Exception as e:
+            # log exceptions and keep trying
+            logger.exception(e)
+            continue
+
+
 def cancelAllOrders(api, market='all', arg=False):
     """ Cancels all orders for a market or all markets. Can be limited to just
     buy or sell orders using the 'arg' param """
@@ -94,12 +137,8 @@ def closeAllMargins(api):
 
 def autoRenewAll(api, toggle=True):
     """ Turns auto-renew on or off for all active loans """
-    if toggle:
-        toggle = 1
-    else:
-        toggle = 0
     for loan in api.returnActiveLoans()['provided']:
-        if int(loan['autoRenew']) != toggle:
+        if int(loan['autoRenew']) != int(toggle):
             logger.info('Toggling autorenew for offer %s', loan['id'])
             api.toggleAutoRenew(loan['id'])
 
@@ -111,6 +150,26 @@ def getAvailCoin(api, coin):
     if not coin in bals:
         return 0.0
     return float(bals[coin])
+
+
+class Maker(object):
+    """ Fills the market gap with 'makerfee-only' orders """
+
+    def __init__(self, api, ticker):
+        self.api = api
+        self.ticker = ticker
+        self.orderList = []
+        self._running = False
+
+    def handleOrders(self):
+        if len(self.orderList) > 0:
+            for order in orderList:
+                order
+
+    def run(self, market, move, amount):
+        self._running = True
+        while self._running:
+            self.handleOrders()
 
 
 class Backtester(object):

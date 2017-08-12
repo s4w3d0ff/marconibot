@@ -75,7 +75,10 @@ class Charter(object):
         updateSize = len(new)
         logger.info('Updating %s with %s new entrys!',
                     dbcolName, str(updateSize))
-
+        for i in range(updateSize):
+            date = new[i]['date']
+            del new[i]['date']
+            db.update_one({'_id': date}, {"$set": new[i]}, upsert=True)
         logger.debug('Getting chart data from db')
         # return data from db (sorted just in case...)
         return sorted(
