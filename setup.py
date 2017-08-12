@@ -38,14 +38,13 @@ setup(name='marconi',
                 'marconi.tools.minion',
                 'marconi.tools.trading'],
       scripts=['bin/poloaner'],
+      setup_requires=['numpy', 'scipy'],
       install_requires=[
-          'requests',
-          'bokeh',
           'pymongo',
           'scikit-learn',
-          'numpy',
+          'bokeh',
           'pandas',
-          'scipy',
           'websocket-client',
+          'requests'
       ],
       zip_safe=False)

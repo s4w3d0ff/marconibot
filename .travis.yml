@@ -1,20 +1,28 @@
 language: python
 
-python:
-- '2.7_with_system_site_packages'
-- '3.3'
-- '3.4'
-- '3.5'
-- '3.6'
+notifications:
+  email: false
 
-cache: pip
+python:
+  - "2.7"
+  - "3.5"
 
 sudo: false
 
+before_install:
+  # make sure we have wheel and setuptools
+  - pip install -U pip wheel setuptools
+  # pre install scientific wheels so we dont have to build
+  - pip install --only-binary=numpy,scipy,pandas,scikit-learn numpy scipy pandas scikit-learn
 
-before-install:
-  - pip install six scipy numpy pandas
+install:
+  - python setup.py install
 
-install: python setup.py install
+# travis bugs out if no script is defined...
+script:
+  - cd $HOME
 
-#script: python test.py
+# cashe pip
+cache:
+  directories:
+    - $HOME/.cache/pip
