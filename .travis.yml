@@ -1,33 +1,21 @@
 language: python
 
-sudo: false
-
 notifications:
   email: false
 
 branches:
   only:
     - travis
+python:
+  - "2.7"
+  - "3.5"
 
-matrix:
-  - env: PYTHON_VERSION="2.7" CYTHON_VERSION="0.23.4"
-      addons:
-        apt:
-          packages:
-            - python-scipy
-            - libatlas3gf-base
-            - libatlas-dev
-
-  - env: PYTHON_VERSION="3.4" CYTHON_VERSION="0.23.4"
-      addons:
-        apt:
-          packages:
-            - python3-scipy
-            - libatlas3gf-base
-            - libatlas-dev
+sudo: required
 
 install:
-  - python setup.py install --quiet
+  - "sudo apt-get install gfortran python-liblas libblas-dev liblapack-dev libatlas-dev"
+  - "pip install --upgrade pip"
+  - "python setup.py install --user"
 
 cache:
   apt: true
