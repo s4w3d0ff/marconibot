@@ -28,9 +28,8 @@ before_install:
   - df -h
   - ulimit -a
   - pip install -U pip wheel setuptools
-  - pip install --only-binary=numpy,scipy numpy scipy
-  - pip install cython six #numpy
-#  - pip install -v -U scipy
+  - pip install --only-binary=numpy,scipy,pandas numpy scipy pandas
+  - pip install cython six
   - python -V
 
 install:
