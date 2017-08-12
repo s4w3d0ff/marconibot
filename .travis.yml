@@ -14,7 +14,6 @@ before_install:
   - pip install -U pip wheel setuptools
   # pre install scientific wheels so we dont have to build
   - pip install --only-binary=numpy,scipy,pandas,scikit-learn numpy scipy pandas scikit-learn
-  - python -V
 
 install:
   - python setup.py install
