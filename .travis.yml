@@ -13,13 +13,13 @@ python:
 
 sudo: false
 
-addons:
-  apt:
-    packages:
-      - gfortran
-      - libatlas-dev
-      - libatlas-base-dev
-      - liblapack-dev
+#addons:
+#  apt:
+#    packages:
+#      - gfortran
+#      - libatlas-dev
+#      - libatlas-base-dev
+#      - liblapack-dev
 
 
 before_install:
@@ -28,8 +28,9 @@ before_install:
   - df -h
   - ulimit -a
   - pip install -U pip wheel setuptools
-  - pip install --only-binary=numpy,scipy,pandas numpy scipy pandas
-  - pip install cython six
+  # pre install scientific wheels so we dont have to build
+  - pip install --only-binary=numpy,scipy,pandas,scikit-learn numpy scipy pandas scikit-learn
+#  - pip install cython six
   - python -V
 
 install:
