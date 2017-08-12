@@ -23,3 +23,5 @@ cache:
   directories:
   - $HOME/.cache/pip
   - $HOME/.ccache
+
+script: "echo foo"
