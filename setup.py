@@ -39,13 +39,12 @@ setup(name='marconi',
                 'marconi.tools.trading'],
       scripts=['bin/poloaner'],
       setup_requires=['numpy', 'scipy'],
-      # cmdclass={'build_ext':build_ext},
       install_requires=[
-          'requests',
-          'bokeh',
           'pymongo',
           'scikit-learn',
+          'bokeh',
           'pandas',
           'websocket-client',
+          'requests'
       ],
       zip_safe=False)
