@@ -3,42 +3,27 @@ language: python
 notifications:
   email: false
 
-branches:
-  only:
-    - travis
-
 python:
   - "2.7"
   - "3.5"
 
 sudo: false
 
-#addons:
-#  apt:
-#    packages:
-#      - gfortran
-#      - libatlas-dev
-#      - libatlas-base-dev
-#      - liblapack-dev
-
-
 before_install:
-  - uname -a
-  - free -m
-  - df -h
-  - ulimit -a
+  # make sure we have wheel and setuptools
   - pip install -U pip wheel setuptools
   # pre install scientific wheels so we dont have to build
   - pip install --only-binary=numpy,scipy,pandas,scikit-learn numpy scipy pandas scikit-learn
-#  - pip install cython six
   - python -V
 
 install:
   - python setup.py install
 
+# travis bugs out if no script is defined...
 script:
   - cd $HOME
 
+# cashe pip
 cache:
   directories:
     - $HOME/.cache/pip
