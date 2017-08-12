@@ -35,11 +35,6 @@ class Ticker(object):
         if not self.api:
             self.api = Poloniex(jsonNums=float)
         self.db = getMongoColl('poloniex', 'ticker')
-        self.ws = websocket.WebSocketApp("wss://api2.poloniex.com/",
-                                         on_message=self.on_message,
-                                         on_error=self.on_error,
-                                         on_close=self.on_close)
-        self.ws.on_open = self.on_open
 
     def __call__(self, market=None):
         """ returns ticker from mongodb """
@@ -81,10 +76,14 @@ class Ticker(object):
     def on_close(self, ws):
         if self.t._running:
             try:
-                self.ws.send(json.dumps(
-                    {'command': 'subscribe', 'channel': 1002}))
+                self.stop()
             except Exception as e:
                 logger.exception(e)
+            try:
+                self.start()
+            except Exception as e:
+                logger.exception(e)
+                self.stop()
         else:
             logger.info("Websocket closed!")
 
@@ -99,6 +98,11 @@ class Ticker(object):
         self.ws.send(json.dumps({'command': 'subscribe', 'channel': 1002}))
 
     def start(self):
+        self.ws = websocket.WebSocketApp("wss://api2.poloniex.com/",
+                                         on_message=self.on_message,
+                                         on_error=self.on_error,
+                                         on_close=self.on_close)
+        self.ws.on_open = self.on_open
         self.t = Thread(target=self.ws.run_forever)
         self.t.daemon = True
         self.t._running = True
