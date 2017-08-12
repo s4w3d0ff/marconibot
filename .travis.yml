@@ -12,19 +12,19 @@ branches:
 matrix:
   - env: PYTHON_VERSION="2.7" CYTHON_VERSION="0.23.4"
       addons:
-      apt:
-        packages:
-          - python-scipy
-          - libatlas3gf-base
-          - libatlas-dev
+        apt:
+          packages:
+            - python-scipy
+            - libatlas3gf-base
+            - libatlas-dev
 
   - env: PYTHON_VERSION="3.4" CYTHON_VERSION="0.23.4"
       addons:
-      apt:
-        packages:
-          - python3-scipy
-          - libatlas3gf-base
-          - libatlas-dev
+        apt:
+          packages:
+            - python3-scipy
+            - libatlas3gf-base
+            - libatlas-dev
 
 install:
   - python setup.py install --quiet
