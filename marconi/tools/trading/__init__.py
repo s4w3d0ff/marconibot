@@ -20,7 +20,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from .. import logging, pd, np, time, SATOSHI, PoloniexError, TRADE_MIN, wait
+from .. import (logging, pd, np, time, SATOSHI,
+                PoloniexError, TRADE_MIN, wait, roundDown)
 
 logger = logging.getLogger(__name__)
 
@@ -172,58 +173,50 @@ class Maker(object):
             self.handleOrders()
 
 
-class Backtester(object):
+def backtester(df, parentBal, childBal, moveOn='predict', tradeSize=TRADE_MIN):
+    bals = {
+        'pstart': float(parentBal),
+        'cstart': float(childBal),
+        'ptotal': float(parentBal),
+        'ctotal': float(childBal),
+    }
 
-    def __init__(self, parentBal=0.1, childBal=1):
-        self.parentBal = parentBal
-        self.childBal = childBal
-
-    def _backtest(self, row, moveOn='predict'):
+    def _backtest(row, moveOn, tradeSize):
         # get move and rate
         move = row[moveOn]
         rate = row['close']
 
         # if buy
         if move > 0:
-            parentAmt = self.parentBal * (move / 100)
+            parentAmt = tradeSize * move
             childAmt = parentAmt / rate
             if parentAmt < TRADE_MIN:
                 logger.debug('Parent trade amount is below the minimum!')
-
-            elif self.parentBal - parentAmt < 0:
-                logger.debug('This trade would make parentBal below 0!')
+            elif bals['ptotal'] - parentAmt < 0:
+                logger.debug('Not enough parentCoin!')
             else:
-                self.childBal = self.childBal + childAmt
-                self.parentBal = self.parentBal - parentAmt
+                bals['ctotal'] = bals['ctotal'] + childAmt
+                bals['ptotal'] = bals['ptotal'] - parentAmt
 
         # if sell
         if move < 0:
-            childAmt = abs(self.childBal * (move / 100))
-            parentAmt = childAmt * rate
+            parentAmt = abs(tradeSize * move)
+            childAmt = parentAmt / rate
             if parentAmt < TRADE_MIN:
                 logger.debug('Parent trade amount is below the minimum!')
-
-            elif self.childBal - childAmt < 0:
-                logger.debug('This trade would make childBal below 0!')
+            elif bals['ctotal'] - childAmt < 0:
+                logger.debug('Not enough childCoin!')
             else:
-                self.parentBal = self.parentBal + parentAmt
-                self.childBal = self.childBal - childAmt
+                bals['ptotal'] = bals['ptotal'] + parentAmt
+                bals['ctotal'] = bals['ctotal'] - childAmt
 
-        return pd.Series({'btParent': self.parentBal,
-                          'btChild': self.childBal})
+        return pd.Series({'btParent': bals['ptotal'],
+                          'btChild': bals['ctotal']})
 
-    def __call__(self, df, parentBal=False, childBal=False, moveOn='predict'):
-        if parentBal:
-            self.parentBal = parentBal
-        if childBal:
-            self.childBal = childBal
-
-        pstart = float(self.parentBal)
-        cstart = float(self.childBal)
-        df = df.merge(df.apply(self._backtest, axis=1, moveOn=moveOn),
-                      left_index=True,
-                      right_index=True)
-        df['btTotal'] = df['btParent'] + (df['btChild'] * df['close'])
-        df['btStart'] = pstart + (cstart * df['close'])
-        df['btProfit'] = df['btTotal'] - df['btStart']
-        return df
+    df = df.merge(df.apply(_backtest, axis=1, moveOn=moveOn, tradeSize=tradeSize),
+                  left_index=True, right_index=True)
+    df['btTotal'] = df['btParent'] + (df['btChild'] * df['close'])
+    df['btStart'] = bals['pstart'] + (bals['cstart'] * df['close'])
+    df['btProfit'] = df['btTotal'] - df['btStart']
+    df['btProfit'] = df['btProfit'].apply(roundDown, d=8)
+    return df
