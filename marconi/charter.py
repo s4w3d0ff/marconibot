@@ -26,7 +26,7 @@ from .tools import pd, np, PI
 from .tools.plotting import (figure, plotBBands, plotRSI,
                              plotMACD, plotVolume, plotCandlesticks,
                              plotMovingAverages)
-from .tools.indicators import ema, macd, bbands, rsi
+from .tools.indicators import macd, bbands, rsi
 
 
 logger = logging.getLogger(__name__)
@@ -112,12 +112,8 @@ class Charter(object):
 
         # calculate/add sma and bbands
         df = bbands(df, (slowWindow + fastWindow) // 2)
-        # add slow ema
-        df = ema(df, slowWindow, colname='emaslow')
-        # add fast ema
-        df = ema(df, fastWindow, colname='emafast')
-        # add macd
-        df = macd(df)
+        # add emas, macd, signal, divergance
+        df = macd(df, fastWindow, slowWindow)
         # add rsi
         df = rsi(df, fastWindow)
         # add candle body and shadow size

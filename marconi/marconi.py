@@ -24,7 +24,6 @@
 from marconi.tools import logging, pd
 from marconi.tools.poloniex import Poloniex
 from marconi.tools.plotting import show, gridplot
-from marconi.tools.trading import Backtester
 from marconi.tools.brain import Brain, getLabels
 from marconi.charter import Charter
 from marconi.ticker import Ticker
@@ -41,12 +40,12 @@ class Marconi(object):
             self.api = Poloniex(jsonNums=float)
         self.charter = Charter(self.api)
         self.brain = Brain()
-        self.backtester = Backtester()
         self.ticker = Ticker(self.api)
         self.trainMarkets = trainMarkets
         self.featureset = featureset
 
-    def learn(self, markets=False, featureset=False, labelFunc=getLabels):
+    def learn(self, markets=False, featureset=False,
+              labelFunc=getLabels, labelArgs={}):
         if not markets:
             markets = self.trainMarkets
         if not featureset:
@@ -61,7 +60,7 @@ class Marconi(object):
                 pair=market,
                 **markets[market]
             )
-            df['label'] = labelFunc(df)
+            df['label'] = labelFunc(df, **labelArgs)
             if first:
                 first = False
                 trainDF = df[self.featureset + ['label']]
@@ -77,7 +76,6 @@ class Marconi(object):
     def plotMarkets(self, markets):
         grid = []
         for market in markets:
-            # append each df with labels
             plots, df = self.charter.graph(pair=market,
                                            plot_width=1500,
                                            **markets[market])

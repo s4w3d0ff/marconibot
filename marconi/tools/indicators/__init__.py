@@ -73,10 +73,14 @@ def ema(df, window, targetcol='close', colname='ema', **kwargs):
     return df
 
 
-def macd(df, fastcol='emafast', slowcol='emaslow', colname='macd'):
-    """ Calculates the differance between 'fastcol' and 'slowcol' in a pandas
-    dataframe """
-    df[colname] = df[fastcol] - df[slowcol]
+def macd(df, fastWindow=13, slowWindow=36):
+    """ Calculates macd, signal, and divergance from a pandas dataframe """
+    df = ema(df, fastWindow, colname='emafast')
+    df = ema(df, slowWindow, colname='emaslow')
+    df['macd'] = df['emafast'] - df['emaslow']
+    df = ema(df, (slowWindow + fastWindow) // 2,
+             targetcol='macd', colname='macdSignal')
+    df['macdDivergence'] = df['macd'] - df['macdSignal']
     return df
 
 
