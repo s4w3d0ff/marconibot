@@ -50,7 +50,7 @@ def stopLimit(api, market, amount, stop, limit, interval=2, ticker=False):
             order = api.buy(market, limit, amount)
             continue
         wait(interval)
-    logger.debug('%s stop order triggered!', market)
+    logger.debug('%s stop limit triggered!', market)
     return order
 
 
@@ -66,7 +66,7 @@ def dump(api, market, amount, ticker=False):
             hBid = ticker(market)['highestBid']
         try:
             return api.sell(currencyPair=market,
-                            rate=hBid + (SATOSHI * 1000),
+                            rate=hBid - (SATOSHI * 1000),
                             amount=amount,
                             orderType='fillOrKill')
         except Exception as e:

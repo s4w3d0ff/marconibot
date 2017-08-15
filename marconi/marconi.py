@@ -24,7 +24,7 @@
 from marconi.tools import logging, pd
 from marconi.tools.poloniex import Poloniex
 from marconi.tools.plotting import show, gridplot
-from marconi.tools.brain import Brain, getLabels
+from marconi.tools.brain import Brain, customLabels
 from marconi.charter import Charter
 from marconi.ticker import Ticker
 
@@ -45,7 +45,7 @@ class Marconi(object):
         self.featureset = featureset
 
     def learn(self, markets=False, featureset=False,
-              labelFunc=getLabels, labelArgs={}):
+              labelFunc=customLabels, labelArgs={}):
         if not markets:
             markets = self.trainMarkets
         if not featureset:
