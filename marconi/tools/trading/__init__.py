@@ -106,7 +106,7 @@ def cancelAllOrders(api, market='all', arg=False):
     if market == 'all':
         for market in orders:
             for order in orders[market]:
-                if arg in ('sell', 'buy') and o['type'] != arg:
+                if arg in ('sell', 'buy') and order['type'] != arg:
                     continue
                 logger.debug(api.cancelOrder(order["orderNumber"]))
         return True
