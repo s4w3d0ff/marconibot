@@ -29,10 +29,10 @@ from .. import logging, pd, np, time, pickle, shuffleDataFrame
 logger = logging.getLogger(__name__)
 
 
-def customLabels(df, bbLimit=False, rsiLimit=False, pchThreshold=False):
+def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False, cciLimit=False):
     df['future'] = df['percentChange'].shift(-1)
 
-    def _bbrsiLabels(candle, bbLimit, rsiLimit, pchThreshold):
+    def _bbrsiLabels(candle, bbLimit, rsiLimit, pchLimit, cciLimit):
         score = 0
         if bbLimit:
             bbval = candle['bbpercent']
@@ -48,17 +48,24 @@ def customLabels(df, bbLimit=False, rsiLimit=False, pchThreshold=False):
             if rsi < -rsiLimit:
                 score += 1
 
-        if pchThreshold:
+        if pchLimit:
             fpch = candle['future']
-            if fpch > pchThreshold:
-                score += 2
-            if fpch < -pchThreshold:
-                score += -2
+            if fpch > pchLimit:
+                score += 1
+            if fpch < -pchLimit:
+                score += -1
+
+        if cciLimit:
+            ccindex = candle['cci']
+            if ccindex > cciLimit:
+                score += -1
+            if ccindex < -cciLimit:
+                score += 1
 
         return score
 
     return df.apply(_bbrsiLabels, axis=1, bbLimit=bbLimit,
-                    rsiLimit=rsiLimit, pchThreshold=pchThreshold)
+                    rsiLimit=rsiLimit, pchLimit=pchLimit, cciLimit=cciLimit)
 
 
 def prepDataframe(df):

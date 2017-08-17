@@ -26,7 +26,8 @@ from .tools import pd, np, PI
 from .tools.plotting import (figure, plotBBands, plotRSI,
                              plotMACD, plotVolume, plotCandlesticks,
                              plotMovingAverages)
-from .tools.indicators import macd, bbands, rsi
+from .tools.indicators import (macd, bbands, rsi, force,
+                               copp, massindex, eom, cci)
 
 
 logger = logging.getLogger(__name__)
@@ -116,6 +117,17 @@ class Charter(object):
         df = macd(df, fastWindow, slowWindow)
         # add rsi
         df = rsi(df, fastWindow)
+        # add force
+        df = force(df, fastWindow)
+        # add copp
+        df = copp(df, fastWindow)
+        # add mass index
+        df = massindex(df, fastWindow)
+        # add ease of Movement
+        df = eom(df, slowWindow)
+        # add commodity channel index
+        df = cci(df, slowWindow)
+
         # add candle body and shadow size
         df['bodysize'] = df['close'] - df['open']
         df['shadowsize'] = df['high'] - df['low']
@@ -210,8 +222,8 @@ if __name__ == '__main__':
 
     layout, df = Charter(api).graph('ETH_ETC',
                                     window=70,
-                                    start=localstr2epoch(
-                                        '2016-01', fmat="%Y-%m"),
+                                    start=localstr2epoch('2016-01',
+                                                         fmat="%Y-%m"),
                                     zoom='1H')
 
     print(df.tail(40))

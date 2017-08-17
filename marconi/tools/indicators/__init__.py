@@ -104,6 +104,89 @@ def bbands(df, window, targetcol='close', stddev=2.0):
     return df
 
 
+def ppsr(df, multi=2):
+    """
+    Pivot Point, Supports and Resistances
+    """
+    df['pivotPoint'] = (df['high'] + df['low'] + df['close']) / 3
+    df['resist1'] = multi * df['pivotPoint'] - df['low']
+    df['resist2'] = df['pivotPoint'] + df['high'] - df['low']
+    df['resist3'] = df['high'] + multi * (df['pivotPoint'] - df['low'])
+    df['support1'] = multi * df['pivotPoint'] - df['high']
+    df['support2'] = df['pivotPoint'] - df['high'] + df['low']
+    df['support3'] = df['low'] - multi * (df['high'] - df['pivotPoint'])
+    return df
+
+
+def cci(df, window):
+    """
+    Commodity Channel Index
+    """
+    if not 'pivotPoint' in df:
+        df['pivotPoint'] = (df['high'] + df['low'] + df['close']) / 3
+    df['cci'] = (df['pivotPoint'] - df['pivotPoint'].rolling(
+        window=window,
+        min_periods=1,
+        center=False).mean()) / df['pivotPoint'].rolling(window=window,
+                                                         min_periods=1,
+                                                         center=False).std()
+    return df
+
+
+def force(df, window):
+    """
+    Force Index
+    """
+    df['force'] = df['close'].diff(window) * df['volume'].diff(window)
+    return df
+
+
+def copp(df, window, targetCol='close'):
+    """
+    Coppock Curve
+    """
+    ROC1 = df[targetCol].diff(int(window * 11 / 10) - 1) / \
+        df[targetCol].shift(int(window * 11 / 10) - 1)
+    ROC2 = df[targetCol].diff(int(window * 14 / 10) - 1) / \
+        df[targetCol].shift(int(window * 14 / 10) - 1)
+    T = ROC1 + ROC2
+    df['copp'] = T.ewm(ignore_na=False,
+                       span=window,
+                       min_periods=1,
+                       adjust=True).mean()
+    return df
+
+
+def eom(df, window):
+    """
+    Ease of Movement
+    """
+    EoM = (df['high'].diff(1) + df['low'].diff(1)) * \
+        (df['high'] - df['low']) / (2 * df['volume'])
+    df['eom'] = EoM.rolling(window=window, center=False).mean()
+    return df
+
+
+def massindex(df, window):
+    """
+    Mass Index
+    """
+    Range = df['high'] - df['low']
+    EX1 = Range.ewm(ignore_na=False,
+                    span=window,
+                    min_periods=1,
+                    adjust=True).mean()
+    EX2 = EX1.ewm(ignore_na=False,
+                  span=window,
+                  min_periods=1,
+                  adjust=True).mean()
+    Mass = EX1 / EX2
+    df['massindex'] = Mass.rolling(window=window * 3,
+                                   center=False,
+                                   min_periods=1).sum()
+    return df
+
+
 def getCandleLabel(c):
     """
      |
