@@ -21,7 +21,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from .. import pd, np, addPercent
+from .. import pd, np
 
 
 def rsi(df, window, targetcol='weightedAverage', colname='rsi'):
@@ -57,6 +57,7 @@ def sma(df, window, targetcol='close', colname='sma'):
     """
     df[colname] = df[targetcol].rolling(
         min_periods=1, window=window, center=False).mean()
+    df[colname].fillna(df[colname].mean())
     return df
 
 
@@ -84,11 +85,28 @@ def macd(df, fastWindow=13, slowWindow=36):
     return df
 
 
+def emastd(df, window, targetcol='close', colname='ema', stddev=2.0):
+    """Expodential Moving average standard dev"""
+    df[colname + 'top'] = df[colname] + stddev * df[targetcol].rolling(
+        min_periods=1,
+        window=window,
+        center=False).std()
+    df[colname + 'top'].fillna(df[colname + 'top'].mean(), inplace=True)
+    df[colname + 'bottom'] = df[colname] - stddev * df[targetcol].rolling(
+        min_periods=1,
+        window=window,
+        center=False).std()
+    df[colname + 'bottom'].fillna(df[colname + 'bottom'].mean(), inplace=True)
+    df[colname + 'range'] = df[colname + 'top'] - df[colname + 'bottom']
+    df[colname + 'percent'] = ((df[targetcol] -
+                                df[colname + 'bottom']) / df[colname + 'range']) - 0.5
+    return df
+
+
 def bbands(df, window, targetcol='close', stddev=2.0):
     """ Calculates Bollinger Bands for 'targetcol' of a pandas dataframe """
     if not 'sma' in df:
         df = sma(df, window, targetcol)
-    df['sma'].fillna(df['sma'].mean(), inplace=True)
     df['bbtop'] = df['sma'] + stddev * df[targetcol].rolling(
         min_periods=1,
         window=window,
@@ -185,61 +203,3 @@ def massindex(df, window):
                                    center=False,
                                    min_periods=1).sum()
     return df
-
-
-def getCandleLabel(c):
-    """
-     |
-     | ---- topWick
-    _|_ /-- bodytop
-    |_| -- body
-     |  \-- bodybottom
-     | ---- bottomWick
-     |
-    """
-    body = c['bodysize']
-    shadow = c['shadowsize']
-    # no shadow
-    if shadow == abs(body):
-        # no body
-        if abs(body) == 0:
-            return 'other'
-        return 'maru'
-
-    # body is bearish
-    if body <= 0:
-        bodytop = c['high']
-        bodybottom = c['low']
-    # body is bullish
-    else:
-        bodytop = c['low']
-        bodybottom = c['high']
-
-    topWick = c['high'] - bodytop
-    bottomWick = bodybottom - c['low']
-
-    # short wicks
-    if topWick + bottomWick < abs(body):
-        return 'other'
-
-    # shadow is 75% larger than body
-    if shadow > addPercent(abs(body), 75):
-        # hammers have large top wicks and big bodies
-        if topWick > abs(body) / 2:
-            return 'hammer'
-        # hanging have large bottom wicks and big bodies
-        if bottomWick > abs(body) / 2:
-            return 'hanging'
-        return 'bdoji'
-
-    # shadow is 50% larger than body
-    if shadow > addPercent(abs(body), 50):
-        # graves have large top wicks and small bodies
-        if topWick > abs(body) / 2:
-            return 'grave'
-        # dragons have large bottom wicks and small bodies
-        if bottomWick > abs(body) / 2:
-            return 'dragon'
-        return 'ldoji'
-
-    return 'doji'

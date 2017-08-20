@@ -29,7 +29,13 @@ from .. import logging, pd, np, time, pickle, shuffleDataFrame
 logger = logging.getLogger(__name__)
 
 
-def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False, cciLimit=False):
+def customLabels(df, bbLimit=False, rsiLimit=False,
+                 pchLimit=False, cciLimit=False):
+    """
+    Creates labels from a dataframe using bbands percent, rsi, 'future' percent
+        change, and cci
+    """
+
     df['future'] = df['percentChange'].shift(-1)
 
     def _bbrsiLabels(candle, bbLimit, rsiLimit, pchLimit, cciLimit):
@@ -69,6 +75,7 @@ def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False, cciLimit=Fal
 
 
 def prepDataframe(df):
+    """ Preps a dataframe for sklearn, removing infinity and droping nan """
     # make infinity nan
     df.replace([np.inf, -np.inf], np.nan, inplace=True)
     # drop nan
@@ -76,13 +83,23 @@ def prepDataframe(df):
 
 
 def splitTrainTestData(df, size=1):
+    """ Splits a dataframe by <size> starting from the rear """
     # split db
     return df.iloc[:-size], df.tail(size)
 
 
 class Brain(object):
+    """
+    The Brain object
+
+    Holds sklrean classifiers and makes it simpler to train using a dataframe
+    """
 
     def __init__(self, lobes=False):
+        """
+        lobes = a dict of classifiers to use in the VotingClassifier
+            defaults to RandomForestClassifier and DecisionTreeClassifier
+        """
         self._lobes = lobes
         if not self._lobes:
             self._lobes = {'rf': RandomForestClassifier(n_estimators=7,
@@ -95,6 +112,10 @@ class Brain(object):
             n_jobs=-1)
 
     def train(self, df, labels='label', split=False):
+        """
+        Trains the self.votingLobe with a dataframe <df>
+        use <labels> to define the column to use for labels
+        """
         # prep df, remove nan
         df = prepDataframe(df)
         # split if needed
@@ -111,7 +132,9 @@ class Brain(object):
             return tdf
 
     def predict(self, X):
+        """ Get a prediction from the votingLobe """
         return self.votingLobe.predict(X)
 
     def score(self, X, y):
+        """ Get a prediction score from the votingLobe"""
         return self.votingLobe.score(X, y)
