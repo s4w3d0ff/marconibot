@@ -27,6 +27,15 @@ logger = logging.getLogger(__name__)
 
 
 def stopLimit(api, market, amount, stop, limit, interval=2, ticker=False):
+    """
+    Simple stop limit, waits until <stop> has been triggered then attempts to
+        create an order for <amount> at <limit>
+
+    Use <interval> to throttle the rate it checks for price changes
+
+    Pass <ticker> an instance of 'marconi.ticker.Ticker' to use that instance to
+        retrieve ticker data, defaults to api.returnTicker()
+    """
     # no order yet
     order = False
     logger.debug('%s stop limit set: [Amount]%.8f [Stop]%.8f [Limit]%.8f',
@@ -50,7 +59,7 @@ def stopLimit(api, market, amount, stop, limit, interval=2, ticker=False):
             order = api.buy(market, limit, amount)
             continue
         wait(interval)
-    logger.debug('%s stop order triggered!', market)
+    logger.debug('%s stop limit triggered!', market)
     return order
 
 
@@ -66,7 +75,7 @@ def dump(api, market, amount, ticker=False):
             hBid = ticker(market)['highestBid']
         try:
             return api.sell(currencyPair=market,
-                            rate=hBid + (SATOSHI * 1000),
+                            rate=hBid - (SATOSHI * 1000),
                             amount=amount,
                             orderType='fillOrKill')
         except Exception as e:
@@ -100,22 +109,27 @@ def pump(api, market, amount, ticker=False):
 def cancelAllOrders(api, market='all', arg=False):
     """ Cancels all orders for a market or all markets. Can be limited to just
     buy or sell orders using the 'arg' param """
-
+    # get open orders for 'market'
     orders = api.returnOpenOrders(market)
-
+    # if market is set to 'all' we will cancel all open orders
     if market == 'all':
+        # iterate through each market
         for market in orders:
+            # iterate through each market order
             for order in orders[market]:
-                if arg in ('sell', 'buy') and o['type'] != arg:
+                # if arg = 'sell' or 'buy' skip the orders not labeled as such
+                if arg in ('sell', 'buy') and order['type'] != arg:
                     continue
+                # show results as we cancel each order
                 logger.debug(api.cancelOrder(order["orderNumber"]))
-        return True
-
-    for order in orders:
-        if arg in ('sell', 'buy') and order['type'] != arg:
-            continue
-        logger.debug(api.cancelOrder(order["orderNumber"]))
-    return True
+    else:
+        # just an individial market
+        for order in orders:
+            # if arg = 'sell' or 'buy' skip the orders not labeled as such
+            if arg in ('sell', 'buy') and order['type'] != arg:
+                continue
+            # show output
+            logger.debug(api.cancelOrder(order["orderNumber"]))
 
 
 def cancelAllLoanOffers(api, coin=False):
@@ -153,27 +167,18 @@ def getAvailCoin(api, coin):
     return float(bals[coin])
 
 
-class Maker(object):
-    """ Fills the market gap with 'makerfee-only' orders """
-
-    def __init__(self, api, ticker):
-        self.api = api
-        self.ticker = ticker
-        self.orderList = []
-        self._running = False
-
-    def handleOrders(self):
-        if len(self.orderList) > 0:
-            for order in orderList:
-                order
-
-    def run(self, market, move, amount):
-        self._running = True
-        while self._running:
-            self.handleOrders()
-
-
 def backtester(df, parentBal, childBal, moveOn='predict', tradeSize=TRADE_MIN):
+    """
+    df = requires a 'close' column for the closing price and the <moveOn> column
+    parentBal = starting parent coin balance to backtest with
+    childBal = starting child coin balance to backtest with
+    moveOn = name of column to direct trades; expects a whole number, positive
+        for buy trades, negative for sell trades, defaults to 'predict'
+    tradesSize = the minimum trade size, actual trades are
+        tradesSize * df[moveOn]
+
+    returns same dataframe with backtesting results
+    """
     bals = {
         'pstart': float(parentBal),
         'cstart': float(childBal),
@@ -213,7 +218,8 @@ def backtester(df, parentBal, childBal, moveOn='predict', tradeSize=TRADE_MIN):
         return pd.Series({'btParent': bals['ptotal'],
                           'btChild': bals['ctotal']})
 
-    df = df.merge(df.apply(_backtest, axis=1, moveOn=moveOn, tradeSize=tradeSize),
+    df = df.merge(df.apply(_backtest, axis=1,
+                           moveOn=moveOn, tradeSize=tradeSize),
                   left_index=True, right_index=True)
     df['btTotal'] = df['btParent'] + (df['btChild'] * df['close'])
     df['btStart'] = bals['pstart'] + (bals['cstart'] * df['close'])
