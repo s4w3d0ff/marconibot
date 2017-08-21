@@ -125,7 +125,7 @@ class Brain(object):
         df = shuffleDataFrame(df)
         # scale train data and fit lobe
         x = df.drop(labels, axis=1).values
-        #x = preprocessing.scale(x)
+        x = preprocessing.scale(x)
         logger.info('%d samples to train', len(x))
         self.votingLobe.fit(x, df[labels].values)
         if split:

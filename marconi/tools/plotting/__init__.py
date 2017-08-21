@@ -148,7 +148,5 @@ def plotBBands(p, df, color='navy'):
 
 def plotMovingAverages(p, df):
     # Plot moving averages
-    p.line(df['date'], df['emaslow'],
-           color='orange', alpha=0.9, legend="emaslow")
-    p.line(df['date'], df['emafast'],
+    p.line(df['date'], df['ema'],
            color='red', alpha=0.9, legend="emafast")

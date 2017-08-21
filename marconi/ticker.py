@@ -35,12 +35,11 @@ class Ticker(object):
         if not self.api:
             self.api = Poloniex(jsonNums=float)
         self.db = getMongoColl('poloniex', 'ticker')
-
-    def __call__(self, market=None):
-        """ returns ticker from mongodb """
-        if market:
-            return self.db.find_one({'_id': market})
-        return list(self.db.find())
+        self._ws = websocket.WebSocketApp("wss://api2.poloniex.com/",
+                                          on_open=self.on_open,
+                                          on_message=self.on_message,
+                                          on_error=self.on_error,
+                                          on_close=self.on_close)
 
     def on_message(self, ws, message):
         message = json.loads(message)
@@ -74,7 +73,7 @@ class Ticker(object):
         logger.error(error)
 
     def on_close(self, ws):
-        if self.t._running:
+        if self._t._running:
             try:
                 self.stop()
             except Exception as e:
@@ -95,30 +94,43 @@ class Ticker(object):
                 {'$set': tick[market]},
                 upsert=True)
         logger.info('Populated markets database with ticker data')
-        self.ws.send(json.dumps({'command': 'subscribe', 'channel': 1002}))
+        self._ws.send(json.dumps({'command': 'subscribe', 'channel': 1002}))
+
+    @property
+    def status(self):
+        """
+        Returns True if the websocket is running, False if not
+        """
+        try:
+            return self._t._running
+        except:
+            return False
 
     def start(self):
-        self.ws = websocket.WebSocketApp("wss://api2.poloniex.com/",
-                                         on_message=self.on_message,
-                                         on_error=self.on_error,
-                                         on_close=self.on_close)
-        self.ws.on_open = self.on_open
-        self.t = Thread(target=self.ws.run_forever)
-        self.t.daemon = True
-        self.t._running = True
-        self.t.start()
-        logger.info('Ticker process started')
+        """ Run the websocket in a thread """
+        self._t = Thread(target=self._ws.run_forever)
+        self._t.daemon = True
+        self._t._running = True
+        self._t.start()
+        logger.info('Websocket thread started')
 
     def stop(self):
-        self.t._running = False
-        self.ws.close()
-        self.t.join()
-        logger.info('Ticker process stopped/joined')
+        """ Stop/join the websocket thread """
+        self._t._running = False
+        self._ws.close()
+        self._t.join()
+        logger.info('Websocket thread stopped/joined')
+
+    def __call__(self, market=None):
+        """ returns ticker from mongodb """
+        if market:
+            return self.db.find_one({'_id': market})
+        return list(self.db.find())
 
 
 if __name__ == "__main__":
     import pprint
-    from tools import sleep
+    from .tools import sleep
     logging.basicConfig(level=logging.DEBUG)
     # websocket.enableTrace(True)
     ticker = Ticker()

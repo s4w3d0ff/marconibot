@@ -10,13 +10,14 @@ Mongodb (running local)
 ```
 __pip__:
 ```
+scipy
+numpy
+pandas
 scikit-learn
 requests
-numpy
+websocket-client
 bokeh
 pymongo
-pandas
-websocket-client
 ```
 
 ### Mongo Tree:
@@ -64,7 +65,7 @@ websocket-client
   |
   |
   |
-  | # Built by charter.py ============================
+  | # Built by tools.market.Market ===================
  (( 'market'chart ))
   |          -----------+{'_id': candle['date'],
   |                         }+

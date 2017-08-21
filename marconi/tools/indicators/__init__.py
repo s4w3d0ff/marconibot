@@ -27,6 +27,13 @@ from .. import pd, np
 def rsi(df, window, targetcol='weightedAverage', colname='rsi'):
     """ Calculates the Relative Strength Index (RSI) from a pandas dataframe
     http://stackoverflow.com/a/32346692/3389859
+
+    df = pandas dataframe
+    window = number of rows to look back
+    targetcol = string name of column to calulate indicator
+        default: 'weightedAverage'
+    colname = string name of newly generated indicator column returned with df
+        default: 'rsi'
     """
     series = df[targetcol]
     delta = series.diff().dropna()
@@ -52,41 +59,25 @@ def rsi(df, window, targetcol='weightedAverage', colname='rsi'):
     return df
 
 
-def sma(df, window, targetcol='close', colname='sma'):
-    """ Calculates Simple Moving Average on a 'targetcol' in a pandas dataframe
+def sma(df, window, targetcol='close', colname='sma', stddev=2.0):
     """
-    df[colname] = df[targetcol].rolling(
-        min_periods=1, window=window, center=False).mean()
-    df[colname].fillna(df[colname].mean())
-    return df
+    Moving average standard dev (Bollinger Bands)
 
-
-def ema(df, window, targetcol='close', colname='ema', **kwargs):
-    """ Calculates Expodential Moving Average on a 'targetcol' in a pandas
-    dataframe """
-    df[colname] = df[targetcol].ewm(
-        span=window,
-        min_periods=kwargs.get('min_periods', 1),
-        adjust=kwargs.get('adjust', True),
-        ignore_na=kwargs.get('ignore_na', False)
-    ).mean()
-    df[colname].fillna(df[colname].mean(), inplace=True)
-    return df
-
-
-def macd(df, fastWindow=13, slowWindow=36):
-    """ Calculates macd, signal, and divergance from a pandas dataframe """
-    df = ema(df, fastWindow, colname='emafast')
-    df = ema(df, slowWindow, colname='emaslow')
-    df['macd'] = df['emafast'] - df['emaslow']
-    df = ema(df, (slowWindow + fastWindow) // 2,
-             targetcol='macd', colname='macdSignal')
-    df['macdDivergence'] = df['macd'] - df['macdSignal']
-    return df
-
-
-def emastd(df, window, targetcol='close', colname='ema', stddev=2.0):
-    """Expodential Moving average standard dev"""
+    df = pandas dataframe
+    window = number of rows to look back
+    targetcol = string name of column to calulate indicators
+        default: 'close'
+    colname = string name (+ top, bottom, etc) of newly generated indicators
+        columns returned with df
+            default: 'sma'
+    stddev = standard deviation
+        default: 2.0
+    """
+    if colname not in df:
+        df[colname] = df[targetcol].rolling(min_periods=1,
+                                            window=window,
+                                            center=False).mean()
+        df[colname].fillna(df[colname].mean())
     df[colname + 'top'] = df[colname] + stddev * df[targetcol].rolling(
         min_periods=1,
         window=window,
@@ -98,47 +89,91 @@ def emastd(df, window, targetcol='close', colname='ema', stddev=2.0):
         center=False).std()
     df[colname + 'bottom'].fillna(df[colname + 'bottom'].mean(), inplace=True)
     df[colname + 'range'] = df[colname + 'top'] - df[colname + 'bottom']
-    df[colname + 'percent'] = ((df[targetcol] -
-                                df[colname + 'bottom']) / df[colname + 'range']) - 0.5
+    df[colname + 'percent'] = ((df[targetcol] - df[colname + 'bottom']) /
+                               df[colname + 'range']) - 0.5
     return df
 
 
-def bbands(df, window, targetcol='close', stddev=2.0):
-    """ Calculates Bollinger Bands for 'targetcol' of a pandas dataframe """
-    if not 'sma' in df:
-        df = sma(df, window, targetcol)
-    df['bbtop'] = df['sma'] + stddev * df[targetcol].rolling(
+def ema(df, window, targetcol='close', colname='ema', stddev=2.0, **kwargs):
+    """ Calculates Expodential Moving Average on a 'targetcol' in a pandas
+    dataframe
+
+    df = pandas dataframe
+    window = number of rows to look back
+    targetcol = string name of column to calulate indicator
+        default: 'close'
+    colname = string name of newly generated indicator column returned with df
+        default: 'ema'
+    """
+    if colname not in df:
+        df[colname] = df[targetcol].ewm(
+            span=window,
+            min_periods=kwargs.get('min_periods', 1),
+            adjust=kwargs.get('adjust', True),
+            ignore_na=kwargs.get('ignore_na', False)
+        ).mean()
+        df[colname].fillna(df[colname].mean(), inplace=True)
+    df[colname + 'top'] = df[colname] + stddev * df[targetcol].rolling(
         min_periods=1,
         window=window,
         center=False).std()
-    df['bbtop'].fillna(df['bbtop'].mean(), inplace=True)
-    df['bbbottom'] = df['sma'] - stddev * df[targetcol].rolling(
+    df[colname + 'top'].fillna(df[colname + 'top'].mean(), inplace=True)
+    df[colname + 'bottom'] = df[colname] - stddev * df[targetcol].rolling(
         min_periods=1,
         window=window,
         center=False).std()
-    df['bbbottom'].fillna(df['bbbottom'].mean(), inplace=True)
-    df['bbrange'] = df['bbtop'] - df['bbbottom']
-    df['bbpercent'] = ((df[targetcol] - df['bbbottom']) / df['bbrange']) - 0.5
+    df[colname + 'bottom'].fillna(df[colname + 'bottom'].mean(), inplace=True)
+    df[colname + 'range'] = df[colname + 'top'] - df[colname + 'bottom']
+    df[colname + 'percent'] = ((df[targetcol] - df[colname + 'bottom']) /
+                               df[colname + 'range']) - 0.5
     return df
 
 
-def ppsr(df, multi=2):
+def macd(df, window, fastcol='ema', slowcol='sma'):
+    """
+    Calculates macd, signal, and divergance from a pandas dataframe
+
+    df = pandas dataframe
+    window = number of rows to look back for macd signal
+    fastcol = string name of fast moving average column
+        default: 'ema'
+    slowcol = string name of slow moving average column
+        default: 'sma'
+    """
+    if fastcol not in df and fastcol == 'ema':
+        df = ema(df, window, colname='ema')
+    if slowcol not in df and slowcol == 'sma':
+        df = sma(df, window, colname='sma')
+    df['macd'] = df[fastcol] - df[slowcol]
+    df = ema(df, window, targetcol='macd', colname='macdSignal')
+    df['macdDivergence'] = df['macd'] - df['macdSignal']
+    return df
+
+
+def ppsr(df, stddev=2.0):
     """
     Pivot Point, Supports and Resistances
+
+    df = pandas dataframe (expects 'high', 'low', and 'close' columns)
+    stddev = standard deviation
+        default: 2.0
     """
     df['pivotPoint'] = (df['high'] + df['low'] + df['close']) / 3
-    df['resist1'] = multi * df['pivotPoint'] - df['low']
+    df['resist1'] = stddev * df['pivotPoint'] - df['low']
     df['resist2'] = df['pivotPoint'] + df['high'] - df['low']
-    df['resist3'] = df['high'] + multi * (df['pivotPoint'] - df['low'])
-    df['support1'] = multi * df['pivotPoint'] - df['high']
+    df['resist3'] = df['high'] + stddev * (df['pivotPoint'] - df['low'])
+    df['support1'] = stddev * df['pivotPoint'] - df['high']
     df['support2'] = df['pivotPoint'] - df['high'] + df['low']
-    df['support3'] = df['low'] - multi * (df['high'] - df['pivotPoint'])
+    df['support3'] = df['low'] - stddev * (df['high'] - df['pivotPoint'])
     return df
 
 
 def cci(df, window):
     """
     Commodity Channel Index
+
+    df = pandas dataframe (expects 'high', 'low', and 'close' columns)
+    window = number of rows to look back
     """
     if not 'pivotPoint' in df:
         df['pivotPoint'] = (df['high'] + df['low'] + df['close']) / 3
@@ -151,17 +186,27 @@ def cci(df, window):
     return df
 
 
-def force(df, window):
+def force(df, window, targetcol='close'):
     """
     Force Index
+
+    df = pandas dataframe (expects 'volume' column)
+    window = number of rows to look back
+    targetcol = string name of column to calulate indicators
+        default: 'close'
     """
-    df['force'] = df['close'].diff(window) * df['volume'].diff(window)
+    df['force'] = df[targetcol].diff(window) * df['volume'].diff(window)
     return df
 
 
 def copp(df, window, targetCol='close'):
     """
     Coppock Curve
+
+    df = pandas dataframe
+    window = number of rows to look back
+    targetcol = string name of column to calulate indicators
+        default: 'close'
     """
     ROC1 = df[targetCol].diff(int(window * 11 / 10) - 1) / \
         df[targetCol].shift(int(window * 11 / 10) - 1)
@@ -178,6 +223,9 @@ def copp(df, window, targetCol='close'):
 def eom(df, window):
     """
     Ease of Movement
+
+    df = pandas dataframe (expects 'high', 'low', 'volume' columns)
+    window = number of rows to look back
     """
     EoM = (df['high'].diff(1) + df['low'].diff(1)) * \
         (df['high'] - df['low']) / (2 * df['volume'])
@@ -188,6 +236,9 @@ def eom(df, window):
 def massindex(df, window):
     """
     Mass Index
+
+    df = pandas dataframe (expects 'high', 'low' columns)
+    window = number of rows to look back
     """
     Range = df['high'] - df['low']
     EX1 = Range.ewm(ignore_na=False,
