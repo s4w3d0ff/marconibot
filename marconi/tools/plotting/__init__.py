@@ -23,24 +23,61 @@
 from bokeh.plotting import figure, output_file, show, ColumnDataSource
 from bokeh.layouts import gridplot
 from bokeh.models import NumeralTickFormatter
-from bokeh.models import LinearAxis, Range1d
+from bokeh.models import LinearAxis, Range1d, Span
 
 from .. import pd, np
 
 
-def plotRSI(p, df, plotwidth=800, upcolor='green', downcolor='red'):
+def plotCCI(p, df, plotwidth=800, upcolor='orange', downcolor='yellow'):
+    # create y axis for rsi
+    p.extra_y_ranges = {"cci": Range1d(start=min(df['cci'].values),
+                                       end=max(df['cci'].values))}
+    p.add_layout(LinearAxis(y_range_name="cci"), 'right')
+    candleWidth = (df.iloc[2]['date'].timestamp() -
+                   df.iloc[1]['date'].timestamp()) * plotwidth
+    # plot green bars
+    inc = df.cci >= 0
+    p.vbar(x=df.date[inc],
+           width=candleWidth,
+           top=df.cci[inc],
+           bottom=0,
+           fill_color=upcolor,
+           line_color=upcolor,
+           alpha=0.5,
+           y_range_name="cci",
+           legend='cci')
+    # Plot red bars
+    dec = df.cci < 0
+    p.vbar(x=df.date[dec],
+           width=candleWidth,
+           top=0,
+           bottom=df.cci[dec],
+           fill_color=downcolor,
+           line_color=downcolor,
+           alpha=0.5,
+           y_range_name="cci",
+           legend='cci')
+
+
+def plotRSI(p, df, plotwidth=800, upcolor='green',
+            downcolor='red', yloc='right', limits=(30, 70)):
     # create y axis for rsi
     p.extra_y_ranges = {"rsi": Range1d(start=0, end=100)}
-    p.add_layout(LinearAxis(y_range_name="rsi"), 'right')
+    p.add_layout(LinearAxis(y_range_name="rsi"), yloc)
 
-    # create rsi 'zone' (30-70)
-    p.patch(np.append(df['date'].values, df['date'].values[::-1]),
-            np.append([30 for i in df['rsi'].values],
-                      [70 for i in df['rsi'].values[::-1]]),
-            color='olive',
-            fill_alpha=0.2,
-            legend="rsi",
-            y_range_name="rsi")
+    p.add_layout(Span(location=limits[0],
+                      dimension='width',
+                      line_color=upcolor,
+                      line_dash='dashed',
+                      line_width=2,
+                      y_range_name="rsi"))
+
+    p.add_layout(Span(location=limits[1],
+                      dimension='width',
+                      line_color=downcolor,
+                      line_dash='dashed',
+                      line_width=2,
+                      y_range_name="rsi"))
 
     candleWidth = (df.iloc[2]['date'].timestamp() -
                    df.iloc[1]['date'].timestamp()) * plotwidth
@@ -66,10 +103,33 @@ def plotRSI(p, df, plotwidth=800, upcolor='green', downcolor='red'):
            y_range_name="rsi")
 
 
-def plotMACD(p, df, color='blue'):
-    # plot macd
-    p.line(df['date'], df['macd'], line_width=4,
-           color=color, alpha=0.8, legend="macd")
+def plotMACD(p, df, plotwidth=800, upcolor='teal', downcolor='navy'):
+    candleWidth = (df.iloc[2]['date'].timestamp() -
+                   df.iloc[1]['date'].timestamp()) * plotwidth
+    # plot green bars
+    inc = df['macdDivergence'] >= 0
+    p.vbar(x=df.date[inc],
+           width=candleWidth,
+           top=df['macdDivergence'][inc],
+           bottom=0,
+           fill_color=upcolor,
+           line_color=upcolor,
+           alpha=0.5,
+           legend='macdDivergence',
+           # y_range_name="macd"
+           )
+    # Plot red bars
+    dec = df['macdDivergence'] < 0
+    p.vbar(x=df.date[dec],
+           width=candleWidth,
+           top=0,
+           bottom=df['macdDivergence'][dec],
+           fill_color=downcolor,
+           line_color=downcolor,
+           alpha=0.5,
+           legend='macdDivergence',
+           # y_range_name="macd"
+           )
     p.yaxis[0].formatter = NumeralTickFormatter(format='0.00000000')
 
 
@@ -105,48 +165,44 @@ def plotCandlesticks(p, df, plotwidth=750, upcolor='green', downcolor='red'):
     p.yaxis[0].formatter = NumeralTickFormatter(format='0.00000000')
 
 
-def plotVolume(p, df, plotwidth=800, upcolor='green', downcolor='red'):
+def plotVolume(p, df, plotwidth=800, upcolor='green',
+               downcolor='red', colname='volume'):
     candleWidth = (df.iloc[2]['date'].timestamp() -
                    df.iloc[1]['date'].timestamp()) * plotwidth
     # create new y axis for volume
-    p.extra_y_ranges = {"volume": Range1d(start=min(df['volume'].values),
-                                          end=max(df['volume'].values))}
-    p.add_layout(LinearAxis(y_range_name="volume"), 'right')
+    p.extra_y_ranges = {colname: Range1d(start=min(df[colname].values),
+                                         end=max(df[colname].values))}
+    p.add_layout(LinearAxis(y_range_name=colname), 'right')
     # Plot green candles
     inc = df.close > df.open
     p.vbar(x=df.date[inc],
            width=candleWidth,
-           top=df.volume[inc],
+           top=df[colname][inc],
            bottom=0,
            alpha=0.1,
            fill_color=upcolor,
            line_color=upcolor,
-           y_range_name="volume")
+           y_range_name=colname)
 
     # Plot red candles
     dec = df.open > df.close
     p.vbar(x=df.date[dec],
            width=candleWidth,
-           top=df.volume[dec],
+           top=df[colname][dec],
            bottom=0,
            alpha=0.1,
            fill_color=downcolor,
            line_color=downcolor,
-           y_range_name="volume")
+           y_range_name=colname)
 
 
-def plotBBands(p, df, color='navy'):
+def plotMABands(p, df, color='navy', colname='sma'):
     # Plot bbands
     p.patch(np.append(df['date'].values, df['date'].values[::-1]),
-            np.append(df['bbbottom'].values, df['bbtop'].values[::-1]),
+            np.append(df[colname + 'bottom'].values,
+                      df[colname + 'top'].values[::-1]),
             color=color,
             fill_alpha=0.1,
-            legend="bband")
+            legend=colname)
     # plot sma
-    p.line(df['date'], df['sma'], color=color, alpha=0.9, legend="sma")
-
-
-def plotMovingAverages(p, df):
-    # Plot moving averages
-    p.line(df['date'], df['ema'],
-           color='red', alpha=0.9, legend="emafast")
+    p.line(df['date'], df[colname], color=color, alpha=0.9, legend=colname)

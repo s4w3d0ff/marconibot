@@ -128,5 +128,5 @@ class Market(object):
         for ind in indica:
             if ind in availInd:
                 df = getattr(indicators, ind)(df, **indica[ind])
-        df['percentChange'] = df['close'].pct_change()
+        df['percentChange'] = df['close'].pct_change().round(8) * 100
         return df

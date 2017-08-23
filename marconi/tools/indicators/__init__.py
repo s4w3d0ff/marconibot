@@ -91,7 +91,11 @@ def sma(df, window, targetcol='close', colname='sma', stddev=2.0):
     df[colname + 'range'] = df[colname + 'top'] - df[colname + 'bottom']
     df[colname + 'percent'] = ((df[targetcol] - df[colname + 'bottom']) /
                                df[colname + 'range']) - 0.5
-    return df
+    return df.round({colname: 8,
+                     colname + 'top': 8,
+                     colname + 'bottom': 8,
+                     colname + 'range': 8,
+                     colname + 'percent': 8})
 
 
 def ema(df, window, targetcol='close', colname='ema', stddev=2.0, **kwargs):
@@ -126,7 +130,11 @@ def ema(df, window, targetcol='close', colname='ema', stddev=2.0, **kwargs):
     df[colname + 'range'] = df[colname + 'top'] - df[colname + 'bottom']
     df[colname + 'percent'] = ((df[targetcol] - df[colname + 'bottom']) /
                                df[colname + 'range']) - 0.5
-    return df
+    return df.round({colname: 8,
+                     colname + 'top': 8,
+                     colname + 'bottom': 8,
+                     colname + 'range': 8,
+                     colname + 'percent': 8})
 
 
 def macd(df, window, fastcol='ema', slowcol='sma'):
@@ -145,9 +153,13 @@ def macd(df, window, fastcol='ema', slowcol='sma'):
     if slowcol not in df and slowcol == 'sma':
         df = sma(df, window, colname='sma')
     df['macd'] = df[fastcol] - df[slowcol]
-    df = ema(df, window, targetcol='macd', colname='macdSignal')
-    df['macdDivergence'] = df['macd'] - df['macdSignal']
-    return df
+    df['macdSignal'] = df['macd'].ewm(span=window,
+                                      min_periods=1,
+                                      adjust=True,
+                                      ignore_na=False
+                                      ).mean()
+    df['macdDivergence'] = (df['macd'] - df['macdSignal']) * 10
+    return df.round({'macd': 8, 'macdDivergence': 8, 'macdSignal': 8})
 
 
 def ppsr(df, stddev=2.0):
@@ -165,7 +177,13 @@ def ppsr(df, stddev=2.0):
     df['support1'] = stddev * df['pivotPoint'] - df['high']
     df['support2'] = df['pivotPoint'] - df['high'] + df['low']
     df['support3'] = df['low'] - stddev * (df['high'] - df['pivotPoint'])
-    return df
+    return df.round({'pivotPoint': 8,
+                     'resist1': 8,
+                     'resist2': 8,
+                     'resist3': 8,
+                     'support1': 8,
+                     'support2': 8,
+                     'support3': 8})
 
 
 def cci(df, window):
@@ -183,7 +201,8 @@ def cci(df, window):
         center=False).mean()) / df['pivotPoint'].rolling(window=window,
                                                          min_periods=1,
                                                          center=False).std()
-    return df
+    return df.round({'pivotPoint': 8,
+                     'cci': 8})
 
 
 def force(df, window, targetcol='close'):
@@ -196,7 +215,7 @@ def force(df, window, targetcol='close'):
         default: 'close'
     """
     df['force'] = df[targetcol].diff(window) * df['volume'].diff(window)
-    return df
+    return df.round({'force': 8})
 
 
 def copp(df, window, targetCol='close'):
@@ -217,7 +236,7 @@ def copp(df, window, targetCol='close'):
                        span=window,
                        min_periods=1,
                        adjust=True).mean()
-    return df
+    return df.round({'copp': 8})
 
 
 def eom(df, window):
@@ -229,8 +248,8 @@ def eom(df, window):
     """
     EoM = (df['high'].diff(1) + df['low'].diff(1)) * \
         (df['high'] - df['low']) / (2 * df['volume'])
-    df['eom'] = EoM.rolling(window=window, center=False).mean()
-    return df
+    df['eom'] = EoM.rolling(window=window, center=False).mean() * 100000
+    return df.round({'eom': 8})
 
 
 def massindex(df, window):
@@ -253,4 +272,4 @@ def massindex(df, window):
     df['massindex'] = Mass.rolling(window=window * 3,
                                    center=False,
                                    min_periods=1).sum()
-    return df
+    return df.round({'massindex': 8})
