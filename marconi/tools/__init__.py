@@ -24,10 +24,6 @@
 import logging
 import json
 import pickle
-try:
-    from Queue import Queue
-except:
-    from queue import Queue
 from functools import wraps
 from copy import copy
 from operator import itemgetter
@@ -45,15 +41,6 @@ import pandas as pd
 import numpy as np
 # pip install pymongo
 import pymongo
-# pip install scikit-learn
-import sklearn
-# pip install bokeh
-import bokeh
-# pip install websocket-client
-import websocket
-
-# local --------------------------------------------------------------------
-from .poloniex import Poloniex, Coach, PoloniexError
 
 
 # constants ----------------------------------------------------------------
@@ -70,15 +57,36 @@ LOANTOSHI = 0.000001
 # minimum trade amount (btc and usdt)
 TRADE_MIN = 0.0001
 
-# console colors
+# console colors ---------------------------------------------------------
 WT = '\033[0m'  # white (normal)
-RD = lambda text: '\033[31m' + str(text) + WT  # red
-GR = lambda text: '\033[32m' + str(text) + WT  # green
-OR = lambda text: '\033[33m' + str(text) + WT  # orange
-BL = lambda text: '\033[34m' + str(text) + WT  # blue
-PR = lambda text: '\033[35m' + str(text) + WT  # purp
-CY = lambda text: '\033[36m' + str(text) + WT  # cyan
-GY = lambda text: '\033[37m' + str(text) + WT  # gray
+
+
+def RD(text):
+    return '\033[31m%s%s' % (str(text), WT)  # red
+
+
+def GR(text):
+    return '\033[32m%s%s' % (str(text), WT)  # green
+
+
+def OR(text):
+    return '\033[33m%s%s' % (str(text), WT)  # orange
+
+
+def BL(text):
+    return '\033[34m%s%s' % (str(text), WT)  # blue
+
+
+def PR(text):
+    return '\033[35m%s%s' % (str(text), WT)  # purp
+
+
+def CY(text):
+    return '\033[36m%s%s' % (str(text), WT)  # cyan
+
+
+def GY(text):
+    return '\033[37m%s%s' % (str(text), WT)  # gray
 
 
 # convertions, misc ------------------------------------------------------

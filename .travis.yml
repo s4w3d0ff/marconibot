@@ -18,9 +18,8 @@ before_install:
 install:
   - python setup.py install
 
-# travis bugs out if no script is defined...
 script:
-  - cd $HOME
+  - python -c 'import marconi'
 
 # cashe pip
 cache:

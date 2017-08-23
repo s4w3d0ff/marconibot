@@ -23,7 +23,8 @@
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn import preprocessing
-from .. import logging, pd, np, time, pickle, shuffleDataFrame
+
+from .tools import logging, pd, np, time, pickle, shuffleDataFrame
 
 
 logger = logging.getLogger(__name__)

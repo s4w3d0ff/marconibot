@@ -79,5 +79,5 @@ pymongo
 ```
 Drop 'poloniex' Database:
 ```bash
-python3 -c "from pymongo import MongoClient; MongoClient().drop_database('poloniex')"
+python3 -c "import pymongo; pymongo.MongoClient().drop_database('poloniex')"
 ```
