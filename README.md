@@ -5,18 +5,29 @@ Poloniex Trading Bot Toolkit
 ### Requirements:
 __system__:
 ```
-Python 3
+Python 3 (can be installed for Python 2 but parts may not work)
 Mongodb (running local)
 ```
 __pip__:
 ```
+scipy
+numpy
+pandas
 scikit-learn
 requests
-numpy
+websocket-client
 bokeh
 pymongo
-pandas
-websocket-client
+```
+
+### Quick Linux Install
+```bash
+# make sure package manager is up to date
+pip3 install -U pip wheel setuptools
+# install binarys so we dont have to build from source
+pip3 install --only-binary=numpy,scipy,pandas,scikit-learn numpy scipy pandas scikit-learn
+# install this repo
+pip3 install git+https://github.com/s4w3d0ff/marconibot.git
 ```
 
 ### Mongo Tree:
@@ -27,7 +38,7 @@ websocket-client
 
 ( poloniex )
   |
-  | # Built by ticker.py ============================
+  | # Built by marconi.poloniex.Ticker ============================
  (( ticker ))------------+{'_id': str(currencyPair),
   |                        'id': float(),
   |                        'last': float(),
@@ -45,7 +56,7 @@ websocket-client
   |
   |
   |
-  | # Built by loaner.py ============================
+  | # Built by marconi.trading.Loaner ============================
  (( lendingHistory ))----+{'_id': loan['id'],
   |                         }+,
   |                      +{ }+,
@@ -54,7 +65,7 @@ websocket-client
   |
   |
   |
-  | # Built by bookie.py ============================
+  | # Built by marconi.trading.Bookie ============================
  (( 'market'tradeHistory ))
   |          -----------+{'_id': trade['globalTradeID'],
   |                         }+
@@ -64,7 +75,7 @@ websocket-client
   |
   |
   |
-  | # Built by charter.py ============================
+  | # Built by marconi.market.Market ===================
  (( 'market'chart ))
   |          -----------+{'_id': candle['date'],
   |                         }+
@@ -78,5 +89,5 @@ websocket-client
 ```
 Drop 'poloniex' Database:
 ```bash
-python3 -c "from pymongo import MongoClient; MongoClient().drop_database('poloniex')"
+python3 -c "import pymongo; pymongo.MongoClient().drop_database('poloniex')"
 ```

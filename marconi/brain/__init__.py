@@ -23,7 +23,8 @@
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn import preprocessing
-from .. import logging, pd, np, time, pickle, shuffleDataFrame
+
+from ..tools import logging, pd, np, time, pickle, shuffleDataFrame
 
 
 logger = logging.getLogger(__name__)
@@ -111,7 +112,7 @@ class Brain(object):
             voting='hard',
             n_jobs=-1)
 
-    def train(self, df, labels='label', split=False):
+    def train(self, df, labels='label', split=False, preprocess=False):
         """
         Trains the self.votingLobe with a dataframe <df>
         use <labels> to define the column to use for labels
@@ -125,7 +126,8 @@ class Brain(object):
         df = shuffleDataFrame(df)
         # scale train data and fit lobe
         x = df.drop(labels, axis=1).values
-        #x = preprocessing.scale(x)
+        if preprocess:
+            x = preprocessing.scale(x)
         logger.info('%d samples to train', len(x))
         self.votingLobe.fit(x, df[labels].values)
         if split:

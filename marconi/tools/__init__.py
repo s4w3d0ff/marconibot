@@ -24,16 +24,9 @@
 import logging
 import json
 import pickle
-try:
-    from Queue import Queue
-except:
-    from queue import Queue
 from functools import wraps
-from copy import copy
-from operator import itemgetter
 from math import floor, ceil
 from math import pi as PI
-from decimal import Decimal
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing.dummy import Process, Pool
@@ -45,15 +38,6 @@ import pandas as pd
 import numpy as np
 # pip install pymongo
 import pymongo
-# pip install scikit-learn
-import sklearn
-# pip install bokeh
-import bokeh
-# pip install websocket-client
-import websocket
-
-# local --------------------------------------------------------------------
-from .poloniex import Poloniex, Coach, PoloniexError
 
 
 # constants ----------------------------------------------------------------
@@ -70,15 +54,43 @@ LOANTOSHI = 0.000001
 # minimum trade amount (btc and usdt)
 TRADE_MIN = 0.0001
 
-# console colors
+# console colors ---------------------------------------------------------
 WT = '\033[0m'  # white (normal)
-RD = lambda text: '\033[31m' + str(text) + WT  # red
-GR = lambda text: '\033[32m' + str(text) + WT  # green
-OR = lambda text: '\033[33m' + str(text) + WT  # orange
-BL = lambda text: '\033[34m' + str(text) + WT  # blue
-PR = lambda text: '\033[35m' + str(text) + WT  # purp
-CY = lambda text: '\033[36m' + str(text) + WT  # cyan
-GY = lambda text: '\033[37m' + str(text) + WT  # gray
+
+
+def RD(text):
+    """ Red """
+    return '\033[31m%s%s' % (str(text), WT)
+
+
+def GR(text):
+    """ Green """
+    return '\033[32m%s%s' % (str(text), WT)
+
+
+def OR(text):
+    """ Orange """
+    return '\033[33m%s%s' % (str(text), WT)
+
+
+def BL(text):
+    """ Blue """
+    return '\033[34m%s%s' % (str(text), WT)
+
+
+def PR(text):
+    """ Purple """
+    return '\033[35m%s%s' % (str(text), WT)
+
+
+def CY(text):
+    """ Cyan """
+    return '\033[36m%s%s' % (str(text), WT)
+
+
+def GY(text):
+    """ Gray """
+    return '\033[37m%s%s' % (str(text), WT)
 
 
 # convertions, misc ------------------------------------------------------

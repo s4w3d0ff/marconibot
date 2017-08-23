@@ -18,9 +18,9 @@ before_install:
 install:
   - python setup.py install
 
-# travis bugs out if no script is defined...
 script:
-  - cd $HOME
+  # test import
+  - python -c 'from marconi import tools, poloniex, brain, market, trading, plotting, indicators;'
 
 # cashe pip
 cache:
