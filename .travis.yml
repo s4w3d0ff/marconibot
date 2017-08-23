@@ -19,7 +19,8 @@ install:
   - python setup.py install
 
 script:
-  - python -c 'from marconi import tools, poloniex, brain, market, trading;'
+  # test import
+  - python -c 'from marconi import tools, poloniex, brain, market, trading, plotting, indicators;'
 
 # cashe pip
 cache:

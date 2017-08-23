@@ -22,7 +22,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from ..tools import getMongoColl, logging, time, pd, pymongo
-from ..tools import indicators
+from .. import indicators
 
 
 logger = logging.getLogger(__name__)
