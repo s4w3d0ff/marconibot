@@ -23,11 +23,11 @@ pymongo
 ### Quick Linux Install
 ```bash
 # make sure package manager is up to date
-sudo pip3 install -U pip wheel setuptools
+pip3 install -U pip wheel setuptools
 # install binarys so we dont have to build from source
-pip3 install --only-binary=numpy,scipy,pandas,scikit-learn numpy scipy pandas scikit-learn --user
+pip3 install --only-binary=numpy,scipy,pandas,scikit-learn numpy scipy pandas scikit-learn
 # install this repo
-pip3 install git+https://github.com/s4w3d0ff/marconibot.git --user
+pip3 install git+https://github.com/s4w3d0ff/marconibot.git
 ```
 
 ### Mongo Tree:
