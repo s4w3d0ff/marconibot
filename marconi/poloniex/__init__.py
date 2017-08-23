@@ -31,12 +31,10 @@ try:
 except:
     from urllib.parse import urlencode as _urlencode
 
-import logging
 from json import loads as _loads
 from json import dumps as _dumpss
 from hmac import new as _new
 from hashlib import sha512 as _sha512
-from time import time, sleep
 from itertools import chain as _chain
 from functools import wraps as _wraps
 
@@ -48,7 +46,7 @@ from websocket import WebSocketApp
 
 # local
 from .coach import Coach
-from .tools import getMongoColl, Thread
+from ..tools import getMongoColl, Thread, logging, time, sleep
 
 # logger
 logger = logging.getLogger(__name__)

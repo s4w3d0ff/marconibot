@@ -21,8 +21,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi.loaner import Loaner
-from marconi.tools import sleep, logging, Poloniex, GR
+from marconi.trading import Loaner
+from marconi.poloniex import Poloniex
+from marconi.tools import sleep, logging, GR
 from sys import argv
 
 logging.basicConfig(
@@ -32,26 +33,22 @@ logging.basicConfig(
 )
 logging.getLogger('requests').setLevel(logging.ERROR)
 key, secret = argv[1:3]
-polo = Poloniex(key, secret, timeout=None, jsonNums=float)
 #################-Configure Below-##################################
 ########################
-loaner = Loaner(polo,
+loaner = Loaner(Poloniex(key, secret, timeout=None, jsonNums=float),
                 # This dict defines what coins the bot should worry about
                 # The dict 'key' is the coin to lend, 'value' is the
                 # minimum amount to lend
-                coins={
-                    'DASH': 1,
-                    'BTC': 0.01,
-                    'LTC': 1,
-                    'DOGE': 10,
-                },
+                coins={'DASH': 1,
+                       'BTC': 0.01,
+                       'LTC': 1,
+                       'DOGE': 10},
                 # Maximum age (in secs) to let an open offer sit
                 maxage=60 * 15,  # 15 min
                 # number of seconds between loops
                 delay=60 * 5)  # 5 min
 ########################
 #################-Stop Configuring-#################################
-
 loaner.start()
 while loaner._running:
     try:

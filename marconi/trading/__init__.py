@@ -20,9 +20,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from .tools import logging, pd, np, SATOSHI, TRADE_MIN, wait, roundDown
-from .tools import time, UTCstr2epoch, pymongo, getMongoColl
-from .tools import BL, OR, RD, GY, GR, float2percent, Thread
+from ..tools import logging, pd, np, SATOSHI, TRADE_MIN, wait, roundDown
+from ..tools import time, UTCstr2epoch, pymongo, getMongoColl
+from ..tools import BL, OR, RD, GY, GR, float2percent, Thread
 
 
 logger = logging.getLogger(__name__)
@@ -464,7 +464,7 @@ class Liquidator(object):
 
 
 if __name__ == '__main__':
-    from .tools.poloniex import Poloniex
+    from ..poloniex import Poloniex
     from sys import argv
     from pprint import pprint
     logging.basicConfig(level=logging.INFO)

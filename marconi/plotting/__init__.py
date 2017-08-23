@@ -25,7 +25,7 @@ from bokeh.layouts import gridplot
 from bokeh.models import NumeralTickFormatter
 from bokeh.models import LinearAxis, Range1d, Span
 
-from .. import pd, np
+from ..tools import pd, np
 
 
 def plotCCI(p, df, plotwidth=800, upcolor='orange', downcolor='yellow'):

@@ -25,11 +25,8 @@ import logging
 import json
 import pickle
 from functools import wraps
-from copy import copy
-from operator import itemgetter
 from math import floor, ceil
 from math import pi as PI
-from decimal import Decimal
 from time import time, gmtime, strftime, strptime, localtime, mktime, sleep
 from calendar import timegm
 from multiprocessing.dummy import Process, Pool
@@ -62,31 +59,38 @@ WT = '\033[0m'  # white (normal)
 
 
 def RD(text):
-    return '\033[31m%s%s' % (str(text), WT)  # red
+    """ Red """
+    return '\033[31m%s%s' % (str(text), WT)
 
 
 def GR(text):
-    return '\033[32m%s%s' % (str(text), WT)  # green
+    """ Green """
+    return '\033[32m%s%s' % (str(text), WT)
 
 
 def OR(text):
-    return '\033[33m%s%s' % (str(text), WT)  # orange
+    """ Orange """
+    return '\033[33m%s%s' % (str(text), WT)
 
 
 def BL(text):
-    return '\033[34m%s%s' % (str(text), WT)  # blue
+    """ Blue """
+    return '\033[34m%s%s' % (str(text), WT)
 
 
 def PR(text):
-    return '\033[35m%s%s' % (str(text), WT)  # purp
+    """ Purple """
+    return '\033[35m%s%s' % (str(text), WT)
 
 
 def CY(text):
-    return '\033[36m%s%s' % (str(text), WT)  # cyan
+    """ Cyan """
+    return '\033[36m%s%s' % (str(text), WT)
 
 
 def GY(text):
-    return '\033[37m%s%s' % (str(text), WT)  # gray
+    """ Gray """
+    return '\033[37m%s%s' % (str(text), WT)
 
 
 # convertions, misc ------------------------------------------------------
