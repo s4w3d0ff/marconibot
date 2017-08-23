@@ -32,7 +32,7 @@ except:
     from urllib.parse import urlencode as _urlencode
 
 from json import loads as _loads
-from json import dumps as _dumpss
+from json import dumps as _dumps
 from hmac import new as _new
 from hashlib import sha512 as _sha512
 from itertools import chain as _chain
@@ -701,7 +701,7 @@ class Ticker(object):
                 {'$set': tick[market]},
                 upsert=True)
         logger.info('Populated markets database with ticker data')
-        self._ws.send(json.dumps({'command': 'subscribe', 'channel': 1002}))
+        self._ws.send(_dumps({'command': 'subscribe', 'channel': 1002}))
 
     @property
     def status(self):
