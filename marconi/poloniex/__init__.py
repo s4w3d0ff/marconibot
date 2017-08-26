@@ -720,7 +720,7 @@ class Poloniex(object):
     def marketTick(self, market=None):
         """ returns ticker from websocket if running/connected, else
         'self.returnTicker is used'"""
-        if tickerStatus:
+        if self.tickerStatus:
             if market:
                 return self._tick[self._ids[market]]
             return self._tick

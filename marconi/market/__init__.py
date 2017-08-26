@@ -36,6 +36,59 @@ class Market(object):
 
     Maintains/Returns database entries for a market, as well as provides
     convienance methods for common functions done on markets.
+
+    >>> from marconi.poloniex import Poloniex
+    >>> from marconi.market import Market
+    >>> m = Market(Poloniex(), 'BTC_LTC')
+    >>> m.tick
+    Ticker is not running!
+    {'lowestAsk': '0.01186207',
+     'percentChange': '0.01107987',
+     'last': '0.01186207',
+     'low24hr': '0.01162001',
+     'isFrozen': '0',
+     'baseVolume': '2447.88320868',
+     'quoteVolume': '206723.01766984',
+     'high24hr': '0.01216872',
+     'highestBid': '0.01186206',
+     'id': 50.0}
+    >>> m.api.startWebsocket()
+    >>> m.tick
+    {'lowestAsk': 0.01184702,
+     'percentChange': 0.00843037,
+     'last': 0.01184703,
+     'low24hr': 0.01162001,
+     'isFrozen': 0.0,
+     'baseVolume': 2450.68462713,
+     'quoteVolume': 206959.32500459,
+     'high24hr': 0.01216872,
+     'highestBid': 0.01184379,
+     'id': 50.0}
+    >>> m.tick
+    {'lowestAsk': 0.01184702,
+     'percentChange': 0.00868624,
+     'last': 0.01184702,
+     'low24hr': 0.01162001,
+     'isFrozen': 0.0,
+     'baseVolume': 2450.68462713,
+     'quoteVolume': 206959.32500459,
+     'high24hr': 0.01216872,
+     'highestBid': 0.01184363,
+     'id': 50.0}
+    >>> m.api.stopWebsocket()
+    >>> m.tick
+    Ticker is not running!
+    {'lowestAsk': '0.01184703',
+     'percentChange': '0.00949332',
+     'last': '0.01184703',
+     'low24hr': '0.01162001',
+     'isFrozen': '0',
+     'baseVolume': '2451.57755359',
+     'quoteVolume': '207034.66196856',
+     'high24hr': '0.01216872',
+     'highestBid': '0.01184702',
+     'id': 50.0}
+    >>>
     """
 
     def __init__(self, api, pair):
