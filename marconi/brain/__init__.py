@@ -30,22 +30,28 @@ from ..tools import logging, pd, np, time, pickle, shuffleDataFrame
 logger = logging.getLogger(__name__)
 
 
-def customLabels(df, bbLimit=False, rsiLimit=False,
-                 pchLimit=False, cciLimit=False):
+def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False,
+                 cciLimit=False, macdLimit=False, forceLimit=False,
+                 eomLimit=False):
     """
-    Creates labels from a dataframe using bbands percent, rsi, 'future' percent
-        change, and cci
+    Creates labels from a dataframe
     """
+    logger.debug('Adding labels')
 
-    df['future'] = df['percentChange'].shift(-1)
-
-    def _bbrsiLabels(candle, bbLimit, rsiLimit, pchLimit, cciLimit):
+    def _bbrsiLabels(candle, bbLimit, rsiLimit, pchLimit,
+                     cciLimit, macdLimit, forceLimit, eomLimit):
         score = 0
         if bbLimit:
-            bbval = candle['bbpercent']
-            if bbval > bbLimit:
+            smabb = candle['smapercent']
+            if smabb > bbLimit:
                 score += -1
-            if bbval < -bbLimit:
+            if smabb < -bbLimit:
+                score += 1
+
+            emabb = candle['emapercent']
+            if emabb > bbLimit:
+                score += -1
+            if emabb < -bbLimit:
                 score += 1
 
         if rsiLimit:
@@ -69,10 +75,33 @@ def customLabels(df, bbLimit=False, rsiLimit=False,
             if ccindex < -cciLimit:
                 score += 1
 
+        if macdLimit:
+            macdd = candle['macdDivergence']
+            if macdd > macdLimit:
+                score += 1
+            if macdd < -macdLimit:
+                score += -1
+
+        if forceLimit:
+            force = candle['force']
+            if force > forceLimit:
+                score += -1
+            if force < -forceLimit:
+                score += 1
+
+        if eomLimit:
+            eom = candle['eom']
+            if eom > eomLimit:
+                score += -1
+            if eom < -eomLimit:
+                score += 1
+
         return score
 
     return df.apply(_bbrsiLabels, axis=1, bbLimit=bbLimit,
-                    rsiLimit=rsiLimit, pchLimit=pchLimit, cciLimit=cciLimit)
+                    rsiLimit=rsiLimit, pchLimit=pchLimit,
+                    cciLimit=cciLimit, macdLimit=macdLimit,
+                    forceLimit=forceLimit, eomLimit=eomLimit)
 
 
 def prepDataframe(df):
@@ -112,7 +141,8 @@ class Brain(object):
             voting='hard',
             n_jobs=-1)
 
-    def train(self, df, labels='label', split=False, preprocess=False):
+    def train(self, df, labels='label', split=False,
+              shuffle=True, preprocess=False):
         """
         Trains the self.votingLobe with a dataframe <df>
         use <labels> to define the column to use for labels
@@ -123,7 +153,8 @@ class Brain(object):
         if split:
             df, tdf = splitTrainTestData(df, split)
         # shuffle data for good luck
-        df = shuffleDataFrame(df)
+        if shuffle:
+            df = shuffleDataFrame(df)
         # scale train data and fit lobe
         x = df.drop(labels, axis=1).values
         if preprocess:

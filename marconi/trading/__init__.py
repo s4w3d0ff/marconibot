@@ -74,49 +74,6 @@ class StopLimit(object):
         self._t.start()
 
 
-def dump(api, market, amount, ticker=False):
-    """ Dumps childcoin <amount> on <market> at highestBid """
-    parentCoin, childCoin = market.split('_')
-    if amount == 'all':
-        amount = api.returnCompleteBalances('exchange')[childCoin]['available']
-    while True:
-        if not ticker:
-            hbid = api.returnTicker()[market]['highestBid']
-        else:
-            hBid = ticker(market)['highestBid']
-        try:
-            return api.sell(currencyPair=market,
-                            rate=hBid - (SATOSHI * 1000),
-                            amount=amount,
-                            orderType='fillOrKill')
-        except Exception as e:
-            # log exceptions and keep trying
-            logger.exception(e)
-            continue
-
-
-def pump(api, market, amount, ticker=False):
-    """ Pumps parentCoin <amount> of <market> at lowestAsk """
-    parentCoin, childCoin = market.split('_')
-    if amount == 'all':
-        amount = api.returnCompleteBalances(
-            'exchange')[parentCoin]['available']
-    while True:
-        if not ticker:
-            lAsk = api.returnTicker()[market]['lowestAsk']
-        else:
-            lAsk = ticker(market)['lowestAsk']
-        try:
-            return api.sell(currencyPair=market,
-                            rate=lAsk + (SATOSHI * 1000),
-                            amount=amount,
-                            orderType='fillOrKill')
-        except Exception as e:
-            # log exceptions and keep trying
-            logger.exception(e)
-            continue
-
-
 def cancelAllOrders(api, market='all', arg=False):
     """ Cancels all orders for a market or all markets. Can be limited to just
     buy or sell orders using the 'arg' param """
@@ -169,16 +126,8 @@ def autoRenewAll(api, toggle=True):
             api.toggleAutoRenew(loan['id'])
 
 
-def getAvailCoin(api, coin):
-    """ Returns available <coin> in exchange account """
-    bals = api.returnAvailableAccountBalances('exchange')['exchange']
-    logger.debug(bals)
-    if not coin in bals:
-        return 0.0
-    return float(bals[coin])
-
-
-def backtester(df, parentBal, childBal, moveOn='predict', tradeSize=TRADE_MIN):
+def backtest(df, parentBal, childBal, moveOn='predict',
+             tradeSize=TRADE_MIN, moveMin=0):
     """
     df = requires a 'close' column for the closing price and the <moveOn> column
     parentBal = starting parent coin balance to backtest with
@@ -190,6 +139,7 @@ def backtester(df, parentBal, childBal, moveOn='predict', tradeSize=TRADE_MIN):
 
     returns same dataframe with backtesting results
     """
+    logger.info('Backtesting...')
     bals = {
         'pstart': float(parentBal),
         'cstart': float(childBal),
@@ -197,13 +147,13 @@ def backtester(df, parentBal, childBal, moveOn='predict', tradeSize=TRADE_MIN):
         'ctotal': float(childBal),
     }
 
-    def _backtest(row, moveOn, tradeSize):
+    def _backtest(row, moveOn, tradeSize, moveMin):
         # get move and rate
         move = row[moveOn]
         rate = row['close']
 
         # if buy
-        if move > 0:
+        if move > moveMin:
             parentAmt = tradeSize * move
             childAmt = parentAmt / rate
             if parentAmt < TRADE_MIN:
@@ -215,7 +165,7 @@ def backtester(df, parentBal, childBal, moveOn='predict', tradeSize=TRADE_MIN):
                 bals['ptotal'] = bals['ptotal'] - parentAmt
 
         # if sell
-        if move < 0:
+        if move < -moveMin:
             parentAmt = abs(tradeSize * move)
             childAmt = parentAmt / rate
             if parentAmt < TRADE_MIN:
@@ -230,12 +180,12 @@ def backtester(df, parentBal, childBal, moveOn='predict', tradeSize=TRADE_MIN):
                           'btChild': bals['ctotal']})
 
     df = df.merge(df.apply(_backtest, axis=1,
-                           moveOn=moveOn, tradeSize=tradeSize),
+                           moveOn=moveOn, tradeSize=tradeSize, moveMin=moveMin),
                   left_index=True, right_index=True)
     df['btTotal'] = df['btParent'] + (df['btChild'] * df['close'])
     df['btStart'] = bals['pstart'] + (bals['cstart'] * df['close'])
     df['btProfit'] = df['btTotal'] - df['btStart']
-    df['btProfit'] = df['btProfit'].apply(roundDown, d=8)
+    df['btProfit'] = df['btProfit'].round(8)
     return df
 
 

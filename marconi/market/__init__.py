@@ -22,7 +22,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from ..tools import (getMongoColl, logging, time, pd,
-                     pymongo, RD, GR, sleep, Thread)
+                     pymongo, RD, GR, sleep, Thread, SATOSHI, TRADE_MIN)
 from ..trading import StopLimit
 from .. import indicators
 
@@ -275,12 +275,53 @@ class Market(object):
             # show output
             yield self.api.cancelOrder(order["orderNumber"])
 
-    def addStopOrder(amount, stop, limit):
+    def addStopOrder(self, amount, stop, limit):
         self.stops.append(StopLimit(self.api, self.pair)(amount, stop, limit))
 
-    def cancelStopOrder(indx=False):
+    def cancelStopOrder(self, indx=False):
         if indx:
             self.stops[indx].cancel()
         else:
             for stop in self.stops:
                 stop.cancel()
+
+    def dump(self, amount):
+        """ Dumps childcoin <amount> at highestBid """
+        if amount == 'all':
+            amount = self.api.returnCompleteBalances(
+                'exchange')[self.child]['available']
+        while True:
+            rate = self.api.marketTick(
+                self.pair)['highestBid'] - (SATOSHI * 1000)
+            try:
+                if amount * rate < TRADE_MIN:
+                    return logger.warning('Amount is below min')
+                return self.api.sell(currencyPair=self.pair,
+                                     rate=rate,
+                                     amount=amount,
+                                     orderType='fillOrKill')
+            except Exception as e:
+                # log exceptions and keep trying
+                logger.exception(e)
+                continue
+
+    def pump(self, amount):
+        """ Pumps parentCoin <amount> at lowestAsk """
+        if amount == 'all':
+            amount = api.returnCompleteBalances(
+                'exchange')[self.parent]['available']
+        while True:
+            rate = self.api.marketTick(
+                self.pair)['lowestAsk'] + (SATOSHI * 1000)
+            try:
+                if amount < TRADE_MIN:
+                    return logger.warning('Amount is below min')
+                childAmt = amount / rate
+                return api.sell(currencyPair=self.pair,
+                                rate=rate,
+                                amount=childAmt,
+                                orderType='fillOrKill')
+            except Exception as e:
+                # log exceptions and keep trying
+                logger.exception(e)
+                continue
