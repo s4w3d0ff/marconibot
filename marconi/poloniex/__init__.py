@@ -109,7 +109,7 @@ class Poloniex(object):
 
     def __init__(
             self, key=False, secret=False,
-            timeout=None, coach=True, jsonNums=False):
+            timeout=None, coach=True, jsonNums=False, level=False):
         """
         key = str api key supplied by Poloniex
         secret = str secret hash supplied by Poloniex
@@ -123,6 +123,8 @@ class Poloniex(object):
         """
         # set logger and coach
         self.logger = logger
+        if loglevel:
+            self.logger.setLevel(loglevel)
         self.coach = coach
         if self.coach is True:
             self.coach = Coach()
