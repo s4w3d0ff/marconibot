@@ -38,7 +38,7 @@ class Market(object):
     convienance methods for common functions done on markets.
     """
 
-    def __init__(self, api, pair, ticker=False):
+    def __init__(self, api, pair):
         self.api = api
         self.api.jsonNums = float
         self.parent, self.child = pair.split('_')
