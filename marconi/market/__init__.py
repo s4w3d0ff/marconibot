@@ -21,7 +21,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from ..tools import getMongoColl, logging, time, pd, pymongo
+from ..tools import getMongoColl, logging, time, pd, pymongo, RD, GR
 from .. import indicators
 
 
@@ -39,27 +39,28 @@ class Market(object):
     @property
     def tick(self):
         """ Get a market 'tick' """
-        if self.ticker and self.ticker.status:
-            return self.ticker(self.pair)
-        logger.warning('self.ticker is not running!')
+        if self.api.tickerStatus:
+            return self.api.marketTick(self.pair)
+        logger.warning('Ticker is not running!')
         return self.api.returnTicker()[self.pair]
 
     @property
     def availBalances(self):
-        """ Get available balances """
+        """ Get available balances from poloniex """
         bals = self.api.returnCompleteBalances('exchange')
         childBal = float(bals[self.child]['available'])
         parentBal = float(bals[self.parent]['available'])
-        logger.debug('%s [%s] %.8f [%s] %.8f',
+        logger.debug('Balances: %s [%s] %.8f [%s] %.8f',
                      self.pair, self.parent, parentBal, self.child, childBal)
         return parentBal, childBal
 
     @property
     def openOrders(self):
+        """ Get open orders from poloniex """
         return self.api.returnOpenOrders(self.pair)
 
-    def rawChart(self, start=False):
-        """ returns raw chart data from mongodb, updates/fills the
+    def chart(self, start=False, zoom=False, indica={}):
+        """ returns chart data in a dataframe from mongodb, updates/fills the
         data, the date column is the '_id' of each candle entry, and
         the date column has been removed. Use 'start' to restrict the amount
         of data returned.
@@ -67,7 +68,7 @@ class Market(object):
         """
         if not start:
             start = time() - self.api.YEAR * 1
-        dbcolName = self.pair + 'chart'
+        dbcolName = self.pair + '-chart'
         # get db connection
         db = getMongoColl('poloniex', dbcolName)
         # get last candle
@@ -75,7 +76,7 @@ class Market(object):
             last = list(db.find({"_id": {
                 "$gt": time() - self.api.WEEK * 2
             }}).sort('timestamp', pymongo.ASCENDING))[-1]
-        except IndexError:
+        except:
             last = False
         logger.info('Getting new candles from Poloniex')
         # no entrys found, get all 5min data from poloniex
@@ -97,19 +98,12 @@ class Market(object):
             del new[i]['date']
             db.update_one({'_id': date}, {"$set": new[i]}, upsert=True)
         logger.debug('Getting chart data from db')
-        # return data from db (sorted just in case...)
-        return list(db.find({"_id": {"$gt": start}}).sort(
-            'timestamp', pymongo.ASCENDING))
-
-    def chartDataFrame(self, start=False, zoom=False, indica={}):
-        """ returns pandas DataFrame from raw db data with indicators.
-        zoom = passed as the resample(rule) argument to 'merge' candles into a
-            different timeframe
-        """
         # make dataframe
-        df = pd.DataFrame(self.rawChart(start))
-        # set date column
+        df = pd.DataFrame(list(db.find({"_id": {"$gt": start}}
+            ).sort('timestamp', pymongo.ASCENDING)))
+        # set date column to datetime
         df['date'] = pd.to_datetime(df["_id"], unit='s')
+        # adjust candle period 'zoom'
         if zoom:
             df.set_index('date', inplace=True)
             df = df.resample(rule=zoom,
@@ -122,7 +116,6 @@ class Market(object):
                                                   'volume': 'sum',
                                                   'weightedAverage': 'mean'})
             df.reset_index(inplace=True)
-
         # add indicators
         availInd = dir(indicators)
         for ind in indica:
@@ -130,3 +123,68 @@ class Market(object):
                 df = getattr(indicators, ind)(df, **indica[ind])
         df['percentChange'] = df['close'].pct_change().round(8) * 100
         return df
+
+    def myTradeHistory(self, query=None):
+        dbcolName = self.pair + '-tradeHistory'
+        db = getMongoColl('poloniex', dbcolName)
+        # get last trade
+        old = {'date': time() - self.api.YEAR * 10}
+        try:
+            old = list(db.find().sort('date', pymongo.ASCENDING))[-1]
+        except:
+            logger.warning('No %s trades found in database', self.pair)
+        # get new data from poloniex
+        hist = self.api.returnTradeHistory(self.pair, start=old['date'] - 1)
+
+        if len(hist) > 0:
+            logger.info('%d new %s trade database entries',
+                        len(hist), self.pair)
+
+            for trade in hist:
+                _id = trade['globalTradeID']
+                del trade['globalTradeID']
+                trade['date'] = UTCstr2epoch(trade['date'])
+                trade['amount'] = float(trade['amount'])
+                trade['total'] = float(trade['total'])
+                trade['tradeID'] = int(trade['tradeID'])
+                trade['orderNumber'] = int(trade['orderNumber'])
+                trade['rate'] = float(trade['rate'])
+                trade['fee'] = float(trade['fee'])
+                db.update_one({"_id": _id}, {"$set": trade}, upsert=True)
+
+        return pd.DataFrame(list(db.find(query).sort('date',
+                                                     pymongo.ASCENDING)))
+
+    def myLendingHistory(self, coin=False, start=False):
+        if not coin:
+            coin = self.child
+        db = getMongoColl('poloniex', 'lendingHistory')
+        # get last entry timestamp
+        old = {'open': time() - self.api.YEAR * 10}
+        try:
+            old = list(db.find({"currency": coin}).sort('open',
+                                                        pymongo.ASCENDING))[-1]
+        except:
+            logger.warning(RD('No %s loan history found in database!'), coin)
+        # get new entries
+        new = self.api.returnLendingHistory(start=old['open'] - 1)
+        nLoans = [loan for loan in new if loan['currency'] == coin]
+        if len(nLoans) > 0:
+            logger.info(GR('%d new lending database entries'), len(new))
+            for loan in nLoans:
+                _id = loan['id']
+                del loan['id']
+                loan['close'] = UTCstr2epoch(loan['close'])
+                loan['open'] = UTCstr2epoch(loan['open'])
+                loan['rate'] = float(loan['rate'])
+                loan['duration'] = float(loan['duration'])
+                loan['interest'] = float(loan['interest'])
+                loan['fee'] = float(loan['fee'])
+                loan['earned'] = float(loan['earned'])
+                db.update_one({'_id': _id}, {'$set': loan}, upsert=True)
+         if not start:
+            start = time() - self.api.DAY
+        return pd.DataFrame(
+            list(db.find({'currency': coin,
+                          '_id': {'$gt': start}
+                          }).sort('open', pymongo.ASCENDING)))

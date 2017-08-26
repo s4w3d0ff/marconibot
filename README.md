@@ -55,37 +55,27 @@ pip3 install git+https://github.com/s4w3d0ff/marconibot.git
   |                      +{ }+
   |
   |
-  |
-  | # Built by marconi.trading.Loaner ============================
- (( lendingHistory ))----+{'_id': loan['id'],
-  |                         }+,
-  |                      +{ }+,
-  |                      +{ }+,
-  |                      +{ }+
-  |
-  |
-  |
-  | # Built by marconi.trading.Bookie ============================
- (( 'market'tradeHistory ))
-  |          -----------+{'_id': trade['globalTradeID'],
-  |                         }+
-  |                      +{ }+,
-  |                      +{ }+,
-  |                      +{ }+
-  |
-  |
-  |
   | # Built by marconi.market.Market ===================
- (( 'market'chart ))
+ (( 'market'-chart ))
   |          -----------+{'_id': candle['date'],
   |                         }+
   |                      +{ }+,
   |                      +{ }+,
   |                      +{ }+
   |
+ (( 'market'-tradeHistory ))
+  |          -----------+{'_id': trade['globalTradeID'],
+  |                         }+
+  |                      +{ }+,
+  |                      +{ }+,
+  |                      +{ }+
   |
+ (( lendingHistory ))----+{'_id': loan['id'],
+  |                         }+,
+  |                      +{ }+,
+  |                      +{ }+,
+  |                      +{ }+
   |
-
 ```
 Drop 'poloniex' Database:
 ```bash
