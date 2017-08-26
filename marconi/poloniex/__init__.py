@@ -636,7 +636,7 @@ class Poloniex(object):
 
     # websocket stuff --------------------------------------------------
     def _on_message(self, ws, message):
-        message = json.loads(message)
+        message = _loads(message)
         if 'error' in message:
             return logger.error(message['error'])
 
@@ -679,7 +679,7 @@ class Poloniex(object):
             logger.info("Websocket closed!")
 
     def _on_open(self, ws):
-        self._ws.send(json.dumps({'command': 'subscribe', 'channel': 1002}))
+        self._ws.send(_dumps({'command': 'subscribe', 'channel': 1002}))
 
     @property
     def tickerStatus(self):
@@ -724,6 +724,7 @@ class Poloniex(object):
             if market:
                 return self._tick[self._ids[market]]
             return self._tick
+        logger.warning('Ticker is not running!')
         if market:
             return self.returnTicker()[market]
         return self.returnTicker()

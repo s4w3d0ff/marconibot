@@ -20,7 +20,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from ..tools import logging, pd, np, SATOSHI, TRADE_MIN, wait, roundDown
+from ..tools import logging, pd, np, SATOSHI, TRADE_MIN, sleep, roundDown
 from ..tools import time, UTCstr2epoch, pymongo, getMongoColl
 from ..tools import BL, OR, RD, GY, GR, float2percent, Thread
 
@@ -28,41 +28,50 @@ from ..tools import BL, OR, RD, GY, GR, float2percent, Thread
 logger = logging.getLogger(__name__)
 
 
-def stopLimit(api, market, amount, stop, limit, interval=2, ticker=False):
-    """
-    Simple stop limit, waits until <stop> has been triggered then attempts to
-        create an order for <amount> at <limit>
+class StopLimit(object):
+    def __init__(self, api, pair, interval=2):
+        self.api = api
+        self.pair = pair
+        self._running = False
+        self.order = None
+        self.interval = interval
 
-    Use <interval> to throttle the rate it checks for price changes
+    @property
+    def status(self):
+        return self._running
 
-    Pass <ticker> an instance of 'marconi.ticker.Ticker' to use that instance to
-        retrieve ticker data, defaults to api.returnTicker()
-    """
-    # no order yet
-    order = False
-    logger.debug('%s stop limit set: [Amount]%.8f [Stop]%.8f [Limit]%.8f',
-                 market, amount, stop, limit)
-    while not order:
-        # get new tick
-        if not ticker:
-            # use returnTicker
-            tick = api.returnTicker()[market]
-        else:
-            # use external ticker
-            tick = ticker(market)
-        # sell
-        if amount < 0 and stop >= tick['highestbid']:
-            # sell amount at limit
-            order = api.sell(market, limit, abs(amount))
-            continue
-        # buy
-        if amount > 0 and stop <= tick['lowestAsk']:
-            # buy amount at limit
-            order = api.buy(market, limit, amount)
-            continue
-        wait(interval)
-    logger.debug('%s stop limit triggered!', market)
-    return order
+    def _run(self):
+        logger.debug('%s stop limit set: [Amount]%.8f [Stop]%.8f [Limit]%.8f',
+                     self.pair, self.amount, self.stop, self.limit)
+        while self._running:
+            # sell
+            if self.amount < 0 and self.stop >= self.api.marketTick(self.pair)['highestbid']:
+                logger.debug('%s stop limit triggered!', self.pair)
+                # sell amount at limit
+                self._running = False
+                self.order = self.api.sell(
+                    self.pair, self.limit, abs(self.amount))
+            # buy
+            if self.amount > 0 and self.stop <= self.api.marketTick(self.pair)['lowestAsk']:
+                # buy amount at limit
+                logger.debug('%s stop limit triggered!', self.pair)
+                self._running = False
+                self.order = self.api.buy(self.pair, self.limit, self.amount)
+            sleep(self.interval)
+
+    def cancel(self):
+        logger.info('%s stoplimit canceled', self.pair)
+        self._running = False
+        self._t.join()
+
+    def __call__(self, amount, stop, limit):
+        self.amount = amount
+        self.stop = stop
+        self.limit = limit
+        self._t = Thread(target=self._run)
+        self._t.daemon = True
+        self._running = True
+        self._t.start()
 
 
 def dump(api, market, amount, ticker=False):

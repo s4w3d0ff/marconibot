@@ -21,7 +21,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from ..tools import getMongoColl, logging, time, pd, pymongo, RD, GR
+from ..tools import (getMongoColl, logging, time, pd,
+                     pymongo, RD, GR, sleep, Thread)
+from ..trading import StopLimit
 from .. import indicators
 
 
@@ -29,24 +31,32 @@ logger = logging.getLogger(__name__)
 
 
 class Market(object):
+    """
+    Market object
+
+    Maintains/Returns database entries for a market, as well as provides
+    convienance methods for common functions done on markets.
+    """
+
     def __init__(self, api, pair, ticker=False):
         self.api = api
         self.api.jsonNums = float
         self.parent, self.child = pair.split('_')
         self.pair = pair
-        self.ticker = ticker
+        self.stops = []
 
     @property
     def tick(self):
-        """ Get a market 'tick' """
-        if self.api.tickerStatus:
-            return self.api.marketTick(self.pair)
-        logger.warning('Ticker is not running!')
-        return self.api.returnTicker()[self.pair]
+        """
+        Get a market 'tick'
+        """
+        return self.api.marketTick(self.pair)
 
     @property
     def availBalances(self):
-        """ Get available balances from poloniex """
+        """
+        Get available balances from poloniex
+        """
         bals = self.api.returnCompleteBalances('exchange')
         childBal = float(bals[self.child]['available'])
         parentBal = float(bals[self.parent]['available'])
@@ -125,6 +135,9 @@ class Market(object):
         return df
 
     def myTradeHistory(self, query=None):
+        """
+        Retrives and saves trade history in "poloniex.'self.pair'-tradeHistory"
+        """
         dbcolName = self.pair + '-tradeHistory'
         db = getMongoColl('poloniex', dbcolName)
         # get last trade
@@ -156,6 +169,11 @@ class Market(object):
                                                      pymongo.ASCENDING)))
 
     def myLendingHistory(self, coin=False, start=False):
+        """
+        Retrives and saves lendingHistory in 'poloniex.lendingHistory' database
+        coin = coin to get history for (defaults to self.child)
+        start = starting epoch date to get data from
+        """
         if not coin:
             coin = self.child
         db = getMongoColl('poloniex', 'lendingHistory')
@@ -188,3 +206,28 @@ class Market(object):
             list(db.find({'currency': coin,
                           '_id': {'$gt': start}
                           }).sort('open', pymongo.ASCENDING)))
+
+    def cancelOrders(arg=False):
+        """
+        Generator method that cancels all orders for self.pair. Can be
+        limited to just buy or sell orders using the 'arg' param,
+        yields results from 'self.api.cancelOrder'
+        """
+        # get open orders for 'market'
+        orders = self.openOrders
+        for order in orders:
+            # if arg = 'sell' or 'buy' skip the orders not labeled as such
+            if arg in ('sell', 'buy') and order['type'] != arg:
+                continue
+            # show output
+            yield self.api.cancelOrder(order["orderNumber"])
+
+    def addStopOrder(amount, stop, limit):
+        self.stops.append(StopLimit(self.api, self.pair)(amount, stop, limit))
+
+    def cancelStopOrder(indx=False):
+        if indx:
+            self.stops[indx].cancel()
+        else:
+            for stop in self.stops:
+                stop.cancel()
