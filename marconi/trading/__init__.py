@@ -433,14 +433,3 @@ class Liquidator(object):
         self._running = False
         self._t.join()
         logger.info('Liquidator thread stopped/joined')
-
-
-if __name__ == '__main__':
-    from ..poloniex import Poloniex
-    from sys import argv
-    from pprint import pprint
-    logging.basicConfig(level=logging.INFO)
-    key, secret = argv[1:3]
-    api = Poloniex(key, secret, jsonNums=float)
-    bookie = Bookie(api)
-    pprint(bookie.myTradeHistory('BTC_DASH')[-6:])

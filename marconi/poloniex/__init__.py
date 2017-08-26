@@ -21,7 +21,7 @@
 #    You should have received a copy of the GNU General Public License along
 #    with this program; if not, write to the Free Software Foundation, Inc.,
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
+#
 # python 2
 try:
     from urllib import urlencode as _urlencode
@@ -728,17 +728,3 @@ class Poloniex(object):
         if market:
             return self.returnTicker()[market]
         return self.returnTicker()
-
-
-if __name__ == "__main__":
-    import pprint
-    logging.basicConfig(level=logging.DEBUG)
-    polo = Poloniex()
-    try:
-        polo.startWebsocket()
-        for i in range(3):
-            sleep(5)
-            pprint.pprint(polo.marketTick('USDT_BTC'))
-    except Exception as e:
-        logger.exception(e)
-    polo.stopWebsocket()
