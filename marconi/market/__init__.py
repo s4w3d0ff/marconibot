@@ -110,7 +110,7 @@ class Market(object):
         logger.debug('Getting chart data from db')
         # make dataframe
         df = pd.DataFrame(list(db.find({"_id": {"$gt": start}}
-            ).sort('timestamp', pymongo.ASCENDING)))
+                                       ).sort('timestamp', pymongo.ASCENDING)))
         # set date column to datetime
         df['date'] = pd.to_datetime(df["_id"], unit='s')
         # adjust candle period 'zoom'
@@ -200,7 +200,7 @@ class Market(object):
                 loan['fee'] = float(loan['fee'])
                 loan['earned'] = float(loan['earned'])
                 db.update_one({'_id': _id}, {'$set': loan}, upsert=True)
-         if not start:
+        if not start:
             start = time() - self.api.DAY
         return pd.DataFrame(
             list(db.find({'currency': coin,
