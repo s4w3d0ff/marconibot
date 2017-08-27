@@ -22,12 +22,14 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from ..tools import (getMongoColl, logging, time, pd,
-                     pymongo, RD, GR, sleep, Thread, SATOSHI, TRADE_MIN)
+                     pymongo, RD, GR, sleep, Thread, SATOSHI,
+                     TRADE_MIN, getLogger, getRLogger)
 from ..trading import StopLimit
 from .. import indicators
 
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
+rlogger = getRLogger('r' + __name__)
 
 
 class Market(object):
@@ -104,10 +106,10 @@ class Market(object):
         logger.info('Updating %s with %s new entrys!',
                     dbcolName, str(updateSize))
         for i in range(updateSize):
-            date = new[i]['date']
-            del new[i]['date']
-            db.update_one({'_id': date}, {"$set": new[i]}, upsert=True)
-        logger.debug('Getting chart data from db')
+            rlogger.info('%d/%d'i + 1, updateSize)
+            db.update_one({'_id': new[i]['date']}, {
+                          "$set": new[i]}, upsert=True)
+        logger.info('\nGetting %s chart data from db', self.pair)
         # make dataframe
         df = pd.DataFrame(list(db.find({"_id": {"$gt": start}}
                                        ).sort('timestamp', pymongo.ASCENDING)))
@@ -115,6 +117,7 @@ class Market(object):
         df['date'] = pd.to_datetime(df["_id"], unit='s')
         # adjust candle period 'zoom'
         if zoom:
+            logger.debug('zooming %s dataframe...', self.pair)
             df.set_index('date', inplace=True)
             df = df.resample(rule=zoom,
                              closed='left',
@@ -127,6 +130,7 @@ class Market(object):
                                                   'weightedAverage': 'mean'})
             df.reset_index(inplace=True)
         # add indicators
+        logger.info('Adding indicators to %s dataframe', self.pair)
         availInd = dir(indicators)
         for ind in indica:
             if ind in availInd:
@@ -272,3 +276,7 @@ class Market(object):
                 # log exceptions and keep trying
                 logger.exception(e)
                 continue
+
+
+class MarketThread(Market):
+    def __call__(self, *args, **kwargs):

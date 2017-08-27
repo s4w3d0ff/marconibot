@@ -43,9 +43,6 @@ import pymongo
 
 # constants ----------------------------------------------------------------
 
-# tools logger
-logger = logging.getLogger(__name__)
-
 PHI = (1 + 5 ** 0.5) / 2
 
 # smallest coin fraction
@@ -54,6 +51,27 @@ SATOSHI = 0.00000001
 LOANTOSHI = 0.000001
 # minimum trade amount (btc and usdt)
 TRADE_MIN = 0.0001
+
+
+def getLogger(name, fmt="[%(asctime)s]%(name)s<%(levelname)s>%(message)s"):
+    logger = logging.getLogger(name)
+    cHandle = logging.StreamHandler()
+    cHandle.setFormatter(logging.Formatter(fmt=fmt, datefmt="%H:%M:%S"))
+    logger.addHandler(cHandle)
+    return logger
+
+
+def getRLogger(name, fmt="[%(asctime)s]%(name)s<%(levelname)s>%(message)s"):
+    logger = logging.getLogger(name)
+    cHandle = logging.StreamHandler()
+    cHandle.terminator = "\r"
+    cHandle.setFormatter(logging.Formatter(fmt=fmt, datefmt="%H:%M:%S"))
+    logger.addHandler(cHandle)
+    return logger
+
+
+# tools logger
+logger = getLogger(__name__)
 
 # console colors ---------------------------------------------------------
 WT = '\033[0m'  # white (normal)
