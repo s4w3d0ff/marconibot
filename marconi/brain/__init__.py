@@ -121,15 +121,11 @@ class Brain(object):
     Holds sklrean classifiers and makes it simpler to train using a dataframe
     """
 
-    def __init__(self, lobes=False, featureset=[],
-                 labelFunc=customLabels, labelArgs={}):
+    def __init__(self, lobes=False):
         """
         lobes = a dict of classifiers to use in the VotingClassifier
             defaults to RandomForestClassifier and DecisionTreeClassifier
         """
-        self.featureset = featureset
-        self.labelFunc = labelFunc
-        self.labelArgs = labelArgs
         if not lobes:
             lobes = {'rf': RandomForestClassifier(n_estimators=7,
                                                   random_state=666),
@@ -139,11 +135,22 @@ class Brain(object):
             estimators=[(lobe, lobes[lobe]) for lobe in lobes],
             voting='hard',
             n_jobs=-1)
+        self._trained = False
 
-    def train(markets={}, shuffle=True, preprocess=False, **kwargs):
-        self.featureset = kwargs.get('featureset', self.featureset)
-        self.labelFunc = kwargs.get('labelFunc', self.labelFunc)
-        self.labelArgs = kwargs.get('labelArgs', self.labelArgs)
+    def train(markets=False, featureset=False, labelFunc=customLabels,
+              labelArgs={}, shuffle=True, preprocess=False):
+        if not markets or not featureset:
+            return logger.error(
+                'Need both a markets and featureset param to train')
+        if self._trained:
+            logger.warning('Overwriting an already trained brain!')
+            self._trained = False
+        self.markets = markets
+        self.featureset = featureset
+        self.labelFunc = labelFunc
+        self.labelArgs = labelArgs
+        self.shuffle = shuffle
+        self.preprocess = preprocess
 
         first = True
         logger.info('Building training dataset')
@@ -163,10 +170,13 @@ class Brain(object):
             df = shuffleDataFrame(df)
         # scale train data and fit lobe
         x = df.drop('label', axis=1).values
+        y = df['label'].values
+        del df
         if preprocess:
             x = preprocessing.scale(x)
         logger.info('%d samples to train', len(x))
-        self.lobe.fit(x, df['label'].values)
+        self.lobe.fit(x, y)
+        self._trained = True
 
     def predict(self, df):
         """ Get a prediction from the votingLobe """
@@ -180,11 +190,17 @@ class Brain(object):
 
     def save(self, fname="brain"):
         """ Pickle and save brain with config """
-        joblib.dump(self.lobe, fname + ".pickle")
-        json.dump({"featureset": self.featureset,
-                   "labelArgs": self.labelArgs,
-                   "labelFunc": self.labelFunc.__name__},
-                  open(fname + ".json", "w"))
+        if self._trained:
+            joblib.dump(self.lobe, fname + ".pickle")
+            json.dump({"markets": self.markets,
+                       "featureset": self.featureset,
+                       "labelArgs": self.labelArgs,
+                       "labelFunc": self.labelFunc.__name__,
+                       "shuffle": self.shuffle,
+                       "preprocess": self.preprocess},
+                      open(fname + ".json", "w"))
+        else:
+            return logging.error('Brain is not trained yet! Nothing to save...')
 
     def load(self, fname="brain"):
         """ Loads a brain pickle and config """
@@ -192,4 +208,7 @@ class Brain(object):
         config = json.load(open(fname + ".json", "w"))
         self.featureset = config['featureset']
         self.labelArgs = config['labelArgs']
+        self.markets = config['markets']
+        self.shuffle = config['shuffle']
+        self.preprocess = config['preprocess']
         exec("self.labelFunc = " + config['labelFunc'])
