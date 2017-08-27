@@ -183,8 +183,7 @@ class Brain(object):
 
     def predict(self, df):
         """ Get a prediction from the votingLobe """
-        df = prepDataframe(df)
-        return self.lobe.predict(df[self.featureset].values)
+        return self.lobe.predict(prepDataframe(df)[self.featureset].values)
 
     def score(self, df, x='label', y='predict'):
         """ Get a prediction score from the votingLobe """
