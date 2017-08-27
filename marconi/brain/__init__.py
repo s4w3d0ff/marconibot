@@ -177,7 +177,7 @@ class Brain(object):
         del df
         if preprocess:
             x = preprocessing.scale(x)
-        logger.info('%d samples to train', len(x))
+        logger.info('Training with %d samples', len(x))
         self.lobe.fit(x, y)
         self._trained = True
 

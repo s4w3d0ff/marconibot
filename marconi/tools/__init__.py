@@ -53,18 +53,11 @@ LOANTOSHI = 0.000001
 TRADE_MIN = 0.0001
 
 
-def getLogger(name, fmt="[%(asctime)s]%(name)s<%(levelname)s>%(message)s"):
+def getLogger(name, fmt="[%(asctime)s]%(name)s<%(levelname)s>%(message)s",
+              terminator='\n'):
     logger = logging.getLogger(name)
     cHandle = logging.StreamHandler()
-    cHandle.setFormatter(logging.Formatter(fmt=fmt, datefmt="%H:%M:%S"))
-    logger.addHandler(cHandle)
-    return logger
-
-
-def getRLogger(name, fmt="[%(asctime)s]%(name)s<%(levelname)s>%(message)s"):
-    logger = logging.getLogger(name)
-    cHandle = logging.StreamHandler()
-    cHandle.terminator = "\r"
+    cHandle.terminator = terminator
     cHandle.setFormatter(logging.Formatter(fmt=fmt, datefmt="%H:%M:%S"))
     logger.addHandler(cHandle)
     return logger

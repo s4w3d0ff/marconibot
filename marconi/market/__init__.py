@@ -106,7 +106,7 @@ class Market(object):
         logger.info('Updating %s with %s new entrys!',
                     dbcolName, str(updateSize))
         for i in range(updateSize):
-            rlogger.info('%d/%d'i + 1, updateSize)
+            rlogger.info('%d/%d', i + 1, updateSize)
             db.update_one({'_id': new[i]['date']}, {
                           "$set": new[i]}, upsert=True)
         logger.info('\nGetting %s chart data from db', self.pair)
