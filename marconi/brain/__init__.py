@@ -121,11 +121,12 @@ class Brain(object):
     Holds sklrean classifiers and makes it simpler to train using a dataframe
     """
 
-    def __init__(self, lobes=False):
+    def __init__(self, api, lobes=False):
         """
         lobes = a dict of classifiers to use in the VotingClassifier
             defaults to RandomForestClassifier and DecisionTreeClassifier
         """
+        self.api = api
         if not lobes:
             lobes = {'rf': RandomForestClassifier(n_estimators=7,
                                                   random_state=666),
@@ -137,7 +138,7 @@ class Brain(object):
             n_jobs=-1)
         self._trained = False
 
-    def train(markets=False, featureset=False, labelFunc=customLabels,
+    def train(self, markets=False, featureset=False, labelFunc=customLabels,
               labelArgs={}, shuffle=True, preprocess=False):
         if not markets or not featureset:
             return logger.error(
