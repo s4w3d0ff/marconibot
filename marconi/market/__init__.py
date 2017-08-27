@@ -23,13 +23,13 @@
 #
 from ..tools import (getMongoColl, logging, time, pd,
                      pymongo, RD, GR, sleep, Thread, SATOSHI,
-                     TRADE_MIN, getLogger, getRLogger)
+                     TRADE_MIN, getLogger)
 from ..trading import StopLimit
 from .. import indicators
 
 
 logger = getLogger(__name__)
-rlogger = getRLogger('r' + __name__)
+rlogger = getLogger('r' + __name__, terminator='\r')
 
 
 class Market(object):
@@ -276,7 +276,3 @@ class Market(object):
                 # log exceptions and keep trying
                 logger.exception(e)
                 continue
-
-
-class MarketThread(Market):
-    def __call__(self, *args, **kwargs):
