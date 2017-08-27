@@ -23,8 +23,11 @@
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn import preprocessing
+from sklearn.metrics import accuracy_score
+from sklearn.externals import joblib
 
-from ..tools import logging, pd, np, time, pickle, shuffleDataFrame
+from ..market import Market
+from ..tools import logging, pd, np, time, shuffleDataFrame, json
 
 
 logger = logging.getLogger(__name__)
@@ -60,13 +63,6 @@ def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False,
                 score += -1
             if rsi < -rsiLimit:
                 score += 1
-
-        if pchLimit:
-            fpch = candle['future']
-            if fpch > pchLimit:
-                score += 1
-            if fpch < -pchLimit:
-                score += -1
 
         if cciLimit:
             ccindex = candle['cci']
@@ -125,49 +121,75 @@ class Brain(object):
     Holds sklrean classifiers and makes it simpler to train using a dataframe
     """
 
-    def __init__(self, lobes=False):
+    def __init__(self, lobes=False, featureset=[],
+                 labelFunc=customLabels, labelArgs={}):
         """
         lobes = a dict of classifiers to use in the VotingClassifier
             defaults to RandomForestClassifier and DecisionTreeClassifier
         """
-        self._lobes = lobes
-        if not self._lobes:
-            self._lobes = {'rf': RandomForestClassifier(n_estimators=7,
-                                                        random_state=666),
-                           'dt': DecisionTreeClassifier()
-                           }
-        self.votingLobe = VotingClassifier(
-            estimators=[(lobe, self._lobes[lobe]) for lobe in self._lobes],
+        self.featureset = featureset
+        self.labelFunc = labelFunc
+        self.labelArgs = labelArgs
+        if not lobes:
+            lobes = {'rf': RandomForestClassifier(n_estimators=7,
+                                                  random_state=666),
+                     'dt': DecisionTreeClassifier()
+                     }
+        self.lobe = VotingClassifier(
+            estimators=[(lobe, lobes[lobe]) for lobe in lobes],
             voting='hard',
             n_jobs=-1)
 
-    def train(self, df, labels='label', split=False,
-              shuffle=True, preprocess=False):
-        """
-        Trains the self.votingLobe with a dataframe <df>
-        use <labels> to define the column to use for labels
-        """
+    def train(markets={}, shuffle=True, preprocess=False, **kwargs):
+        self.featureset = kwargs.get('featureset', self.featureset)
+        self.labelFunc = kwargs.get('labelFunc', self.labelFunc)
+        self.labelArgs = kwargs.get('labelArgs', self.labelArgs)
+
+        first = True
+        logger.info('Building training dataset')
+        for market in markets:
+            # append each df with labels
+            df = Market(self.api, market).chart(**markets[market]).dropna()
+            df['label'] = self.labelFunc(df, **self.labelArgs)
+            if first:
+                first = False
+                trainDF = df[self.featureset + ['label']]
+            else:
+                trainDF = pd.concat([trainDF, df[self.featureset + ['label']]])
         # prep df, remove nan
-        df = prepDataframe(df)
-        # split if needed
-        if split:
-            df, tdf = splitTrainTestData(df, split)
+        df = prepDataframe(trainDF)
         # shuffle data for good luck
         if shuffle:
             df = shuffleDataFrame(df)
         # scale train data and fit lobe
-        x = df.drop(labels, axis=1).values
+        x = df.drop('label', axis=1).values
         if preprocess:
             x = preprocessing.scale(x)
         logger.info('%d samples to train', len(x))
-        self.votingLobe.fit(x, df[labels].values)
-        if split:
-            return tdf
+        self.lobe.fit(x, df['label'].values)
 
-    def predict(self, X):
+    def predict(self, df):
         """ Get a prediction from the votingLobe """
-        return self.votingLobe.predict(X)
+        df = prepDataframe(df)
+        return self.lobe.predict(df[self.featureset].values)
 
-    def score(self, X, y):
-        """ Get a prediction score from the votingLobe"""
-        return self.votingLobe.score(X, y)
+    def score(self, df, x='label', y='predict'):
+        """ Get a prediction score from the votingLobe """
+        df = prepDataframe(df)
+        return accuracy_score(df[x].values, df[y].values)
+
+    def save(self, fname="brain"):
+        """ Pickle and save brain with config """
+        joblib.dump(self.lobe, fname + ".pickle")
+        json.dump({"featureset": self.featureset,
+                   "labelArgs": self.labelArgs,
+                   "labelFunc": self.labelFunc.__name__},
+                  open(fname + ".json", "w"))
+
+    def load(self, fname="brain"):
+        """ Loads a brain pickle and config """
+        self.lobe = joblib.load(fname + ".pickle")
+        config = json.load(open(fname + ".json", "w"))
+        self.featureset = config['featureset']
+        self.labelArgs = config['labelArgs']
+        exec("self.labelFunc = " + config['labelFunc'])
