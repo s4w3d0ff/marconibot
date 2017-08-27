@@ -21,6 +21,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # core ---------------------------------------------------------------------
+import sys
 import logging
 import json
 import pickle
@@ -94,6 +95,10 @@ def GY(text):
 
 
 # convertions, misc ------------------------------------------------------
+
+def isString(obj):
+    return isinstance(obj, str if sys.version_info[0] >= 3 else basestring)
+
 
 def shuffleDataFrame(df):
     """ Shuffles the rows of a dataframe """

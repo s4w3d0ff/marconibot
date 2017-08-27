@@ -27,7 +27,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 
 from ..market import Market
-from ..tools import logging, pd, np, time, shuffleDataFrame, json
+from ..tools import logging, pd, np, time, shuffleDataFrame, json, isString
 
 
 logger = logging.getLogger(__name__)
@@ -149,6 +149,8 @@ class Brain(object):
         self.markets = markets
         self.featureset = featureset
         self.labelFunc = labelFunc
+        if isString(self.labelFunc):
+            exec("self.labelFunc = " + labelFunc)
         self.labelArgs = labelArgs
         self.shuffle = shuffle
         self.preprocess = preprocess
@@ -190,26 +192,15 @@ class Brain(object):
         return accuracy_score(df[x].values, df[y].values)
 
     def save(self, fname="brain"):
-        """ Pickle and save brain with config """
+        """ Pickle brain """
         if self._trained:
             joblib.dump(self.lobe, fname + ".pickle")
-            json.dump({"markets": self.markets,
-                       "featureset": self.featureset,
-                       "labelArgs": self.labelArgs,
-                       "labelFunc": self.labelFunc.__name__,
-                       "shuffle": self.shuffle,
-                       "preprocess": self.preprocess},
-                      open(fname + ".json", "w"))
+            logger.info('brain %s saved', fname + 'pickle')
         else:
             return logging.error('Brain is not trained yet! Nothing to save...')
 
     def load(self, fname="brain"):
         """ Loads a brain pickle and config """
         self.lobe = joblib.load(fname + ".pickle")
-        config = json.load(open(fname + ".json", "w"))
-        self.featureset = config['featureset']
-        self.labelArgs = config['labelArgs']
-        self.markets = config['markets']
-        self.shuffle = config['shuffle']
-        self.preprocess = config['preprocess']
-        exec("self.labelFunc = " + config['labelFunc'])
+        logger.info('loading saved brain %s', fname + 'pickle')
+        self._trained = True

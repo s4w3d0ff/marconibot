@@ -24,7 +24,7 @@ pymongo
 ```bash
 # make sure package manager is up to date
 pip3 install -U pip wheel setuptools
-# install binarys so we dont have to build from source
+# install binaries so we dont have to build from source
 pip3 install --only-binary=numpy,scipy,pandas,scikit-learn numpy scipy pandas scikit-learn
 # install this repo
 pip3 install git+https://github.com/s4w3d0ff/marconibot.git
@@ -37,22 +37,6 @@ pip3 install git+https://github.com/s4w3d0ff/marconibot.git
 +{ }+ = document
 
 ( poloniex )
-  |
-  | # Built by marconi.poloniex.Ticker ============================
- (( ticker ))------------+{'_id': str(currencyPair),
-  |                        'id': float(),
-  |                        'last': float(),
-  |                        'lowestAsk': float(),
-  |                        'highestBid': float(),
-  |                        'percentChange': float(),
-  |                        'baseVolume': float(),
-  |                        'quoteVolume': float(),
-  |                        'isFrozen': float(),
-  |                        'high24hr': float(),
-  |                        'low24hr': float()}+,
-  |                      +{ }+,
-  |                      +{ }+,
-  |                      +{ }+
   |
   |
   | # Built by marconi.market.Market ===================
