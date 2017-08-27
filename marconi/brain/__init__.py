@@ -192,15 +192,15 @@ class Brain(object):
         return accuracy_score(df[x].values, df[y].values)
 
     def save(self, fname="brain"):
-        """ Pickle brain """
+        """ Pickle the brain """
         if self._trained:
             joblib.dump(self.lobe, fname + ".pickle")
-            logger.info('brain %s saved', fname + 'pickle')
+            logger.info('brain %s saved', fname + '.pickle')
         else:
             return logging.error('Brain is not trained yet! Nothing to save...')
 
     def load(self, fname="brain"):
-        """ Loads a brain pickle and config """
+        """ Loads a brain pickle """
         self.lobe = joblib.load(fname + ".pickle")
-        logger.info('loading saved brain %s', fname + 'pickle')
+        logger.info('loading saved brain %s', fname + '.pickle')
         self._trained = True
