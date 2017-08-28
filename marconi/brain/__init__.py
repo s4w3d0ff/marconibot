@@ -27,10 +27,10 @@ from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 
 from ..market import Market
-from ..tools import logging, pd, np, time, shuffleDataFrame, json, isString
+from ..tools import getLogger, pd, np, time, shuffleDataFrame, json, isString
 
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False,

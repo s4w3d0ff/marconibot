@@ -20,12 +20,12 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from ..tools import logging, pd, np, SATOSHI, TRADE_MIN, sleep, roundDown
+from ..tools import getLogger, pd, np, SATOSHI, TRADE_MIN, sleep, roundDown
 from ..tools import time, UTCstr2epoch, pymongo, getMongoColl
 from ..tools import BL, OR, RD, GY, GR, float2percent, Thread
 
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class StopLimit(object):

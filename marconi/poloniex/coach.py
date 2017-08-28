@@ -17,10 +17,12 @@
 #    with this program; if not, write to the Free Software Foundation, Inc.,
 #    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-import logging
 from time import time, sleep
 from threading import Semaphore, Timer
 from collections import deque
+from ..tools import getLogger
+
+logger = getLogger(__name__)
 
 
 class Coach(object):

@@ -21,7 +21,9 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from ..tools import pd, np
+from ..tools import pd, np, getLogger
+
+logger = getLogger(__name__)
 
 
 def rsi(df, window, targetcol='weightedAverage', colname='rsi'):

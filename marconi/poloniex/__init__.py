@@ -47,9 +47,10 @@ from websocket import WebSocketApp
 
 # local
 from .coach import Coach
+from ..tools import getLogger
 
 # logger
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 retryDelays = (0, 2, 5, 30)
 

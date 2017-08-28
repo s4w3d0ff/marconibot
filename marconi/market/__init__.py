@@ -21,15 +21,14 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from ..tools import (getMongoColl, logging, time, pd,
+from ..tools import (getMongoColl, time, pd,
                      pymongo, RD, GR, sleep, Thread, SATOSHI,
                      TRADE_MIN, getLogger)
 from ..trading import StopLimit
 from .. import indicators
 
-
 logger = getLogger(__name__)
-rlogger = getLogger('r' + __name__, terminator='\r')
+rlogger = getLogger(__name__ + 'R', terminator='\r', logf=False)
 
 
 class Market(object):
@@ -43,6 +42,7 @@ class Market(object):
     def __init__(self, api, pair):
         self.api = api
         self.api.jsonNums = float
+        self.api.logger = logger
         self.parent, self.child = pair.split('_')
         self.pair = pair
         self.stops = []
@@ -90,14 +90,15 @@ class Market(object):
             }}).sort('timestamp', pymongo.ASCENDING))[-1]
         except:
             last = False
-        logger.info('Getting new candles from Poloniex')
         # no entrys found, get all 5min data from poloniex
         if not last:
             logger.warning('%s collection is empty!', dbcolName)
+            logger.info('Getting new %s candles from Poloniex...', self.pair)
             new = self.api.returnChartData(self.pair,
                                            period=60 * 5,
                                            start=time() - self.api.YEAR * 13)
         else:
+            logger.info('Getting new %s candles from Poloniex...', self.pair)
             new = self.api.returnChartData(self.pair,
                                            period=60 * 5,
                                            start=int(last['_id']))
@@ -109,7 +110,8 @@ class Market(object):
             rlogger.info('%d/%d', i + 1, updateSize)
             db.update_one({'_id': new[i]['date']}, {
                           "$set": new[i]}, upsert=True)
-        logger.info('\nGetting %s chart data from db', self.pair)
+        rlogger.info('\n\r Done')
+        logger.info('Getting %s chart data from db', self.pair)
         # make dataframe
         df = pd.DataFrame(list(db.find({"_id": {"$gt": start}}
                                        ).sort('timestamp', pymongo.ASCENDING)))
@@ -187,7 +189,8 @@ class Market(object):
             old = list(db.find({"currency": coin}).sort('open',
                                                         pymongo.ASCENDING))[-1]
         except:
-            logger.warning(RD('No %s loan history found in database!'), coin)
+            logger.warning(
+                RD('No %s loan history found in database!'), coin)
         # get new entries
         new = self.api.returnLendingHistory(start=old['open'] - 1)
         nLoans = [loan for loan in new if loan['currency'] == coin]
