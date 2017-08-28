@@ -37,7 +37,7 @@ setup(name='marconi',
                 'marconi.indicators',
                 'marconi.plotting',
                 'marconi.trading'],
-      scripts=['bin/poloaner'],
+      scripts=['bin/poloaner', 'bin/marconi'],
       setup_requires=['scikit-learn', 'pandas', 'numpy', 'scipy'],
       install_requires=[
           'pymongo',
