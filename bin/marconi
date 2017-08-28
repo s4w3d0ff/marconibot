@@ -24,7 +24,7 @@
 from marconi.market import Market
 from marconi.brain import Brain
 from marconi.poloniex import Poloniex
-from marconi.tools import json, getHomeDir, getLogger
+from marconi.tools import json, getHomeDir, getLogger, isString
 
 logger = getLogger(__name__)
 
@@ -50,7 +50,11 @@ class Marconi(object):
         self.brain = Brain(self.api)
         # should we load a brain?
         if 'brain' in self.config:
-            self.brain.load(self.config['brain'])
+            try:
+                self.brain.load(self.config['brain'])
+            except Exception as e:
+                logger.warning('Brain could not be loaded! %',
+                               self.config['brain'])
 
     @property
     def brainStatus(self):
