@@ -53,8 +53,8 @@ class Marconi(object):
             try:
                 self.brain.load(self.config['brain'])
             except Exception as e:
-                logger.warning('Brain could not be loaded! %',
-                               self.config['brain'])
+                logger.warning(
+                    "Brain could not be loaded! %s", self.config['brain'])
 
     @property
     def brainStatus(self):
