@@ -194,12 +194,12 @@ class Brain(object):
         """ Pickle the brain """
         if self._trained:
             joblib.dump(self.lobe, fname + ".pickle")
-            logger.info('brain %s saved', fname + '.pickle')
+            logger.info('Brain %s saved', fname + '.pickle')
         else:
             return logging.error('Brain is not trained yet! Nothing to save...')
 
     def load(self, fname="brain"):
         """ Loads a brain pickle """
         self.lobe = joblib.load(fname + ".pickle")
-        logger.info('loading saved brain %s', fname + '.pickle')
+        logger.info('Loading saved brain %s', fname + '.pickle')
         self._trained = True

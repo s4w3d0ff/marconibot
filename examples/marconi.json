@@ -1,0 +1,75 @@
+{
+    "trainConfig": {
+        "preprocess": false,
+        "labelFunc": "customLabels",
+        "shuffle": true,
+        "markets": {
+            "BTC_ETH": {
+                "indica": {
+                    "sma": {
+                        "window": 50,
+                        "colname": "sma"
+                    },
+                    "macd": {
+                        "fastcol": "ema",
+                        "window": 25,
+                        "slowcol": "sma"
+                    },
+                    "ema": {
+                        "window": 25,
+                        "colname": "ema"
+                    },
+                    "rsi": {
+                        "window": 10
+                    }
+                },
+                "zoom": "6T",
+                "start": 1485936000.0
+            },
+            "BTC_XMR": {
+                "indica": {
+                    "sma": {
+                        "window": 50,
+                        "colname": "sma"
+                    },
+                    "macd": {
+                        "fastcol": "ema",
+                        "window": 20,
+                        "slowcol": "sma"
+                    },
+                    "ema": {
+                        "window": 25,
+                        "colname": "ema"
+                    },
+                    "rsi": {
+                        "window": 5
+                    }
+                },
+                "zoom": "11T",
+                "start": 1483257600.0
+            }
+        },
+        "featureset": [
+            "rsi",
+            "smapercent",
+            "emapercent",
+            "emarange",
+            "smarange",
+            "macd",
+            "macdSignal",
+            "macdDivergence",
+        ],
+        "labelArgs": {
+            "rsiLimit": 30,
+            "bbLimit": 0.5,
+            "macdLimit": 0.0
+        }
+    },
+    "tradeConfig": {
+        "BTC_ETH": [
+            "BTC_LTC",
+            "BTC_DASH"
+        ],
+    "secret": "",
+    "key": ""
+}

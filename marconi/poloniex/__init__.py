@@ -221,7 +221,6 @@ class Poloniex(object):
 
             # send the call
             ret = _get(**payload)
-            logger.debug(ret.headers)
             # return data
             return self._handleReturned(ret.text)
 
@@ -255,7 +254,8 @@ class Poloniex(object):
                              parse_float=self.jsonNums,
                              parse_int=self.jsonNums)
         except:
-            self.logger.error(data)
+            logger.error(data)
+            logger.debug(ret.headers)
             raise PoloniexError('Invalid json response returned')
 
         # check if poloniex returned an error
