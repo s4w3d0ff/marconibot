@@ -41,8 +41,8 @@ def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False,
     """
     logger.debug('Adding labels')
 
-    def _bbrsiLabels(candle, bbLimit, rsiLimit, pchLimit,
-                     cciLimit, macdLimit, forceLimit, eomLimit):
+    def _labels(candle, bbLimit, rsiLimit, pchLimit,
+                cciLimit, macdLimit, forceLimit, eomLimit):
         score = 0
         if bbLimit:
             smabb = candle['smapercent']
@@ -94,7 +94,7 @@ def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False,
 
         return score
 
-    return df.apply(_bbrsiLabels, axis=1, bbLimit=bbLimit,
+    return df.apply(_labels, axis=1, bbLimit=bbLimit,
                     rsiLimit=rsiLimit, pchLimit=pchLimit,
                     cciLimit=cciLimit, macdLimit=macdLimit,
                     forceLimit=forceLimit, eomLimit=eomLimit)

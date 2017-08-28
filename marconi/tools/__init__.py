@@ -24,7 +24,6 @@
 import sys
 import logging
 import json
-import pickle
 from functools import wraps
 from math import floor, ceil
 from math import pi as PI

@@ -40,6 +40,10 @@ class Market(object):
     """
 
     def __init__(self, api, pair):
+        """
+        api = an instance of 'poloniex.Poloniex'
+        pair = str market currencyPair. example: 'BTC_LTC'
+        """
         self.api = api
         self.api.jsonNums = float
         self.api.logger = logger
@@ -230,9 +234,11 @@ class Market(object):
             yield self.api.cancelOrder(order["orderNumber"])
 
     def addStopOrder(self, amount, stop, limit):
+        """ adds a stop order to 'self.stops' and starts its thread """
         self.stops.append(StopLimit(self.api, self.pair)(amount, stop, limit))
 
     def cancelStopOrder(self, indx=False):
+        """ cancels all stop orders within 'self.stops', or just <indx> """
         if indx:
             self.stops[indx].cancel()
         else:

@@ -29,7 +29,7 @@ try:
 # python 3
 except:
     from urllib.parse import urlencode as _urlencode
-import logging
+
 from threading import Thread as _Thread
 from json import loads as _loads
 from json import dumps as _dumps
@@ -122,10 +122,8 @@ class Poloniex(object):
         # Time Placeholders: (MONTH == 30*DAYS)
         self.MINUTE, self.HOUR, self.DAY, self.WEEK, self.MONTH, self.YEAR
         """
-        # set logger and coach
-        self.logger = logger
         if loglevel:
-            self.logger.setLevel(loglevel)
+            logger.setLevel(loglevel)
         self.coach = coach
         if self.coach is True:
             self.coach = Coach()
@@ -223,13 +221,13 @@ class Poloniex(object):
 
             # send the call
             ret = _get(**payload)
-
+            logger.debug(ret.headers)
             # return data
             return self._handleReturned(ret.text)
 
     @property
     def nonce(self):
-        """ Increments the nonce"""
+        """ Increments the nonce """
         self._nonce += 42
         return self._nonce
 
@@ -710,6 +708,7 @@ class Poloniex(object):
         self._t._running = True
         self._t.start()
         logger.info('Websocket thread started')
+        logger.debug(self._ws.url)
 
     def stopWebsocket(self):
         """ Stop/join the websocket thread """
