@@ -2,8 +2,7 @@
 from marconi.market import Market
 from marconi.brain import Brain
 from marconi.poloniex import Poloniex
-from marconi.tools import (logging, json, getHomeDir,
-                           OR, GR, isString, getLogger)
+from marconi.tools import json, getHomeDir, getLogger
 
 logger = getLogger(__name__)
 
@@ -66,7 +65,8 @@ if __name__ == "__main__":
             "A 'marconi.json' file needs to be created in %s", dataDir)
 
     configLoc = dataDir + '/marconi.json'
-
+    # train bot with config
     bot = Marconi(configLoc)
     bot.train()
+    # save trained brain
     bot.save(configLoc.split('.')[0] + '.' + configLoc.split('.')[1])
