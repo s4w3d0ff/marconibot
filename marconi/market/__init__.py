@@ -21,45 +21,62 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from ..tools import getMongoColl, logging, time, pd, pymongo
+from ..tools import (getMongoColl, time, pd,
+                     pymongo, RD, GR, sleep, Thread, SATOSHI,
+                     TRADE_MIN, getLogger)
+from ..trading import StopLimit
 from .. import indicators
 
-
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
+rlogger = getLogger(__name__ + 'R', terminator='\r', logf=False)
 
 
 class Market(object):
-    def __init__(self, api, pair, ticker=False):
+    """
+    Market object
+
+    Maintains/Returns database entries for a market, as well as provides
+    convienance methods for common functions done on markets.
+    """
+
+    def __init__(self, api, pair):
+        """
+        api = an instance of 'poloniex.Poloniex'
+        pair = str market currencyPair. example: 'BTC_LTC'
+        """
         self.api = api
         self.api.jsonNums = float
+        self.api.logger = logger
         self.parent, self.child = pair.split('_')
         self.pair = pair
-        self.ticker = ticker
+        self.stops = []
 
     @property
     def tick(self):
-        """ Get a market 'tick' """
-        if self.ticker and self.ticker.status:
-            return self.ticker(self.pair)
-        logger.warning('self.ticker is not running!')
-        return self.api.returnTicker()[self.pair]
+        """
+        Get a market 'tick'
+        """
+        return self.api.marketTick(self.pair)
 
     @property
     def availBalances(self):
-        """ Get available balances """
+        """
+        Get available balances from poloniex
+        """
         bals = self.api.returnCompleteBalances('exchange')
         childBal = float(bals[self.child]['available'])
         parentBal = float(bals[self.parent]['available'])
-        logger.debug('%s [%s] %.8f [%s] %.8f',
+        logger.debug('Balances: %s [%s] %.8f [%s] %.8f',
                      self.pair, self.parent, parentBal, self.child, childBal)
         return parentBal, childBal
 
     @property
     def openOrders(self):
+        """ Get open orders from poloniex """
         return self.api.returnOpenOrders(self.pair)
 
-    def rawChart(self, start=False):
-        """ returns raw chart data from mongodb, updates/fills the
+    def chart(self, start=False, zoom=False, indica={}):
+        """ returns chart data in a dataframe from mongodb, updates/fills the
         data, the date column is the '_id' of each candle entry, and
         the date column has been removed. Use 'start' to restrict the amount
         of data returned.
@@ -67,7 +84,7 @@ class Market(object):
         """
         if not start:
             start = time() - self.api.YEAR * 1
-        dbcolName = self.pair + 'chart'
+        dbcolName = self.pair + '-chart'
         # get db connection
         db = getMongoColl('poloniex', dbcolName)
         # get last candle
@@ -75,16 +92,17 @@ class Market(object):
             last = list(db.find({"_id": {
                 "$gt": time() - self.api.WEEK * 2
             }}).sort('timestamp', pymongo.ASCENDING))[-1]
-        except IndexError:
+        except:
             last = False
-        logger.info('Getting new candles from Poloniex')
         # no entrys found, get all 5min data from poloniex
         if not last:
             logger.warning('%s collection is empty!', dbcolName)
+            logger.info('Getting new %s candles from Poloniex...', self.pair)
             new = self.api.returnChartData(self.pair,
                                            period=60 * 5,
                                            start=time() - self.api.YEAR * 13)
         else:
+            logger.info('Getting new %s candles from Poloniex...', self.pair)
             new = self.api.returnChartData(self.pair,
                                            period=60 * 5,
                                            start=int(last['_id']))
@@ -93,24 +111,19 @@ class Market(object):
         logger.info('Updating %s with %s new entrys!',
                     dbcolName, str(updateSize))
         for i in range(updateSize):
-            date = new[i]['date']
-            del new[i]['date']
-            db.update_one({'_id': date}, {"$set": new[i]}, upsert=True)
-        logger.debug('Getting chart data from db')
-        # return data from db (sorted just in case...)
-        return list(db.find({"_id": {"$gt": start}}).sort(
-            'timestamp', pymongo.ASCENDING))
-
-    def chartDataFrame(self, start=False, zoom=False, indica={}):
-        """ returns pandas DataFrame from raw db data with indicators.
-        zoom = passed as the resample(rule) argument to 'merge' candles into a
-            different timeframe
-        """
+            rlogger.info('%d/%d', i + 1, updateSize)
+            db.update_one({'_id': new[i]['date']}, {
+                          "$set": new[i]}, upsert=True)
+        rlogger.info('\n\r Done')
+        logger.info('Getting %s chart data from db', self.pair)
         # make dataframe
-        df = pd.DataFrame(self.rawChart(start))
-        # set date column
+        df = pd.DataFrame(list(db.find({"_id": {"$gt": start}}
+                                       ).sort('timestamp', pymongo.ASCENDING)))
+        # set date column to datetime
         df['date'] = pd.to_datetime(df["_id"], unit='s')
+        # adjust candle period 'zoom'
         if zoom:
+            logger.debug('zooming %s dataframe...', self.pair)
             df.set_index('date', inplace=True)
             df = df.resample(rule=zoom,
                              closed='left',
@@ -122,11 +135,153 @@ class Market(object):
                                                   'volume': 'sum',
                                                   'weightedAverage': 'mean'})
             df.reset_index(inplace=True)
-
         # add indicators
+        logger.info('Adding indicators to %s dataframe', self.pair)
         availInd = dir(indicators)
         for ind in indica:
             if ind in availInd:
                 df = getattr(indicators, ind)(df, **indica[ind])
         df['percentChange'] = df['close'].pct_change().round(8) * 100
         return df
+
+    def myTradeHistory(self, query=None):
+        """
+        Retrives and saves trade history in "poloniex.'self.pair'-tradeHistory"
+        """
+        dbcolName = self.pair + '-tradeHistory'
+        db = getMongoColl('poloniex', dbcolName)
+        # get last trade
+        old = {'date': time() - self.api.YEAR * 10}
+        try:
+            old = list(db.find().sort('date', pymongo.ASCENDING))[-1]
+        except:
+            logger.warning('No %s trades found in database', self.pair)
+        # get new data from poloniex
+        hist = self.api.returnTradeHistory(self.pair, start=old['date'] - 1)
+
+        if len(hist) > 0:
+            logger.info('%d new %s trade database entries',
+                        len(hist), self.pair)
+
+            for trade in hist:
+                _id = trade['globalTradeID']
+                del trade['globalTradeID']
+                trade['date'] = UTCstr2epoch(trade['date'])
+                trade['amount'] = float(trade['amount'])
+                trade['total'] = float(trade['total'])
+                trade['tradeID'] = int(trade['tradeID'])
+                trade['orderNumber'] = int(trade['orderNumber'])
+                trade['rate'] = float(trade['rate'])
+                trade['fee'] = float(trade['fee'])
+                db.update_one({"_id": _id}, {"$set": trade}, upsert=True)
+
+        return pd.DataFrame(list(db.find(query).sort('date',
+                                                     pymongo.ASCENDING)))
+
+    def myLendingHistory(self, coin=False, start=False):
+        """
+        Retrives and saves lendingHistory in 'poloniex.lendingHistory' database
+        coin = coin to get history for (defaults to self.child)
+        start = starting epoch date to get data from
+        """
+        if not coin:
+            coin = self.child
+        db = getMongoColl('poloniex', 'lendingHistory')
+        # get last entry timestamp
+        old = {'open': time() - self.api.YEAR * 10}
+        try:
+            old = list(db.find({"currency": coin}).sort('open',
+                                                        pymongo.ASCENDING))[-1]
+        except:
+            logger.warning(
+                RD('No %s loan history found in database!'), coin)
+        # get new entries
+        new = self.api.returnLendingHistory(start=old['open'] - 1)
+        nLoans = [loan for loan in new if loan['currency'] == coin]
+        if len(nLoans) > 0:
+            logger.info(GR('%d new lending database entries'), len(new))
+            for loan in nLoans:
+                _id = loan['id']
+                del loan['id']
+                loan['close'] = UTCstr2epoch(loan['close'])
+                loan['open'] = UTCstr2epoch(loan['open'])
+                loan['rate'] = float(loan['rate'])
+                loan['duration'] = float(loan['duration'])
+                loan['interest'] = float(loan['interest'])
+                loan['fee'] = float(loan['fee'])
+                loan['earned'] = float(loan['earned'])
+                db.update_one({'_id': _id}, {'$set': loan}, upsert=True)
+        if not start:
+            start = time() - self.api.DAY
+        return pd.DataFrame(
+            list(db.find({'currency': coin,
+                          '_id': {'$gt': start}
+                          }).sort('open', pymongo.ASCENDING)))
+
+    def cancelOrders(arg=False):
+        """
+        Generator method that cancels all orders for self.pair. Can be
+        limited to just buy or sell orders using the 'arg' param,
+        yields results from 'self.api.cancelOrder'
+        """
+        # get open orders for 'market'
+        orders = self.openOrders
+        for order in orders:
+            # if arg = 'sell' or 'buy' skip the orders not labeled as such
+            if arg in ('sell', 'buy') and order['type'] != arg:
+                continue
+            # show output
+            yield self.api.cancelOrder(order["orderNumber"])
+
+    def addStopOrder(self, amount, stop, limit):
+        """ adds a stop order to 'self.stops' and starts its thread """
+        self.stops.append(StopLimit(self.api, self.pair)(amount, stop, limit))
+
+    def cancelStopOrder(self, indx=False):
+        """ cancels all stop orders within 'self.stops', or just <indx> """
+        if indx:
+            self.stops[indx].cancel()
+        else:
+            for stop in self.stops:
+                stop.cancel()
+
+    def dump(self, amount):
+        """ Dumps childcoin <amount> at highestBid """
+        if amount == 'all':
+            amount = self.api.returnCompleteBalances(
+                'exchange')[self.child]['available']
+        while True:
+            rate = self.api.marketTick(
+                self.pair)['highestBid'] - (SATOSHI * 1000)
+            try:
+                if amount * rate < TRADE_MIN:
+                    return logger.warning('Amount is below min')
+                return self.api.sell(currencyPair=self.pair,
+                                     rate=rate,
+                                     amount=amount,
+                                     orderType='fillOrKill')
+            except Exception as e:
+                # log exceptions and keep trying
+                logger.exception(e)
+                continue
+
+    def pump(self, amount):
+        """ Pumps parentCoin <amount> at lowestAsk """
+        if amount == 'all':
+            amount = api.returnCompleteBalances(
+                'exchange')[self.parent]['available']
+        while True:
+            rate = self.api.marketTick(
+                self.pair)['lowestAsk'] + (SATOSHI * 1000)
+            try:
+                if amount < TRADE_MIN:
+                    return logger.warning('Amount is below min')
+                childAmt = amount / rate
+                return api.sell(currencyPair=self.pair,
+                                rate=rate,
+                                amount=childAmt,
+                                orderType='fillOrKill')
+            except Exception as e:
+                # log exceptions and keep trying
+                logger.exception(e)
+                continue

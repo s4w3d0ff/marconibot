@@ -21,9 +21,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # core ---------------------------------------------------------------------
+import sys
 import logging
 import json
-import pickle
 from functools import wraps
 from math import floor, ceil
 from math import pi as PI
@@ -38,21 +38,6 @@ import pandas as pd
 import numpy as np
 # pip install pymongo
 import pymongo
-
-
-# constants ----------------------------------------------------------------
-
-# tools logger
-logger = logging.getLogger(__name__)
-
-PHI = (1 + 5 ** 0.5) / 2
-
-# smallest coin fraction
-SATOSHI = 0.00000001
-# smallest loan fraction
-LOANTOSHI = 0.000001
-# minimum trade amount (btc and usdt)
-TRADE_MIN = 0.0001
 
 # console colors ---------------------------------------------------------
 WT = '\033[0m'  # white (normal)
@@ -93,7 +78,64 @@ def GY(text):
     return '\033[37m%s%s' % (str(text), WT)
 
 
+# constants ----------------------------------------------------------------
+
+PHI = (1 + 5 ** 0.5) / 2
+
+# smallest coin fraction
+SATOSHI = 0.00000001
+# smallest loan fraction
+LOANTOSHI = 0.000001
+# minimum trade amount (btc and usdt)
+TRADE_MIN = 0.0001
+
+
+def getHomeDir():
+    try:
+        from pathlib import Path
+        return str(Path.home())
+    except:
+        from os.path import expanduser
+        return expanduser("~user")
+
+
+def getLogger(name, logf='marconi',
+              fmat="[%(asctime)s]" + GR("%(name)s.%(levelname)s") +
+              "> %(message)s",
+              terminator='\n',
+              datefmt=OR("%H:%M:%S")):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+
+    # create file handler which logs even debug messages
+    if logf:
+        fh = logging.FileHandler(logf + '.log')
+        fh.setLevel(logging.DEBUG)
+
+    ch = logging.StreamHandler()
+    ch.terminator = terminator
+    ch.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter(fmat, datefmt=datefmt)
+    ch.setFormatter(formatter)
+    if logf:
+        fh.setFormatter(formatter)
+
+    logger.addHandler(ch)
+    if logf:
+        logger.addHandler(fh)
+    return logger
+
+
+# tools logger
+logger = getLogger(__name__)
+
 # convertions, misc ------------------------------------------------------
+
+
+def isString(obj):
+    return isinstance(obj, str if sys.version_info[0] >= 3 else basestring)
+
 
 def shuffleDataFrame(df):
     """ Shuffles the rows of a dataframe """

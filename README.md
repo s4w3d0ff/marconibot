@@ -24,7 +24,7 @@ pymongo
 ```bash
 # make sure package manager is up to date
 pip3 install -U pip wheel setuptools
-# install binarys so we dont have to build from source
+# install binaries so we dont have to build from source
 pip3 install --only-binary=numpy,scipy,pandas,scikit-learn numpy scipy pandas scikit-learn
 # install this repo
 pip3 install git+https://github.com/s4w3d0ff/marconibot.git
@@ -38,54 +38,28 @@ pip3 install git+https://github.com/s4w3d0ff/marconibot.git
 
 ( poloniex )
   |
-  | # Built by marconi.poloniex.Ticker ============================
- (( ticker ))------------+{'_id': str(currencyPair),
-  |                        'id': float(),
-  |                        'last': float(),
-  |                        'lowestAsk': float(),
-  |                        'highestBid': float(),
-  |                        'percentChange': float(),
-  |                        'baseVolume': float(),
-  |                        'quoteVolume': float(),
-  |                        'isFrozen': float(),
-  |                        'high24hr': float(),
-  |                        'low24hr': float()}+,
-  |                      +{ }+,
-  |                      +{ }+,
-  |                      +{ }+
-  |
-  |
-  |
-  | # Built by marconi.trading.Loaner ============================
- (( lendingHistory ))----+{'_id': loan['id'],
-  |                         }+,
-  |                      +{ }+,
-  |                      +{ }+,
-  |                      +{ }+
-  |
-  |
-  |
-  | # Built by marconi.trading.Bookie ============================
- (( 'market'tradeHistory ))
-  |          -----------+{'_id': trade['globalTradeID'],
-  |                         }+
-  |                      +{ }+,
-  |                      +{ }+,
-  |                      +{ }+
-  |
-  |
   |
   | # Built by marconi.market.Market ===================
- (( 'market'chart ))
+ (( 'market'-chart ))
   |          -----------+{'_id': candle['date'],
   |                         }+
   |                      +{ }+,
   |                      +{ }+,
   |                      +{ }+
   |
+ (( 'market'-tradeHistory ))
+  |          -----------+{'_id': trade['globalTradeID'],
+  |                         }+
+  |                      +{ }+,
+  |                      +{ }+,
+  |                      +{ }+
   |
+ (( lendingHistory ))----+{'_id': loan['id'],
+  |                         }+,
+  |                      +{ }+,
+  |                      +{ }+,
+  |                      +{ }+
   |
-
 ```
 Drop 'poloniex' Database:
 ```bash

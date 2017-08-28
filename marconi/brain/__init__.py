@@ -23,29 +23,38 @@
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
 from sklearn import preprocessing
+from sklearn.metrics import accuracy_score
+from sklearn.externals import joblib
 
-from ..tools import logging, pd, np, time, pickle, shuffleDataFrame
+from ..market import Market
+from ..tools import getLogger, pd, np, time, shuffleDataFrame, json, isString
 
 
-logger = logging.getLogger(__name__)
+logger = getLogger(__name__)
 
 
-def customLabels(df, bbLimit=False, rsiLimit=False,
-                 pchLimit=False, cciLimit=False):
+def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False,
+                 cciLimit=False, macdLimit=False, forceLimit=False,
+                 eomLimit=False):
     """
-    Creates labels from a dataframe using bbands percent, rsi, 'future' percent
-        change, and cci
+    Creates labels from a dataframe
     """
+    logger.debug('Adding labels')
 
-    df['future'] = df['percentChange'].shift(-1)
-
-    def _bbrsiLabels(candle, bbLimit, rsiLimit, pchLimit, cciLimit):
+    def _labels(candle, bbLimit, rsiLimit, pchLimit,
+                cciLimit, macdLimit, forceLimit, eomLimit):
         score = 0
         if bbLimit:
-            bbval = candle['bbpercent']
-            if bbval > bbLimit:
+            smabb = candle['smapercent']
+            if smabb > bbLimit:
                 score += -1
-            if bbval < -bbLimit:
+            if smabb < -bbLimit:
+                score += 1
+
+            emabb = candle['emapercent']
+            if emabb > bbLimit:
+                score += -1
+            if emabb < -bbLimit:
                 score += 1
 
         if rsiLimit:
@@ -55,13 +64,6 @@ def customLabels(df, bbLimit=False, rsiLimit=False,
             if rsi < -rsiLimit:
                 score += 1
 
-        if pchLimit:
-            fpch = candle['future']
-            if fpch > pchLimit:
-                score += 1
-            if fpch < -pchLimit:
-                score += -1
-
         if cciLimit:
             ccindex = candle['cci']
             if ccindex > cciLimit:
@@ -69,10 +71,33 @@ def customLabels(df, bbLimit=False, rsiLimit=False,
             if ccindex < -cciLimit:
                 score += 1
 
+        if macdLimit:
+            macdd = candle['macdDivergence']
+            if macdd > macdLimit:
+                score += 1
+            if macdd < -macdLimit:
+                score += -1
+
+        if forceLimit:
+            force = candle['force']
+            if force > forceLimit:
+                score += -1
+            if force < -forceLimit:
+                score += 1
+
+        if eomLimit:
+            eom = candle['eom']
+            if eom > eomLimit:
+                score += -1
+            if eom < -eomLimit:
+                score += 1
+
         return score
 
-    return df.apply(_bbrsiLabels, axis=1, bbLimit=bbLimit,
-                    rsiLimit=rsiLimit, pchLimit=pchLimit, cciLimit=cciLimit)
+    return df.apply(_labels, axis=1, bbLimit=bbLimit,
+                    rsiLimit=rsiLimit, pchLimit=pchLimit,
+                    cciLimit=cciLimit, macdLimit=macdLimit,
+                    forceLimit=forceLimit, eomLimit=eomLimit)
 
 
 def prepDataframe(df):
@@ -96,47 +121,85 @@ class Brain(object):
     Holds sklrean classifiers and makes it simpler to train using a dataframe
     """
 
-    def __init__(self, lobes=False):
+    def __init__(self, api, lobes=False):
         """
         lobes = a dict of classifiers to use in the VotingClassifier
             defaults to RandomForestClassifier and DecisionTreeClassifier
         """
-        self._lobes = lobes
-        if not self._lobes:
-            self._lobes = {'rf': RandomForestClassifier(n_estimators=7,
-                                                        random_state=666),
-                           'dt': DecisionTreeClassifier()
-                           }
-        self.votingLobe = VotingClassifier(
-            estimators=[(lobe, self._lobes[lobe]) for lobe in self._lobes],
+        self.api = api
+        if not lobes:
+            lobes = {'rf': RandomForestClassifier(n_estimators=7,
+                                                  random_state=666),
+                     'dt': DecisionTreeClassifier()
+                     }
+        self.lobe = VotingClassifier(
+            estimators=[(lobe, lobes[lobe]) for lobe in lobes],
             voting='hard',
             n_jobs=-1)
+        self._trained = False
 
-    def train(self, df, labels='label', split=False, preprocess=False):
-        """
-        Trains the self.votingLobe with a dataframe <df>
-        use <labels> to define the column to use for labels
-        """
+    def train(self, markets=False, featureset=False, labelFunc=customLabels,
+              labelArgs={}, shuffle=True, preprocess=False):
+        if not markets or not featureset:
+            return logger.error(
+                'Need both a markets and featureset param to train')
+        if self._trained:
+            logger.warning('Overwriting an already trained brain!')
+            self._trained = False
+        self.markets = markets
+        self.featureset = featureset
+        self.labelFunc = labelFunc
+        if isString(self.labelFunc):
+            exec("self.labelFunc = " + labelFunc)
+        self.labelArgs = labelArgs
+        self.shuffle = shuffle
+        self.preprocess = preprocess
+
+        first = True
+        logger.info('Building training dataset')
+        for market in markets:
+            # append each df with labels
+            df = Market(self.api, market).chart(**markets[market]).dropna()
+            df['label'] = self.labelFunc(df, **self.labelArgs)
+            if first:
+                first = False
+                trainDF = df[self.featureset + ['label']]
+            else:
+                trainDF = pd.concat([trainDF, df[self.featureset + ['label']]])
         # prep df, remove nan
-        df = prepDataframe(df)
-        # split if needed
-        if split:
-            df, tdf = splitTrainTestData(df, split)
+        df = prepDataframe(trainDF)
         # shuffle data for good luck
-        df = shuffleDataFrame(df)
+        if shuffle:
+            df = shuffleDataFrame(df)
         # scale train data and fit lobe
-        x = df.drop(labels, axis=1).values
+        x = df.drop('label', axis=1).values
+        y = df['label'].values
+        del df
         if preprocess:
             x = preprocessing.scale(x)
-        logger.info('%d samples to train', len(x))
-        self.votingLobe.fit(x, df[labels].values)
-        if split:
-            return tdf
+        logger.info('Training with %d samples', len(x))
+        self.lobe.fit(x, y)
+        self._trained = True
 
-    def predict(self, X):
+    def predict(self, df):
         """ Get a prediction from the votingLobe """
-        return self.votingLobe.predict(X)
+        return self.lobe.predict(prepDataframe(df)[self.featureset].values)
 
-    def score(self, X, y):
-        """ Get a prediction score from the votingLobe"""
-        return self.votingLobe.score(X, y)
+    def score(self, df, x='label', y='predict'):
+        """ Get a prediction score from the votingLobe """
+        df = prepDataframe(df)
+        return accuracy_score(df[x].values, df[y].values)
+
+    def save(self, fname="brain"):
+        """ Pickle the brain """
+        if self._trained:
+            joblib.dump(self.lobe, fname + ".pickle")
+            logger.info('Brain %s saved', fname + '.pickle')
+        else:
+            return logging.error('Brain is not trained yet! Nothing to save...')
+
+    def load(self, fname="brain"):
+        """ Loads a brain pickle """
+        self.lobe = joblib.load(fname + ".pickle")
+        logger.info('Loading saved brain %s', fname + '.pickle')
+        self._trained = True
