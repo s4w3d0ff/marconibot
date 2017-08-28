@@ -90,6 +90,15 @@ LOANTOSHI = 0.000001
 TRADE_MIN = 0.0001
 
 
+def getHomeDir():
+    try:
+        from pathlib import Path
+        return str(Path.home())
+    except:
+        from os.path import expanduser
+        return expanduser("~user")
+
+
 def getLogger(name, logf='marconi',
               fmat="[%(asctime)s]" + GR("%(name)s.%(levelname)s") +
               "> %(message)s",
