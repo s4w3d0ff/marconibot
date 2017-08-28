@@ -57,7 +57,7 @@
             "smarange",
             "macd",
             "macdSignal",
-            "macdDivergence",
+            "macdDivergence"
         ],
         "labelArgs": {
             "rsiLimit": 30,
@@ -65,11 +65,10 @@
             "macdLimit": 0.0
         }
     },
-    "tradeConfig": {
-        "BTC_ETH": [
-            "BTC_LTC",
-            "BTC_DASH"
-        ],
+    "tradeConfig": [
+        "BTC_LTC",
+        "BTC_DASH"
+    ],
     "secret": "",
     "key": ""
 }
