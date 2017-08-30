@@ -137,6 +137,8 @@ class Brain(object):
             voting='hard',
             n_jobs=-1)
         self._trained = False
+        self.split = splitTrainTestData
+        self.prep = prepDataframe
 
     def train(self, markets=False, featureset=False, labelFunc=customLabels,
               labelArgs={}, shuffle=True, preprocess=False):
@@ -167,7 +169,7 @@ class Brain(object):
             else:
                 trainDF = pd.concat([trainDF, df[self.featureset + ['label']]])
         # prep df, remove nan
-        df = prepDataframe(trainDF)
+        df = self.prep(trainDF)
         # shuffle data for good luck
         if shuffle:
             df = shuffleDataFrame(df)
@@ -183,12 +185,13 @@ class Brain(object):
 
     def predict(self, df):
         """ Get a prediction from the votingLobe """
-        return self.lobe.predict(prepDataframe(df)[self.featureset].values)
+        return self.lobe.predict(self.prep(df)[self.featureset].values)
 
-    def score(self, df, x='label', y='predict'):
+    def score(self, df, test='predict'):
         """ Get a prediction score from the votingLobe """
-        df = prepDataframe(df)
-        return accuracy_score(df[x].values, df[y].values)
+        df = self.prep(df)
+        df['label'] = self.labelFunc(df, **self.labelArgs)
+        return accuracy_score(df[test].values, df['label'].values)
 
     def save(self, fname="brain"):
         """ Pickle the brain """
@@ -198,8 +201,27 @@ class Brain(object):
         else:
             return logging.error('Brain is not trained yet! Nothing to save...')
 
-    def load(self, fname="brain"):
+    def load(self, fname="brain", config=False):
         """ Loads a brain pickle """
-        self.lobe = joblib.load(fname + ".pickle")
         logger.info('Loading saved brain %s', fname + '.pickle')
+        self.lobe = joblib.load(fname + ".pickle")
+        if config:
+            self.featureset = config['featureset']
+            self.markets = config['markets']
+            self.labelFunc = config['labelFunc']
+            if isString(self.labelFunc):
+                exec("self.labelFunc = " + config['labelFunc'])
+            self.labelArgs = config['labelArgs']
+            self.shuffle = config['shuffle']
+            self.preprocess = config['preprocess']
         self._trained = True
+
+
+class SmartMarket(Market):
+    """ A child class of 'Market' with an instance of 'Brain' """
+
+    def __init__(self, brain=False, *args, **kwargs):
+        self.brain = brain
+        super(SmartMarket, self).__init__(*args, **kwargs)
+        if not self.brain:
+            self.brain = Brain(self.api)
