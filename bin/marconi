@@ -73,6 +73,7 @@ class cMarket(SRMarket):
             else:
                 logger.info("%s\n%s", self.pair,
                             df[['close', 'predict']].tail(10))
+            logger.info('%s\n%s', self.pair, df['predict'].count())
             del df
             # wait interval (with one eye open)
             for i in range(int((interval * 60) // 2)):

@@ -24,6 +24,7 @@ from __future__ import print_function
 from ..tools import (getMongoColl, time, pd,
                      pymongo, RD, GR, sleep, Thread, SATOSHI,
                      TRADE_MIN, getLogger, UTCstr2epoch)
+from ..poloniex import PoloniexError
 from ..trading import StopLimit
 from .. import indicators
 
@@ -252,8 +253,7 @@ class Market(object):
             amount = self.api.returnCompleteBalances(
                 'exchange')[self.child]['available']
         while True:
-            rate = self.api.marketTick(
-                self.pair)['highestBid'] - (SATOSHI * 1000)
+            rate = self.tick['highestBid'] - (SATOSHI * 1000)
             try:
                 if amount * rate < TRADE_MIN:
                     return logger.warning('Amount is below min')
@@ -261,7 +261,7 @@ class Market(object):
                                      rate=rate,
                                      amount=amount,
                                      orderType='fillOrKill')
-            except Exception as e:
+            except PoloniexError as e:
                 # log exceptions and keep trying
                 logger.exception(e)
                 continue
@@ -272,8 +272,7 @@ class Market(object):
             amount = api.returnCompleteBalances(
                 'exchange')[self.parent]['available']
         while True:
-            rate = self.api.marketTick(
-                self.pair)['lowestAsk'] + (SATOSHI * 1000)
+            rate = self.tick['lowestAsk'] + (SATOSHI * 1000)
             try:
                 if amount < TRADE_MIN:
                     return logger.warning('Amount is below min')
@@ -288,15 +287,46 @@ class Market(object):
                 continue
 
     def getOrder(self, orderNum):
+        # is the order open?
         for order in self.openOrders:
             if int(order['orderNumber']) == int(orderNum):
                 return order
+        # else see if it made trades
         return self.myTradeHistory(query={'orderNumber': int(orderNum)})
 
-    def moveToFront(self, order):
-        if not 'type' in order:
-            order = self.getOrder(order['orderNumber'])
-        logger.debug(order)
+    def moveToFront(self, orderNumber, offset=SATOSHI):
+        order = self.getOrder(orderNumber)
+        if order isinstance(order, pd.DataFrame):
+            try:
+                logger.info('Order %d is no longer open...',
+                            int(order.iloc[0]['orderNumber']))
+                return order
+            except IndexError:
+                logger.warning('Not a known orderNumber for this market: %d',
+                               int(orderNumber))
+                return None
+        # keep trying until we know what is going on...
+        while True:
+            try:
+                if order['type'] == 'sell':
+                    rate = float(self.tick['lowestAsk'])
+                    # our order is already the front
+                    if rate == order['rate']:
+                        return order
+                    # update rate
+                    rate += -offset
+                if order['type'] == 'buy':
+                    rate = float(self.tick['highestBid'])
+                    # our order is already the front
+                    if rate == order['rate']:
+                        return order
+                    # update rate
+                    rate += offset
+                return self.api.move(orderNumber, rate)
+            # couldn't move the order for some reason... try again
+            except PoloniexError as e:
+                logger.exception(e)
+                continue
 
 
 class RunningMarket(Market):
