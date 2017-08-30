@@ -22,7 +22,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 from setuptools import setup
-from marconi import __version__
 setup(name='marconi',
       version='0.1.2',
       description='Poloniex API trader for Python 3',
