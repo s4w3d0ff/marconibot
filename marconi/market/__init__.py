@@ -23,7 +23,7 @@
 from __future__ import print_function
 from ..tools import (getMongoColl, time, pd,
                      pymongo, RD, GR, sleep, Thread, SATOSHI,
-                     TRADE_MIN, getLogger)
+                     TRADE_MIN, getLogger, UTCstr2epoch)
 from ..trading import StopLimit
 from .. import indicators
 
