@@ -65,10 +65,34 @@
             "macdLimit": 0.0
         }
     },
-    "tradeConfig": [
-        "BTC_LTC",
-        "BTC_DASH"
-    ],
+    "tradeConfig": {
+        "BTC_ETH": {
+            "indica": {
+                "macd": {
+                    "slowcol": "sma",
+                    "fastcol": "ema",
+                    "window": 12
+                },
+                "rsi": {
+                    "window": 17
+                },
+                "ema": {
+                    "colname": "ema",
+                    "window": 30
+                },
+                "sma": {
+                    "colname": "sma",
+                    "window": 50
+                }
+            },
+            "tradeMin": 0.0001,
+            "backtest": {
+                "parent": 6,
+                "child": 30
+            },
+            "interval": 7
+        }
+    },
     "secret": "",
     "key": ""
 }

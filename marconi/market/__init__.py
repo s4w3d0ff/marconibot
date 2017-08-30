@@ -287,6 +287,17 @@ class Market(object):
                 logger.exception(e)
                 continue
 
+    def getOrder(self, orderNum):
+        for order in self.openOrders:
+            if int(order['orderNumber']) == int(orderNum):
+                return order
+        return self.myTradeHistory(query={'orderNumber': int(orderNum)})
+
+    def moveToFront(self, order):
+        if not 'type' in order:
+            order = self.getOrder(order['orderNumber'])
+        logger.debug(order)
+
 
 class RunningMarket(Market):
     """
