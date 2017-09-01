@@ -99,33 +99,7 @@ def getHomeDir():
         return expanduser("~user")
 
 
-def getLogger(name, logf='marconi',
-              fmat="[%(asctime)s]" + GR("%(name)s.%(levelname)s") +
-              "> %(message)s",
-              terminator='\n',
-              datefmt=OR("%H:%M:%S")):
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-
-    # create file handler which logs even debug messages
-    if logf:
-        fh = logging.FileHandler(logf + '.log')
-        fh.setLevel(logging.DEBUG)
-
-    ch = logging.StreamHandler()
-    ch.terminator = terminator
-    ch.setLevel(logging.DEBUG)
-
-    formatter = logging.Formatter(fmat, datefmt=datefmt)
-    ch.setFormatter(formatter)
-    if logf:
-        fh.setFormatter(formatter)
-
-    logger.addHandler(ch)
-    if logf:
-        logger.addHandler(fh)
-    return logger
-
+getLogger = logging.getLogger
 
 # tools logger
 logger = getLogger(__name__)

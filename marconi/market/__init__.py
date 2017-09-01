@@ -20,15 +20,15 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+from __future__ import print_function
 from ..tools import (getMongoColl, time, pd,
                      pymongo, RD, GR, sleep, Thread, SATOSHI,
-                     TRADE_MIN, getLogger)
+                     TRADE_MIN, getLogger, UTCstr2epoch)
+from ..poloniex import PoloniexError
 from ..trading import StopLimit
 from .. import indicators
 
 logger = getLogger(__name__)
-rlogger = getLogger(__name__ + 'R', terminator='\r', logf=False)
 
 
 class Market(object):
@@ -46,7 +46,6 @@ class Market(object):
         """
         self.api = api
         self.api.jsonNums = float
-        self.api.logger = logger
         self.parent, self.child = pair.split('_')
         self.pair = pair
         self.stops = []
@@ -75,7 +74,7 @@ class Market(object):
         """ Get open orders from poloniex """
         return self.api.returnOpenOrders(self.pair)
 
-    def chart(self, start=False, zoom=False, indica={}):
+    def chart(self, start=False, zoom=False, indica={}, v=False):
         """ returns chart data in a dataframe from mongodb, updates/fills the
         data, the date column is the '_id' of each candle entry, and
         the date column has been removed. Use 'start' to restrict the amount
@@ -108,13 +107,16 @@ class Market(object):
                                            start=int(last['_id']))
         # add new candles
         updateSize = len(new)
-        logger.info('Updating %s with %s new entrys!',
+        logger.info('Updating %s with %s new entrys!...',
                     dbcolName, str(updateSize))
         for i in range(updateSize):
-            rlogger.info('%d/%d', i + 1, updateSize)
+            if v and not i % 2:
+                print('%d/%d' % (i + 1, updateSize), end='\r')
             db.update_one({'_id': new[i]['date']}, {
                           "$set": new[i]}, upsert=True)
-        rlogger.info('\n\r Done')
+        if v:
+            print('\n', end='\r')
+
         logger.info('Getting %s chart data from db', self.pair)
         # make dataframe
         df = pd.DataFrame(list(db.find({"_id": {"$gt": start}}
@@ -123,7 +125,7 @@ class Market(object):
         df['date'] = pd.to_datetime(df["_id"], unit='s')
         # adjust candle period 'zoom'
         if zoom:
-            logger.debug('zooming %s dataframe...', self.pair)
+            logger.debug('Zooming %s dataframe...', self.pair)
             df.set_index('date', inplace=True)
             df = df.resample(rule=zoom,
                              closed='left',
@@ -251,8 +253,7 @@ class Market(object):
             amount = self.api.returnCompleteBalances(
                 'exchange')[self.child]['available']
         while True:
-            rate = self.api.marketTick(
-                self.pair)['highestBid'] - (SATOSHI * 1000)
+            rate = self.tick['highestBid'] - (SATOSHI * 1000)
             try:
                 if amount * rate < TRADE_MIN:
                     return logger.warning('Amount is below min')
@@ -260,7 +261,7 @@ class Market(object):
                                      rate=rate,
                                      amount=amount,
                                      orderType='fillOrKill')
-            except Exception as e:
+            except PoloniexError as e:
                 # log exceptions and keep trying
                 logger.exception(e)
                 continue
@@ -271,8 +272,7 @@ class Market(object):
             amount = api.returnCompleteBalances(
                 'exchange')[self.parent]['available']
         while True:
-            rate = self.api.marketTick(
-                self.pair)['lowestAsk'] + (SATOSHI * 1000)
+            rate = self.tick['lowestAsk'] + (SATOSHI * 1000)
             try:
                 if amount < TRADE_MIN:
                     return logger.warning('Amount is below min')
@@ -285,3 +285,76 @@ class Market(object):
                 # log exceptions and keep trying
                 logger.exception(e)
                 continue
+
+    def getOrder(self, orderNum):
+        # is the order open?
+        for order in self.openOrders:
+            if int(order['orderNumber']) == int(orderNum):
+                return order
+        # else see if it made trades
+        return self.myTradeHistory(query={'orderNumber': int(orderNum)})
+
+    def moveToFront(self, orderNumber, offset=SATOSHI):
+        order = self.getOrder(orderNumber)
+        # if a dataframe is returned, the order is no longer open
+        if isinstance(order, pd.DataFrame):
+            try:
+                logger.info('Order %d is no longer open...',
+                            int(order.iloc[0]['orderNumber']))
+                return order
+            except IndexError:
+                logger.warning('Not a known orderNumber for this market: %d',
+                               int(orderNumber))
+                return None
+        # order is still open, move it
+        if order['type'] == 'sell':
+            rate = float(self.tick['lowestAsk'])
+            # our order is already the front
+            if rate == order['rate']:
+                return order
+            # update rate
+            rate += -offset
+        if order['type'] == 'buy':
+            rate = float(self.tick['highestBid'])
+            # our order is already the front
+            if rate == order['rate']:
+                return order
+            # update rate
+            rate += offset
+        return self.api.move(orderNumber, rate)
+
+
+class RunningMarket(Market):
+    """
+    Subclass of Market that includes a thread and a start and stop method.
+    Users should overwrite the 'self.run' method to use.
+    """
+
+    def run(self):
+        while self._running:
+            sleep(5)
+
+    def start(self, *args, **kwargs):
+        """
+        starts the 'self.run' method in a thread ('self._t'). Users need to
+        overwrite 'self.run' with a loop of some kind. Use the 'self._running'
+        flag to utilize the 'self.stop' method to break free from the loop.
+        'self._running' is set to 'True' when 'self.start' is called.
+        """
+        self._t = Thread(target=self.run,
+                         name=self.pair,
+                         args=tuple(args),
+                         kwargs=kwargs)
+        self._t.daemon = True
+        self._running = True
+        self._t.start()
+        logger.info('%s thread started', self.pair)
+
+    def stop(self):
+        """
+        sets 'self._running' flag to 'False' and joins 'self._t' (the running
+        thread)
+        """
+        self._running = False
+        self._t.join()
+        logger.info('%s thread joined', self.pair)

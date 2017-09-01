@@ -21,68 +21,75 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi.market import Market
-from marconi.brain import Brain
-from marconi.poloniex import Poloniex
-from marconi.tools import json, getHomeDir, getLogger, isString
+from marconi import Marconi, SRMarket
+from marconi.trading import backtest as backtester
+from marconi.tools import (getHomeDir, getLogger,
+                           time, sleep, OR, GR)
 
 logger = getLogger(__name__)
 
 
-class Marconi(object):
-    def __init__(self, config):
+class cMarket(SRMarket):
+    """ My custom smart running market """
 
-        self.config = config
-        if isString(self.config):
-            self.config = json.load(fp=open(self.config))
-
-        self.trainConfig = self.config['trainConfig']
-        self.tradeConfig = self.config['tradeConfig']
-
-        self.api = Poloniex(self.config['key'], self.config['secret'],
-                            jsonNums=float)
-
-        # create a Market instance for each market in tradeConfig
-        self.markets = {}
-        for market in self.tradeConfig:
-            self.markets[market] = Market(self.api, market)
-
-        self.brain = Brain(self.api)
-        # should we load a brain?
-        if 'brain' in self.config:
-            try:
-                self.brain.load(self.config['brain'])
-            except Exception as e:
-                logger.warning(
-                    "Brain could not be loaded! %s", self.config['brain'])
-
-    @property
-    def brainStatus(self):
-        """ Returns True if the brain is trained """
-        return self.brain._trained
-
-    def train(self, config=False):
-        """ trains self.brain using a dict of kwargs  """
-        logger.info('Training Brain')
-        if config:
-            self.trainConfig = config
-        self.brain.train(**self.trainConfig)
-
-    def save(self, name='marconi'):
-        """ Saves current configuration in a json file '<name>.json' """
-        json.dump(obj={"key": self.api.key,
-                       "secret": self.api.secret,
-                       "tradeConfig": self.tradeConfig,
-                       "trainConfig": self.trainConfig,
-                       "brain": name},
-                  fp=open(name + ".json", 'w'),
-                  indent=4)
-        logger.info('%s.json saved', name)
-        self.brain.save(name)
+    def run(self, interval, indica={}, tradeMin=False,
+            backtest=False, moveMin=0):
+        """
+        This method will be ran in a thread by the RunningMarket and
+        started by 'Marconi.trade(start=True)'
+        """
+        while self._running:
+            cstart = time() - self.api.WEEK
+            if backtest and 'start' in backtest:
+                cstart = backtest['start']
+            # get testing dataframe
+            df = self.chart(start=cstart,
+                            zoom=str(interval) + 'T',
+                            indica=indica)
+            df = self.brain.prep(df).set_index('date')
+            # get predictions
+            df['predict'] = self.brain.predict(df)
+            logger.info('%s brain score: %s', self.pair, self.brain.score(df))
+            if backtest:
+                df = backtester(df,
+                                parentBal=backtest['parent'],
+                                childBal=backtest['child'],
+                                tradeSize=tradeMin,
+                                moveMin=moveMin)
+                # backtest only once
+                backtest = False
+                logger.info("%s\n%s\n%s",
+                            self.pair,
+                            df[['close',
+                                'predict',
+                                'btStart',
+                                'btTotal',
+                                'btProfit']].head(5),
+                            df[['close',
+                                'predict',
+                                'btStart',
+                                'btTotal',
+                                'btProfit']].tail(5))
+            else:
+                logger.info("%s\n%s", self.pair,
+                            df[['close', 'predict']].tail(10))
+            logger.info('%s\n%s', self.pair, df['predict'].count())
+            del df
+            # wait interval (with one eye open)
+            for i in range(int((interval * 60) // 2)):
+                if not self._running:
+                    break
+                sleep(2)
 
 
 if __name__ == "__main__":
     import os
+    import logging
+    logging.basicConfig(
+        level=logging.DEBUG,
+        datefmt=OR("%H:%M:%S"),
+        format="[%(asctime)s]" + GR("%(name)s.%(levelname)s") +
+        "> %(message)s")
     dataDir = getHomeDir() + '/.marconi'
     # create data dir if it does not exist
     if not os.path.isdir(dataDir):
@@ -96,3 +103,11 @@ if __name__ == "__main__":
     bot.train()
     # save trained brain
     bot.save(configLoc.split('.')[0] + '.' + configLoc.split('.')[1])
+    # pass our custom market class to Marconi, and start the trade threads
+    bot.trade(marketClass=cMarket, start=True)
+    while True:
+        try:
+            sleep(3)
+        except:
+            bot.stopMarkets()
+            break
