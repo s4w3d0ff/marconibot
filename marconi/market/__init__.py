@@ -296,7 +296,8 @@ class Market(object):
 
     def moveToFront(self, orderNumber, offset=SATOSHI):
         order = self.getOrder(orderNumber)
-        if order isinstance(order, pd.DataFrame):
+        # if a dataframe is returned, the order is no longer open
+        if isinstance(order, pd.DataFrame):
             try:
                 logger.info('Order %d is no longer open...',
                             int(order.iloc[0]['orderNumber']))
@@ -305,28 +306,22 @@ class Market(object):
                 logger.warning('Not a known orderNumber for this market: %d',
                                int(orderNumber))
                 return None
-        # keep trying until we know what is going on...
-        while True:
-            try:
-                if order['type'] == 'sell':
-                    rate = float(self.tick['lowestAsk'])
-                    # our order is already the front
-                    if rate == order['rate']:
-                        return order
-                    # update rate
-                    rate += -offset
-                if order['type'] == 'buy':
-                    rate = float(self.tick['highestBid'])
-                    # our order is already the front
-                    if rate == order['rate']:
-                        return order
-                    # update rate
-                    rate += offset
-                return self.api.move(orderNumber, rate)
-            # couldn't move the order for some reason... try again
-            except PoloniexError as e:
-                logger.exception(e)
-                continue
+        # order is still open, move it
+        if order['type'] == 'sell':
+            rate = float(self.tick['lowestAsk'])
+            # our order is already the front
+            if rate == order['rate']:
+                return order
+            # update rate
+            rate += -offset
+        if order['type'] == 'buy':
+            rate = float(self.tick['highestBid'])
+            # our order is already the front
+            if rate == order['rate']:
+                return order
+            # update rate
+            rate += offset
+        return self.api.move(orderNumber, rate)
 
 
 class RunningMarket(Market):
