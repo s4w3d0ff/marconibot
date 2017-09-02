@@ -180,12 +180,14 @@ class Market(object):
         return pd.DataFrame(list(db.find(query).sort('date',
                                                      pymongo.ASCENDING)))
 
-    def myLendingHistory(self, coin=False, start=False):
+    def myLendingHistory(self, coin=False, query=False):
         """
         Retrives and saves lendingHistory in 'poloniex.lendingHistory' database
         coin = coin to get history for (defaults to self.child)
-        start = starting epoch date to get data from
+        query = pymongo query for .find() (defaults to last 24 hours)
         """
+        if not query:
+            query = {'currency': coin, '_id': {'$gt': self.api.DAY}}
         if not coin:
             coin = self.child
         db = getMongoColl('poloniex', 'lendingHistory')
@@ -195,8 +197,7 @@ class Market(object):
             old = list(db.find({"currency": coin}).sort('open',
                                                         pymongo.ASCENDING))[-1]
         except:
-            logger.warning(
-                RD('No %s loan history found in database!'), coin)
+            logger.warning(RD('No %s loan history found in database!'), coin)
         # get new entries
         new = self.api.returnLendingHistory(start=old['open'] - 1)
         nLoans = [loan for loan in new if loan['currency'] == coin]
@@ -215,10 +216,8 @@ class Market(object):
                 db.update_one({'_id': _id}, {'$set': loan}, upsert=True)
         if not start:
             start = time() - self.api.DAY
-        return pd.DataFrame(
-            list(db.find({'currency': coin,
-                          '_id': {'$gt': start}
-                          }).sort('open', pymongo.ASCENDING)))
+        return pd.DataFrame(list(db.find(query).sort('open',
+                                                     pymongo.ASCENDING)))
 
     def cancelOrders(arg=False):
         """

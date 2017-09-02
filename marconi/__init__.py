@@ -59,7 +59,7 @@ class Marconi(object):
                 logger.warning(
                     "Brain could not be loaded! %s", self.config['brain'])
 
-    def trade(self, config=False, marketClass=Market, start=False):
+    def trade(self, config=False, marketClass=SRMarket, start=False):
         if config:
             self.tradeConfig = config
         # create a Market instance for each market in tradeConfig
