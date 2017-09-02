@@ -48,7 +48,7 @@ class Market(object):
         self.api.jsonNums = float
         self.parent, self.child = pair.split('_')
         self.pair = pair
-        self.stops = []
+        self.stopOrders = []
 
     @property
     def tick(self):
@@ -187,7 +187,7 @@ class Market(object):
         query = pymongo query for .find() (defaults to last 24 hours)
         """
         if not query:
-            query = {'currency': coin, '_id': {'$gt': self.api.DAY}}
+            query = {'currency': coin, '_id': {'$gt': time() - self.api.DAY}}
         if not coin:
             coin = self.child
         db = getMongoColl('poloniex', 'lendingHistory')
@@ -214,8 +214,6 @@ class Market(object):
                 loan['fee'] = float(loan['fee'])
                 loan['earned'] = float(loan['earned'])
                 db.update_one({'_id': _id}, {'$set': loan}, upsert=True)
-        if not start:
-            start = time() - self.api.DAY
         return pd.DataFrame(list(db.find(query).sort('open',
                                                      pymongo.ASCENDING)))
 
