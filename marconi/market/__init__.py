@@ -25,7 +25,7 @@ from __future__ import print_function
 from ..tools import (getMongoColl, time, pd,
                      pymongo, RD, GR, sleep, Thread, SATOSHI,
                      TRADE_MIN, getLogger, UTCstr2epoch)
-from ..poloniex import PoloniexError
+from ..poloniex import PoloniexError, Poloniex
 from ..trading import StopLimit
 from .. import indicators
 
@@ -40,15 +40,16 @@ class Market(object):
     convienance methods for common functions done on markets.
     """
 
-    def __init__(self, api, pair):
+    def __init__(self, pair, api=False):
         """
-        api = an instance of 'poloniex.Poloniex'
         pair = str market currencyPair. example: 'BTC_LTC'
+        api = an instance of 'poloniex.Poloniex'
         """
         self.api = api
-        self.api.jsonNums = float
-        self.parent, self.child = pair.split('_')
+        if not self.api:
+            self.api = Poloniex(jsonNums=float)
         self.pair = pair
+        self.parent, self.child = self.pair.split('_')
         self.stopOrders = []
 
     @property
