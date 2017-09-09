@@ -76,7 +76,7 @@ class Market(object):
         """ Get open orders from poloniex """
         return self.api.returnOpenOrders(self.pair)
 
-    def chart(self, start=False, zoom=False, indica={}, v=False):
+    def chart(self, start=False, zoom=False, indica=False, v=False):
         """ returns chart data in a dataframe from mongodb, updates/fills the
         data, the date column is the '_id' of each candle entry, and
         the date column has been removed. Use 'start' to restrict the amount
@@ -139,12 +139,26 @@ class Market(object):
                                                   'volume': 'sum',
                                                   'weightedAverage': 'mean'})
             df.reset_index(inplace=True)
+        if indica:
+            df = self.addIndicators(df, indica)
+        return df
+
+    def addIndicators(self, df, indica={}):
         # add indicators
         logger.info('Adding indicators to %s dataframe', self.pair)
+        # save macd for last if it is defined
+        macdC = False
+        if 'macd' in indica:
+            macdC = indica.pop('macd')
+        # fill df with indicators
         availInd = dir(indicators)
         for ind in indica:
             if ind in availInd:
                 df = getattr(indicators, ind)(df, **indica[ind])
+        # do macd last if it is defined
+        if macdC:
+            df = getattr(indicators, 'macd')(df, **macdC)
+            indica['macd'] = macdC
         df['percentChange'] = df['close'].pct_change().round(8) * 100
         return df
 
@@ -329,6 +343,16 @@ class RunningMarket(Market):
     Users should overwrite the 'self.run' method to use.
     """
 
+    def __init__(self, *args, **kwargs):
+        super(RunningMarket, self).__init__(*args, **kwargs)
+        self.startTime = None
+
+    @property
+    def tradeHistory(self):
+        if not self.startTime:
+            return logger.error("%s doesn't seem to be running", self.pair)
+        return self.myTradeHistory(query={"date": {"$gt": self.startTime}})
+
     def run(self):
         while self._running:
             sleep(5)
@@ -347,6 +371,7 @@ class RunningMarket(Market):
         self._t.daemon = True
         self._running = True
         self._t.start()
+        self.startTime = time()
         logger.info('%s thread started', self.pair)
 
     def stop(self):

@@ -633,6 +633,8 @@ class Poloniex(object):
         return self.__call__(
             'toggleAutoRenew', {'orderNumber': str(orderNumber)})
 
+
+class wsPoloniex(Poloniex):
     # websocket stuff --------------------------------------------------
     def _on_message(self, ws, message):
         message = _loads(message)
