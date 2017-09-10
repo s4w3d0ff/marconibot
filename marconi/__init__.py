@@ -52,6 +52,24 @@ class SRMarket(SmartMarket, RunningMarket):
         """ Returns True if the brain is trained """
         return self.brain._trained
 
+    def addLabels(self, df, *args, **kwargs):
+        logger.info('Adding %s labels', self.pair)
+        if 'pchLimit' in kwargs:
+            df['future'] = df['percentChange'].shift(-1)
+            df = self.brain.prep(df)
+
+        def _labels(candle, pchLimit=False, *args, **kwargs):
+            score = 0
+            if pchLimit:
+                pch = candle['future']
+                if pch > pchLimit:
+                    score += 1
+                if pch < -pchLimit:
+                    score += -1
+            return int(score)
+
+        return df.apply(_labels, axis=1, *args, **kwargs)
+
     def getPredictions(self, df, backtest=False):
         df = self.brain.prep(df).set_index('date')
         df['predict'] = self.brain.predict(df[self.trainConfig['featureset']])

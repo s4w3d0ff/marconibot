@@ -1,0 +1,51 @@
+{
+    "secret": "",
+    "trainConfig": {
+        "labelArgs": {
+            "pchLimit": 0.01
+        },
+        "featureset": [
+            "emarange",
+            "emapercent",
+            "smarange",
+            "smapercent",
+            "cci",
+            "macdDivergence",
+            "force"
+        ],
+        "weightRange": 6,
+        "preprocess": false,
+        "shuffle": true,
+        "weightStep": 2
+    },
+    "pair": "BTC_ETH",
+    "key": "",
+    "tradeConfig": {
+        "indica": {
+            "sma": {
+                "window": 21
+            },
+            "macd": {
+                "window": 13
+            },
+            "ema": {
+                "window": 15
+            },
+            "cci": {
+                "window": 20
+            },
+            "force": {
+                "window": 36
+            }
+        },
+        "interval": 7,
+        "moveMin": 0,
+        "tradeMin": 0.001,
+        "backtest": {
+            "moveMin": 0,
+            "tradeMin": 0.0001,
+            "parent": 5,
+            "child": 200
+        }
+    }
+}

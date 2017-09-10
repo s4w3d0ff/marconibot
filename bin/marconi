@@ -21,87 +21,24 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi import SRMarket, os, json
-from marconi.poloniex import Coach
-from marconi.trading import backtest as backtester
-from marconi.tools import (getHomeDir, getLogger,
-                           time, sleep, OR, GR)
+from marconi import Marconi
+from marconi.tools import getLogger, OR, GR
 
 logger = getLogger(__name__)
 
+import logging
+from sys import argv
+logging.basicConfig(
+    level=logging.INFO,
+    datefmt=OR("%H:%M:%S"),
+    format="[%(asctime)s]" + GR("%(name)s.%(levelname)s") +
+    "> %(message)s")
+logging.getLogger('requests').setLevel(logging.WARNING)
 
-class Donnie(object):
-    def __init__(self, configDir=".marconi"):
-        self.configDir = os.path.join(getHomeDir(), '%s' % configDir)
-        if not os.path.isdir(self.configDir):
-            os.makedirs(self.configDir)
-            raise RuntimeError(
-                "'MARKET_PAIR.json' files need to be created in %s" % self.configDir)
-        self.coach = Coach()
-        self._running = False
-        self.markets = {}
-        # search for .json files
-        for f in os.listdir(self.configDir):
-            if '.json' in f:
-                marketConfig = json.load(
-                    fp=open(os.path.join(self.configDir, f)))
-                self.markets[marketConfig['pair']] = SRMarket(coach=self.coach,
-                                                              **marketConfig)
+if len(argv) > 1:
+    datadir = argv[1]
+else:
+    datadir = '.marconi'
 
-    def train(self):
-        logger.info('Training all markets')
-        for m in self.markets:
-            self.markets[m].train()
-
-    def save(self):
-        logger.info('Saving all markets')
-        for m in self.markets:
-            self.markets[m].save(location=os.path.join(self.configDir,
-                                                       m))
-
-    def load(self):
-        logger.info('Loading all markets')
-        for m in self.markets:
-            self.markets[m].load(location=os.path.join(self.configDir,
-                                                       m))
-
-    def run(self, train=False):
-        self._running = True
-        for m in self.markets:
-            if train:
-                self.markets[m].train()
-            self.markets[m].start()
-
-    def stop(self):
-        for m in self.markets:
-            self.markets[m].stop()
-
-    def start(self, train=False):
-        self.run(train)
-        while self._running:
-            try:
-                sleep(2)
-            except:
-                self._running = False
-                break
-        self.stop()
-        self.save()
-
-
-if __name__ == "__main__":
-    import logging
-    from sys import argv
-    logging.basicConfig(
-        level=logging.INFO,
-        datefmt=OR("%H:%M:%S"),
-        format="[%(asctime)s]" + GR("%(name)s.%(levelname)s") +
-        "> %(message)s")
-    logging.getLogger('requests').setLevel(logging.WARNING)
-
-    if len(argv) > 1:
-        datadir = argv[1]
-    else:
-        datadir = '.marconi'
-
-    bot = Donnie(datadir)
-    bot.start(train=True)
+bot = Marconi(datadir)
+bot.start(train=True)
