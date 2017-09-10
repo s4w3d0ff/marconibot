@@ -66,7 +66,7 @@ Drop 'poloniex' Database:
 python3 -c "import pymongo; pymongo.MongoClient().drop_database('poloniex')"
 ```
 ### Running the example bot:
-There is an example config located in https://github.com/s4w3d0ff/marconibot/examples. If you run the `bin/marconi` script it will create a data directory in your home folder named '.marconi' and throw an error ``"A 'marconi.json' file needs to be created in..."``. Copy the json file in the examples directory to the created '.marconi' directory
+There is an example config located in https://github.com/s4w3d0ff/marconibot/examples. If you run the `bin/marconi` script it will create a data directory in your home folder named '.marconi' and throw an error ``"'MARKET_PAIR.json' files need to be created in..."``. Copy the json file in the examples directory to the created '.marconi' directory
 and run the bin/marconi script again. It should look similar this:
 ```
 s4w3d0ff@8core~> marconi
@@ -84,57 +84,42 @@ RuntimeError: ("A 'marconi.json' file needs to be created in %s", '/home/s4w3d0f
 Move json file to .marconi folder, then:
 ```
 s4w3d0ff@8core~> marconi
-[12:43:00]marconi.INFO> Training Brain
-[12:43:00]marconi.brain.INFO> Building training dataset
-[12:43:00]marconi.market.INFO> Getting new BTC_ETH candles from Poloniex...
-[12:43:00]urllib3.connectionpool.DEBUG> Starting new HTTPS connection (1): poloniex.com
-[12:43:01]urllib3.connectionpool.DEBUG> https://poloniex.com:443 "GET /public?command=returnChartData&start=1504121400&currencyPair=BTC_ETH&end=1504122180.4097323&period=300 HTTP/1.1" 200 None
-[12:43:01]marconi.market.INFO> Updating BTC_ETH-chart with 3 new entrys!...
-[12:43:01]marconi.market.INFO> Getting BTC_ETH chart data from db
-[12:43:02]marconi.market.DEBUG> Zooming BTC_ETH dataframe...
-[12:43:02]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
-[12:43:02]marconi.brain.DEBUG> Adding labels
-[12:43:09]marconi.market.INFO> Getting new BTC_XMR candles from Poloniex...
-[12:43:09]urllib3.connectionpool.DEBUG> Starting new HTTPS connection (1): poloniex.com
-[12:43:09]urllib3.connectionpool.DEBUG> https://poloniex.com:443 "GET /public?command=returnChartData&start=1504121400&currencyPair=BTC_XMR&end=1504122189.2205427&period=300 HTTP/1.1" 200 None
-[12:43:09]marconi.market.INFO> Updating BTC_XMR-chart with 3 new entrys!...
-[12:43:09]marconi.market.INFO> Getting BTC_XMR chart data from db
-[12:43:11]marconi.market.DEBUG> Zooming BTC_XMR dataframe...
-[12:43:11]marconi.market.INFO> Adding indicators to BTC_XMR dataframe
-[12:43:11]marconi.brain.DEBUG> Adding labels
-[12:43:15]marconi.brain.INFO> Training with 82128 samples
-[12:43:17]marconi.INFO> /home/s4w3d0ff/.marconi/marconi.json saved
-[12:43:17]marconi.brain.INFO> Brain /home/s4w3d0ff/.marconi/marconi.pickle saved
-[12:43:17]marconi.market.INFO> BTC_ETH thread started
-[12:43:17]marconi.market.INFO> Getting new BTC_ETH candles from Poloniex...
-[12:43:17]urllib3.connectionpool.DEBUG> Starting new HTTPS connection (1): poloniex.com
-[12:43:17]urllib3.connectionpool.DEBUG> https://poloniex.com:443 "GET /public?command=returnChartData&start=1504122000&currencyPair=BTC_ETH&end=1504122197.3275995&period=300 HTTP/1.1" 200 None
-[12:43:17]marconi.market.INFO> Updating BTC_ETH-chart with 1 new entrys!...
-[12:43:17]marconi.market.INFO> Getting BTC_ETH chart data from db
-[12:43:17]marconi.market.DEBUG> Zooming BTC_ETH dataframe...
-[12:43:17]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
-[12:43:17]marconi.brain.DEBUG> Adding labels
-[12:43:17]__main__.INFO> BTC_ETH brain score: 0.999305072967
-[12:43:17]marconi.trading.INFO> Backtesting...
-[12:43:18]__main__.INFO> BTC_ETH
-                        close  predict   btStart   btTotal  btProfit
-date                                                                
-2017-08-23 19:50:00  0.077090        0  8.312700  8.312700       0.0
-2017-08-23 19:57:00  0.077611        0  8.328332  8.328332       0.0
-2017-08-23 20:04:00  0.077475        0  8.324241  8.324241       0.0
-2017-08-23 20:11:00  0.077300        0  8.319000  8.319000       0.0
-2017-08-23 20:18:00  0.077127        0  8.313800  8.313800       0.0
-                        close  predict   btStart   btTotal  btProfit
-date                                                                
-2017-08-30 19:08:00  0.084280        0  8.528389  8.528110 -0.000279
-2017-08-30 19:15:00  0.084495        0  8.534853  8.534553 -0.000300
-2017-08-30 19:22:00  0.084500        0  8.535000  8.534700 -0.000300
-2017-08-30 19:29:00  0.084600        0  8.538000  8.537690 -0.000310
-2017-08-30 19:36:00  0.084454        0  8.533630  8.533334 -0.000296
+[04:45:06]marconi.INFO> Building training dataset
+[04:45:06]marconi.market.INFO> Getting new BTC_ETH candles from Poloniex...
+[04:45:07]marconi.market.INFO> Updating BTC_ETH-chart with 22 new entrys!...
+[04:45:07]marconi.market.INFO> Getting BTC_ETH chart data from db
+[04:45:07]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:07]marconi.INFO> Adding BTC_ETH labels
+[04:45:08]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:08]marconi.INFO> Adding BTC_ETH labels
+[04:45:08]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:08]marconi.INFO> Adding BTC_ETH labels
+[04:45:09]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:09]marconi.INFO> Adding BTC_ETH labels
+[04:45:10]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:10]marconi.INFO> Adding BTC_ETH labels
+[04:45:10]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:10]marconi.INFO> Adding BTC_ETH labels
+[04:45:11]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:11]marconi.INFO> Adding BTC_ETH labels
+[04:45:12]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:12]marconi.INFO> Adding BTC_ETH labels
+[04:45:12]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:12]marconi.INFO> Adding BTC_ETH labels
+[04:45:13]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:13]marconi.INFO> Adding BTC_ETH labels
+[04:45:14]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:14]marconi.INFO> Adding BTC_ETH labels
+[04:45:14]marconi.market.INFO> Adding indicators to BTC_ETH dataframe
+[04:45:14]marconi.INFO> Adding BTC_ETH labels
+[04:45:15]marconi.brain.WARNING> Overwriting an already trained brain!
+[04:45:15]marconi.brain.INFO> Training with 73620 samples
+[04:45:16]marconi.market.INFO> BTC_ETH thread started
 ^C
-[12:43:25]marconi.INFO> Stopping all markets
-[12:43:26]marconi.market.INFO> BTC_ETH thread joined
-[12:43:26]marconi.INFO> Markets stopped
+[04:46:21]marconi.market.INFO> BTC_ETH thread joined
+[04:46:21]__main__.INFO> Saving all markets
+[04:46:21]marconi.INFO> /home/s4w3d0ff/.marconi/BTC_ETH.json saved
+[04:46:21]marconi.brain.INFO> Brain /home/s4w3d0ff/.marconi/BTC_ETH.pickle saved
 ```
 You should now have a .pickle file in the same directory as your json file. The .json file has also been updated with the location of the newly saved .pickle file. The .pickle file is the saved `marconi.brain.Brain.lobe` which can be loaded into a fresh brain using: `marconi.brain.Brain.load()`
 
