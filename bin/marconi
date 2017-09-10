@@ -31,8 +31,7 @@ from sys import argv
 logging.basicConfig(
     level=logging.INFO,
     datefmt=OR("%H:%M:%S"),
-    format="[%(asctime)s]" + GR("%(name)s.%(levelname)s") +
-    "> %(message)s")
+    format="[%(asctime)s]" + GR("%(name)s.%(levelname)s") + "> %(message)s")
 logging.getLogger('requests').setLevel(logging.WARNING)
 
 if len(argv) > 1:
