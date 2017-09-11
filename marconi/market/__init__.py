@@ -25,7 +25,7 @@ from __future__ import print_function
 from ..tools import (getMongoColl, time, pd,
                      pymongo, RD, GR, sleep, Thread, SATOSHI,
                      TRADE_MIN, getLogger, UTCstr2epoch)
-from ..poloniex import PoloniexError, Poloniex
+from ..poloniex import PoloniexError, wsPoloniex
 from ..trading import StopLimit
 from .. import indicators
 
@@ -47,7 +47,7 @@ class Market(object):
         """
         self.api = api
         if not self.api:
-            self.api = Poloniex(jsonNums=float)
+            self.api = wsPoloniex(jsonNums=float)
         self.pair = pair
         self.parent, self.child = self.pair.split('_')
         self.stopOrders = []
@@ -193,8 +193,12 @@ class Market(object):
                 trade['fee'] = float(trade['fee'])
                 db.update_one({"_id": _id}, {"$set": trade}, upsert=True)
 
-        return pd.DataFrame(list(db.find(query).sort('date',
-                                                     pymongo.ASCENDING)))
+        df = pd.DataFrame(list(db.find(query).sort('date',
+                                                   pymongo.ASCENDING)))
+        if 'date' in df:
+            df['date'] = pd.to_datetime(df["date"], unit='s')
+            df.set_index('date', inplace=True)
+        return df
 
     def myLendingHistory(self, coin=False, query=False):
         """
@@ -233,15 +237,14 @@ class Market(object):
         return pd.DataFrame(list(db.find(query).sort('open',
                                                      pymongo.ASCENDING)))
 
-    def cancelOrders(arg=False):
+    def cancelOrders(self, arg=False):
         """
         Generator method that cancels all orders for self.pair. Can be
         limited to just buy or sell orders using the 'arg' param,
         yields results from 'self.api.cancelOrder'
         """
         # get open orders for 'market'
-        orders = self.openOrders
-        for order in orders:
+        for order in self.openOrders:
             # if arg = 'sell' or 'buy' skip the orders not labeled as such
             if arg in ('sell', 'buy') and order['type'] != arg:
                 continue
@@ -334,7 +337,8 @@ class Market(object):
                 return order
             # update rate
             rate += offset
-        return self.api.move(orderNumber, rate)
+        logger.info('Moving %s order %s', self.pair, str(orderNumber))
+        return self.api.moveOrder(orderNumber, rate)
 
 
 class RunningMarket(Market):

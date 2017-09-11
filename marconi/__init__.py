@@ -186,10 +186,12 @@ class Marconi(object):
         for m in self.markets:
             if train:
                 self.markets[m].train()
+            self.markets[m].api.startWebsocket()
             self.markets[m].start()
 
     def stop(self):
         for m in self.markets:
+            self.markets[m].api.stopWebsocket()
             self.markets[m].stop()
 
     def start(self, train=False):
