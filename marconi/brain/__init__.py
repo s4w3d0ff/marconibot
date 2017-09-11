@@ -171,7 +171,7 @@ class Brain(object):
             joblib.dump(self.lobe, location + ".pickle")
             logger.info('Brain %s saved', location + '.pickle')
         else:
-            return logging.error('Brain is not trained yet! Nothing to save...')
+            return logger.error('Brain is not trained yet! Nothing to save...')
 
     def load(self, location="brain"):
         """ Loads a brain pickle """
