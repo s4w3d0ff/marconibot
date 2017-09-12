@@ -93,6 +93,7 @@ def sma(df, window, targetcol='close', colname='sma', stddev=2.0):
     df[colname + 'range'] = df[colname + 'top'] - df[colname + 'bottom']
     df[colname + 'percent'] = ((df[targetcol] - df[colname + 'bottom']) /
                                df[colname + 'range']) - 0.5
+
     return df.round({colname: 8,
                      colname + 'top': 8,
                      colname + 'bottom': 8,
@@ -150,10 +151,6 @@ def macd(df, window, fastcol='ema', slowcol='sma'):
     slowcol = string name of slow moving average column
         default: 'sma'
     """
-    if fastcol not in df and fastcol == 'ema':
-        df = ema(df, window, colname='ema')
-    if slowcol not in df and slowcol == 'sma':
-        df = sma(df, window, colname='sma')
     df['macd'] = df[fastcol] - df[slowcol]
     df['macdSignal'] = df['macd'].ewm(span=window,
                                       min_periods=1,

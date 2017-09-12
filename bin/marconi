@@ -21,93 +21,23 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from marconi import Marconi, SRMarket
-from marconi.trading import backtest as backtester
-from marconi.tools import (getHomeDir, getLogger,
-                           time, sleep, OR, GR)
+from marconi import Marconi
+from marconi.tools import getLogger, OR, GR
 
 logger = getLogger(__name__)
 
+import logging
+from sys import argv
+logging.basicConfig(
+    level=logging.INFO,
+    datefmt=OR("%H:%M:%S"),
+    format="[%(asctime)s]" + GR("%(name)s.%(levelname)s") + "> %(message)s")
+logging.getLogger('requests').setLevel(logging.WARNING)
 
-class cMarket(SRMarket):
-    """ My custom smart running market """
+if len(argv) > 1:
+    datadir = argv[1]
+else:
+    datadir = '.marconi'
 
-    def run(self, interval, indica={}, tradeMin=False,
-            backtest=False, moveMin=0):
-        """
-        This method will be ran in a thread by the RunningMarket and
-        started by 'Marconi.trade(start=True)'
-        """
-        while self._running:
-            cstart = time() - self.api.WEEK
-            if backtest and 'start' in backtest:
-                cstart = backtest['start']
-            # get testing dataframe
-            df = self.chart(start=cstart,
-                            zoom=str(interval) + 'T',
-                            indica=indica)
-            df = self.brain.prep(df).set_index('date')
-            # get predictions
-            df['predict'] = self.brain.predict(df)
-            logger.info('%s brain score: %s', self.pair, self.brain.score(df))
-            if backtest:
-                df = backtester(df,
-                                parentBal=backtest['parent'],
-                                childBal=backtest['child'],
-                                tradeSize=tradeMin,
-                                moveMin=moveMin)
-                # backtest only once
-                backtest = False
-                logger.info("%s\n%s\n%s",
-                            self.pair,
-                            df[['close',
-                                'predict',
-                                'btStart',
-                                'btTotal',
-                                'btProfit']].head(5),
-                            df[['close',
-                                'predict',
-                                'btStart',
-                                'btTotal',
-                                'btProfit']].tail(5))
-            else:
-                logger.info("%s\n%s", self.pair,
-                            df[['close', 'predict']].tail(10))
-            logger.info('%s\n%s', self.pair, df['predict'].count())
-            del df
-            # wait interval (with one eye open)
-            for i in range(int((interval * 60) // 2)):
-                if not self._running:
-                    break
-                sleep(2)
-
-
-if __name__ == "__main__":
-    import os
-    import logging
-    logging.basicConfig(
-        level=logging.DEBUG,
-        datefmt=OR("%H:%M:%S"),
-        format="[%(asctime)s]" + GR("%(name)s.%(levelname)s") +
-        "> %(message)s")
-    dataDir = getHomeDir() + '/.marconi'
-    # create data dir if it does not exist
-    if not os.path.isdir(dataDir):
-        os.makedirs(dataDir)
-        raise RuntimeError(
-            "A 'marconi.json' file needs to be created in %s", dataDir)
-
-    configLoc = dataDir + '/marconi.json'
-    # train bot with config
-    bot = Marconi(configLoc)
-    bot.train()
-    # save trained brain
-    bot.save(configLoc.split('.')[0] + '.' + configLoc.split('.')[1])
-    # pass our custom market class to Marconi, and start the trade threads
-    bot.trade(marketClass=cMarket, start=True)
-    while True:
-        try:
-            sleep(3)
-        except:
-            bot.stopMarkets()
-            break
+bot = Marconi(datadir)
+bot.start(train=True)

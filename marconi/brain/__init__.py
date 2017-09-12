@@ -27,22 +27,22 @@ from sklearn.metrics import accuracy_score
 from sklearn.externals import joblib
 
 from ..market import Market
-from ..tools import getLogger, pd, np, time, shuffleDataFrame, json, isString
+from ..tools import (getLogger, pd, np, time, shuffleDataFrame,
+                     json, isString, TRADE_MIN)
 
 
 logger = getLogger(__name__)
 
 
-def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False,
-                 cciLimit=False, macdLimit=False, forceLimit=False,
-                 eomLimit=False):
+def customLabels(df, *args, **kwargs):
     """
     Creates labels from a dataframe
     """
     logger.debug('Adding labels')
 
-    def _labels(candle, bbLimit, rsiLimit, pchLimit,
-                cciLimit, macdLimit, forceLimit, eomLimit):
+    def _labels(candle, bbLimit=False, rsiLimit=False, pchLimit=False,
+                cciLimit=False, macdLimit=False, forceLimit=False,
+                eomLimit=False):
         score = 0
         if bbLimit:
             smabb = candle['smapercent']
@@ -94,18 +94,13 @@ def customLabels(df, bbLimit=False, rsiLimit=False, pchLimit=False,
 
         return score
 
-    return df.apply(_labels, axis=1, bbLimit=bbLimit,
-                    rsiLimit=rsiLimit, pchLimit=pchLimit,
-                    cciLimit=cciLimit, macdLimit=macdLimit,
-                    forceLimit=forceLimit, eomLimit=eomLimit)
+    return df.apply(_labels, axis=1, *args, **kwargs)
 
 
 def prepDataframe(df):
     """ Preps a dataframe for sklearn, removing infinity and droping nan """
-    # make infinity nan
-    df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    # drop nan
-    return df.dropna()
+    # make infinity nan and drop nan
+    return df.replace([np.inf, -np.inf], np.nan).dropna()
 
 
 def splitTrainTestData(df, size=1):
@@ -140,36 +135,14 @@ class Brain(object):
         self.split = splitTrainTestData
         self.prep = prepDataframe
 
-    def train(self, markets=False, featureset=False, labelFunc=customLabels,
-              labelArgs={}, shuffle=True, preprocess=False):
-        if not markets or not featureset:
-            return logger.error(
-                'Need both a markets and featureset param to train')
+    def train(self, df, shuffle=True, preprocess=False, *args, **kwargs):
+        """
+        Takes a dataframe of features + a 'label' column and trains the lobe
+        """
         if self._trained:
             logger.warning('Overwriting an already trained brain!')
             self._trained = False
-        self.markets = markets
-        self.featureset = featureset
-        self.labelFunc = labelFunc
-        if isString(self.labelFunc):
-            exec("self.labelFunc = " + labelFunc)
-        self.labelArgs = labelArgs
-        self.shuffle = shuffle
-        self.preprocess = preprocess
 
-        first = True
-        logger.info('Building training dataset')
-        for market in markets:
-            # append each df with labels
-            df = Market(self.api, market).chart(**markets[market]).dropna()
-            df['label'] = self.labelFunc(df, **self.labelArgs)
-            if first:
-                first = False
-                trainDF = df[self.featureset + ['label']]
-            else:
-                trainDF = pd.concat([trainDF, df[self.featureset + ['label']]])
-        # prep df, remove nan
-        df = self.prep(trainDF)
         # shuffle data for good luck
         if shuffle:
             df = shuffleDataFrame(df)
@@ -185,35 +158,25 @@ class Brain(object):
 
     def predict(self, df):
         """ Get a prediction from the votingLobe """
-        return self.lobe.predict(self.prep(df)[self.featureset].values)
+        return self.lobe.predict(self.prep(df).values)
 
     def score(self, df, test='predict'):
         """ Get a prediction score from the votingLobe """
         df = self.prep(df)
-        df['label'] = self.labelFunc(df, **self.labelArgs)
         return accuracy_score(df[test].values, df['label'].values)
 
-    def save(self, fname="brain"):
+    def save(self, location="brain"):
         """ Pickle the brain """
         if self._trained:
-            joblib.dump(self.lobe, fname + ".pickle")
-            logger.info('Brain %s saved', fname + '.pickle')
+            joblib.dump(self.lobe, location + ".pickle")
+            logger.info('Brain %s saved', location + '.pickle')
         else:
-            return logging.error('Brain is not trained yet! Nothing to save...')
+            return logger.error('Brain is not trained yet! Nothing to save...')
 
-    def load(self, fname="brain", config=False):
+    def load(self, location="brain"):
         """ Loads a brain pickle """
-        logger.info('Loading saved brain %s', fname + '.pickle')
-        self.lobe = joblib.load(fname + ".pickle")
-        if config:
-            self.featureset = config['featureset']
-            self.markets = config['markets']
-            self.labelFunc = config['labelFunc']
-            if isString(self.labelFunc):
-                exec("self.labelFunc = " + config['labelFunc'])
-            self.labelArgs = config['labelArgs']
-            self.shuffle = config['shuffle']
-            self.preprocess = config['preprocess']
+        logger.info('Loading saved brain %s', location + '.pickle')
+        self.lobe = joblib.load(location + ".pickle")
         self._trained = True
 
 
@@ -221,7 +184,61 @@ class SmartMarket(Market):
     """ A child class of 'Market' with an instance of 'Brain' """
 
     def __init__(self, brain=False, *args, **kwargs):
-        self.brain = brain
         super(SmartMarket, self).__init__(*args, **kwargs)
-        if not self.brain:
+        if isString(brain):
             self.brain = Brain(self.api)
+            try:
+                self.brain.load(brain.split('.pickle')[0])
+            except Exception as e:
+                logger.exception(e)
+        if not brain:
+            self.brain = Brain(self.api)
+
+    def backtest(self, df, parent, child, *args, **kwargs):
+        logger.info('Backtesting %s...', self.pair)
+        bals = {
+            'pstart': float(parent),
+            'cstart': float(child),
+            'ptotal': float(parent),
+            'ctotal': float(child),
+        }
+
+        def _backtest(row, moveOn='predict', tradeMin=TRADE_MIN, moveMin=0):
+            # get move and rate
+            move = row[moveOn]
+            rate = row['close']
+
+            # if buy
+            if move > moveMin:
+                parentAmt = tradeMin * move
+                childAmt = parentAmt / rate
+                if parentAmt < TRADE_MIN:
+                    logger.debug('Parent trade amount is below the minimum!')
+                elif bals['ptotal'] - parentAmt < 0:
+                    logger.debug('Not enough parentCoin!')
+                else:
+                    bals['ctotal'] = bals['ctotal'] + childAmt
+                    bals['ptotal'] = bals['ptotal'] - parentAmt
+
+            # if sell
+            if move < -moveMin:
+                parentAmt = abs(tradeMin * move)
+                childAmt = parentAmt / rate
+                if parentAmt < TRADE_MIN:
+                    logger.debug('Parent trade amount is below the minimum!')
+                elif bals['ctotal'] - childAmt < 0:
+                    logger.debug('Not enough childCoin!')
+                else:
+                    bals['ptotal'] = bals['ptotal'] + parentAmt
+                    bals['ctotal'] = bals['ctotal'] - childAmt
+
+            return pd.Series({'btParent': bals['ptotal'],
+                              'btChild': bals['ctotal']})
+
+        df = df.merge(df.apply(_backtest, axis=1, *args, **kwargs),
+                      left_index=True, right_index=True)
+        df['btTotal'] = df['btParent'] + (df['btChild'] * df['close'])
+        df['btStart'] = bals['pstart'] + (bals['cstart'] * df['close'])
+        df['btProfit'] = df['btTotal'] - df['btStart']
+        df['btProfit'] = df['btProfit'].round(8)
+        return df

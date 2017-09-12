@@ -20,11 +20,12 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
 from __future__ import print_function
 from ..tools import (getMongoColl, time, pd,
                      pymongo, RD, GR, sleep, Thread, SATOSHI,
                      TRADE_MIN, getLogger, UTCstr2epoch)
-from ..poloniex import PoloniexError
+from ..poloniex import PoloniexError, wsPoloniex
 from ..trading import StopLimit
 from .. import indicators
 
@@ -39,16 +40,17 @@ class Market(object):
     convienance methods for common functions done on markets.
     """
 
-    def __init__(self, api, pair):
+    def __init__(self, pair, api=False):
         """
-        api = an instance of 'poloniex.Poloniex'
         pair = str market currencyPair. example: 'BTC_LTC'
+        api = an instance of 'poloniex.Poloniex'
         """
         self.api = api
-        self.api.jsonNums = float
-        self.parent, self.child = pair.split('_')
+        if not self.api:
+            self.api = wsPoloniex(jsonNums=float)
         self.pair = pair
-        self.stops = []
+        self.parent, self.child = self.pair.split('_')
+        self.stopOrders = []
 
     @property
     def tick(self):
@@ -74,7 +76,7 @@ class Market(object):
         """ Get open orders from poloniex """
         return self.api.returnOpenOrders(self.pair)
 
-    def chart(self, start=False, zoom=False, indica={}, v=False):
+    def chart(self, start=False, zoom=False, indica=False, v=False):
         """ returns chart data in a dataframe from mongodb, updates/fills the
         data, the date column is the '_id' of each candle entry, and
         the date column has been removed. Use 'start' to restrict the amount
@@ -137,12 +139,26 @@ class Market(object):
                                                   'volume': 'sum',
                                                   'weightedAverage': 'mean'})
             df.reset_index(inplace=True)
+        if indica:
+            df = self.addIndicators(df, indica)
+        return df
+
+    def addIndicators(self, df, indica={}):
         # add indicators
         logger.info('Adding indicators to %s dataframe', self.pair)
+        # save macd for last if it is defined
+        macdC = False
+        if 'macd' in indica:
+            macdC = indica.pop('macd')
+        # fill df with indicators
         availInd = dir(indicators)
         for ind in indica:
             if ind in availInd:
                 df = getattr(indicators, ind)(df, **indica[ind])
+        # do macd last if it is defined
+        if macdC:
+            df = getattr(indicators, 'macd')(df, **macdC)
+            indica['macd'] = macdC
         df['percentChange'] = df['close'].pct_change().round(8) * 100
         return df
 
@@ -177,15 +193,21 @@ class Market(object):
                 trade['fee'] = float(trade['fee'])
                 db.update_one({"_id": _id}, {"$set": trade}, upsert=True)
 
-        return pd.DataFrame(list(db.find(query).sort('date',
-                                                     pymongo.ASCENDING)))
+        df = pd.DataFrame(list(db.find(query).sort('date',
+                                                   pymongo.ASCENDING)))
+        if 'date' in df:
+            df['date'] = pd.to_datetime(df["date"], unit='s')
+            df.set_index('date', inplace=True)
+        return df
 
-    def myLendingHistory(self, coin=False, start=False):
+    def myLendingHistory(self, coin=False, query=False):
         """
         Retrives and saves lendingHistory in 'poloniex.lendingHistory' database
         coin = coin to get history for (defaults to self.child)
-        start = starting epoch date to get data from
+        query = pymongo query for .find() (defaults to last 24 hours)
         """
+        if not query:
+            query = {'currency': coin, '_id': {'$gt': time() - self.api.DAY}}
         if not coin:
             coin = self.child
         db = getMongoColl('poloniex', 'lendingHistory')
@@ -195,8 +217,7 @@ class Market(object):
             old = list(db.find({"currency": coin}).sort('open',
                                                         pymongo.ASCENDING))[-1]
         except:
-            logger.warning(
-                RD('No %s loan history found in database!'), coin)
+            logger.warning(RD('No %s loan history found in database!'), coin)
         # get new entries
         new = self.api.returnLendingHistory(start=old['open'] - 1)
         nLoans = [loan for loan in new if loan['currency'] == coin]
@@ -213,22 +234,17 @@ class Market(object):
                 loan['fee'] = float(loan['fee'])
                 loan['earned'] = float(loan['earned'])
                 db.update_one({'_id': _id}, {'$set': loan}, upsert=True)
-        if not start:
-            start = time() - self.api.DAY
-        return pd.DataFrame(
-            list(db.find({'currency': coin,
-                          '_id': {'$gt': start}
-                          }).sort('open', pymongo.ASCENDING)))
+        return pd.DataFrame(list(db.find(query).sort('open',
+                                                     pymongo.ASCENDING)))
 
-    def cancelOrders(arg=False):
+    def cancelOrders(self, arg=False):
         """
         Generator method that cancels all orders for self.pair. Can be
         limited to just buy or sell orders using the 'arg' param,
         yields results from 'self.api.cancelOrder'
         """
         # get open orders for 'market'
-        orders = self.openOrders
-        for order in orders:
+        for order in self.openOrders:
             # if arg = 'sell' or 'buy' skip the orders not labeled as such
             if arg in ('sell', 'buy') and order['type'] != arg:
                 continue
@@ -321,7 +337,8 @@ class Market(object):
                 return order
             # update rate
             rate += offset
-        return self.api.move(orderNumber, rate)
+        logger.info('Moving %s order %s', self.pair, str(orderNumber))
+        return self.api.moveOrder(orderNumber, rate)
 
 
 class RunningMarket(Market):
@@ -329,6 +346,16 @@ class RunningMarket(Market):
     Subclass of Market that includes a thread and a start and stop method.
     Users should overwrite the 'self.run' method to use.
     """
+
+    def __init__(self, *args, **kwargs):
+        super(RunningMarket, self).__init__(*args, **kwargs)
+        self.startTime = None
+
+    @property
+    def tradeHistory(self):
+        if not self.startTime:
+            return logger.error("%s doesn't seem to be running", self.pair)
+        return self.myTradeHistory(query={"date": {"$gt": self.startTime}})
 
     def run(self):
         while self._running:
@@ -348,6 +375,7 @@ class RunningMarket(Market):
         self._t.daemon = True
         self._running = True
         self._t.start()
+        self.startTime = time()
         logger.info('%s thread started', self.pair)
 
     def stop(self):
