@@ -710,7 +710,6 @@ class wsPoloniex(Poloniex):
         self._t._running = True
         self._t.start()
         logger.info('Websocket thread started')
-        logger.debug(self._ws.url)
 
     def stopWebsocket(self):
         """ Stop/join the websocket thread """
