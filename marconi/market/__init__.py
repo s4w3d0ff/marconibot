@@ -327,17 +327,23 @@ class Market(object):
             rate = float(self.tick['lowestAsk'])
             # our order is already the front
             if rate == order['rate']:
-                return order
-            # update rate
-            rate += -offset
+                # move rate higher by offset
+                rate += offset
+            # order is not in front
+            else:
+                # move rate lower by offset
+                rate += -offset
         if order['type'] == 'buy':
             rate = float(self.tick['highestBid'])
             # our order is already the front
             if rate == order['rate']:
-                return order
-            # update rate
-            rate += offset
-        logger.info('Moving %s order %s', self.pair, str(orderNumber))
+                # move rate lower by offset
+                rate += -offset
+            # order is not in front
+            else:
+                # move rate higher by offset
+                rate += offset
+        logger.debug('Moving %s order %s', self.pair, str(orderNumber))
         return self.api.moveOrder(orderNumber, rate)
 
 

@@ -189,18 +189,20 @@ class Marconi(object):
             self.markets[m].api.startWebsocket()
             self.markets[m].start()
 
-    def stop(self):
+    def stop(self, save=True):
         for m in self.markets:
             self.markets[m].api.stopWebsocket()
             self.markets[m].stop()
+        if save:
+            self.save()
 
-    def start(self, train=False):
+    def start(self, train=False, save=True):
         self.run(train)
         while self._running:
             try:
                 sleep(2)
-            except:
+            except Exception as e:
+                logger.exception(e)
                 self._running = False
                 break
-        self.stop()
-        self.save()
+        self.stop(save)
