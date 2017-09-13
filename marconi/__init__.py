@@ -181,12 +181,9 @@ class Marconi(object):
             self.markets[m].load(location=os.path.join(self.configDir,
                                                        m))
 
-    def run(self, train=False):
+    def run(self):
         self._running = True
         for m in self.markets:
-            if train:
-                self.markets[m].train()
-            self.markets[m].api.startWebsocket()
             self.markets[m].start()
 
     def stop(self, save=True):
@@ -196,13 +193,7 @@ class Marconi(object):
         if save:
             self.save()
 
-    def start(self, train=False, save=True):
-        self.run(train)
-        while self._running:
-            try:
-                sleep(2)
-            except Exception as e:
-                logger.exception(e)
-                self._running = False
-                break
-        self.stop(save)
+    def start(self, train=False):
+        if train:
+            self.train()
+        self.run()
