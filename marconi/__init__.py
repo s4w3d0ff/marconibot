@@ -21,10 +21,10 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-import os
 from marconi.market import RunningMarket
 from marconi.brain import Brain, SmartMarket
-from marconi.poloniex import wsPoloniex, Coach
+from marconi.poloniex import Poloniex, wsPoloniex, Coach, PoloniexError
+from marconi.trading import StopLimit, Loaner, Liquidator
 from marconi.tools import *
 
 __version__ = '0.1.3'
