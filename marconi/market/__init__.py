@@ -175,8 +175,8 @@ class Market(object):
         hist = self.api.returnTradeHistory(self.pair, start=old['date'] - 1)
 
         if len(hist) > 0:
-            logger.info('%d new %s trade database entries',
-                        len(hist), self.pair)
+            logger.debug('%d new %s trade database entries',
+                         len(hist), self.pair)
 
             for trade in hist:
                 _id = trade['globalTradeID']
