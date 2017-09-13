@@ -108,10 +108,10 @@ class Market(object):
                                            start=int(last['_id']))
         # add new candles
         updateSize = len(new)
-        logger.info('Updating %s with %s new entrys!...',
-                    dbcolName, str(updateSize))
+
         if updateSize > 10000:
-            logger.warning('This could take some time...')
+            logger.info('Updating %s with %s new entrys!... This could take some time...',
+                        dbcolName, str(updateSize))
         for i in range(updateSize):
             db.update_one({'_id': new[i]['date']}, {
                           "$set": new[i]}, upsert=True)

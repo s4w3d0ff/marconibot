@@ -643,10 +643,10 @@ class wsPoloniex(Poloniex):
 
         if message[0] == 1002:
             if message[1] == 1:
-                return logger.info('Subscribed to ticker')
+                return logger.debug('Subscribed to ticker')
 
             if message[1] == 0:
-                return logger.info('Unsubscribed to ticker')
+                return logger.debug('Unsubscribed to ticker')
 
             data = message[2]
             data = [float(dat) for dat in data]
