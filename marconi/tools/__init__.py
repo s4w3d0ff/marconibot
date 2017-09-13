@@ -22,8 +22,10 @@
 #
 # core ---------------------------------------------------------------------
 import sys
+import os
 import logging
 import json
+from pathlib import Path
 from functools import wraps
 from math import floor, ceil
 from math import pi as PI
@@ -92,11 +94,9 @@ TRADE_MIN = 0.0001
 
 def getHomeDir():
     try:
-        from pathlib import Path
         return str(Path.home())
     except:
-        from os.path import expanduser
-        return expanduser("~user")
+        return os.path.expanduser("~")
 
 
 getLogger = logging.getLogger
