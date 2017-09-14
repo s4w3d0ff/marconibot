@@ -66,7 +66,8 @@ Drop 'poloniex' Database:
 python3 -c "import pymongo; pymongo.MongoClient().drop_database('poloniex')"
 ```
 ### Running the example bot:
-There is an example config located in https://github.com/s4w3d0ff/marconibot/examples. If you run the `bin/marconi` script it will create a data directory in your home folder named '.marconi' and throw an error ``"'MARKET_PAIR.json' files need to be created in..."``. Copy the json file from the examples directory to the created '.marconi' directory and run the bin/marconi script again. It should look similar this:
+There is an example config located in [marconibot/examples](https://github.com/s4w3d0ff/marconibot/tree/master/examples). If you run the `bin/marconi` script it will create a data directory in your home folder named '.marconi' and throw an error ``"A 'marconi.json' file needs to be created in..."``. Copy the json file in the examples directory to the created '.marconi' directory
+and run the bin/marconi script again. It should look similar this:
 ```
 s4w3d0ff@8core~> marconi
 Traceback (most recent call last):
