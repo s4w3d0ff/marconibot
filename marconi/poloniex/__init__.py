@@ -255,7 +255,6 @@ class Poloniex(object):
                              parse_int=self.jsonNums)
         except:
             logger.error(data)
-            logger.debug(ret.headers)
             raise PoloniexError('Invalid json response returned')
 
         # check if poloniex returned an error
