@@ -23,7 +23,7 @@
 #
 from setuptools import setup
 setup(name='marconi',
-      version='0.1.2',
+      version='0.1.3',
       description='Poloniex API trader for Python 3',
       url='https://github.com/s4w3d0ff/marconibot',
       author='s4w3d0ff',

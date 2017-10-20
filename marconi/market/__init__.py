@@ -21,7 +21,6 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-from __future__ import print_function
 from ..tools import (getMongoColl, time, pd,
                      pymongo, RD, GR, sleep, Thread, SATOSHI,
                      TRADE_MIN, getLogger, UTCstr2epoch)
@@ -76,7 +75,7 @@ class Market(object):
         """ Get open orders from poloniex """
         return self.api.returnOpenOrders(self.pair)
 
-    def chart(self, start=False, zoom=False, indica=False, v=False):
+    def chart(self, start=False, zoom=False, indica=False):
         """ returns chart data in a dataframe from mongodb, updates/fills the
         data, the date column is the '_id' of each candle entry, and
         the date column has been removed. Use 'start' to restrict the amount
@@ -98,28 +97,26 @@ class Market(object):
         # no entrys found, get all 5min data from poloniex
         if not last:
             logger.warning('%s collection is empty!', dbcolName)
-            logger.info('Getting new %s candles from Poloniex...', self.pair)
+            logger.debug('Getting new %s candles from Poloniex...', self.pair)
             new = self.api.returnChartData(self.pair,
                                            period=60 * 5,
                                            start=time() - self.api.YEAR * 13)
         else:
-            logger.info('Getting new %s candles from Poloniex...', self.pair)
+            logger.debug('Getting new %s candles from Poloniex...', self.pair)
             new = self.api.returnChartData(self.pair,
                                            period=60 * 5,
                                            start=int(last['_id']))
         # add new candles
         updateSize = len(new)
-        logger.info('Updating %s with %s new entrys!...',
-                    dbcolName, str(updateSize))
+
+        if updateSize > 10000:
+            logger.info('Updating %s with %s new entrys!... This could take some time...',
+                        dbcolName, str(updateSize))
         for i in range(updateSize):
-            if v and not i % 2:
-                print('%d/%d' % (i + 1, updateSize), end='\r')
             db.update_one({'_id': new[i]['date']}, {
                           "$set": new[i]}, upsert=True)
-        if v:
-            print('\n', end='\r')
 
-        logger.info('Getting %s chart data from db', self.pair)
+        logger.debug('Getting %s chart data from db', self.pair)
         # make dataframe
         df = pd.DataFrame(list(db.find({"_id": {"$gt": start}}
                                        ).sort('timestamp', pymongo.ASCENDING)))
@@ -145,7 +142,7 @@ class Market(object):
 
     def addIndicators(self, df, indica={}):
         # add indicators
-        logger.info('Adding indicators to %s dataframe', self.pair)
+        logger.debug('Adding indicators to %s dataframe', self.pair)
         # save macd for last if it is defined
         macdC = False
         if 'macd' in indica:
@@ -178,8 +175,8 @@ class Market(object):
         hist = self.api.returnTradeHistory(self.pair, start=old['date'] - 1)
 
         if len(hist) > 0:
-            logger.info('%d new %s trade database entries',
-                        len(hist), self.pair)
+            logger.debug('%d new %s trade database entries',
+                         len(hist), self.pair)
 
             for trade in hist:
                 _id = trade['globalTradeID']
@@ -327,17 +324,23 @@ class Market(object):
             rate = float(self.tick['lowestAsk'])
             # our order is already the front
             if rate == order['rate']:
-                return order
-            # update rate
-            rate += -offset
+                # move rate higher by offset
+                rate += offset
+            # order is not in front
+            else:
+                # move rate lower by offset
+                rate += -offset
         if order['type'] == 'buy':
             rate = float(self.tick['highestBid'])
             # our order is already the front
             if rate == order['rate']:
-                return order
-            # update rate
-            rate += offset
-        logger.info('Moving %s order %s', self.pair, str(orderNumber))
+                # move rate lower by offset
+                rate += -offset
+            # order is not in front
+            else:
+                # move rate higher by offset
+                rate += offset
+        logger.debug('Moving %s order %s', self.pair, str(orderNumber))
         return self.api.moveOrder(orderNumber, rate)
 
 
